@@ -149,7 +149,8 @@ ouvrir la comparaison et lire chaque caractéristique sur une ligne, avec une va
    comparaison affichée sur la fiche, et le bouton devient « Retirer de la comparaison » ;
    **When** j'ouvre la fiche d'un écran, **Then** le bouton est indisponible avec la raison.
 9. **Given** un produit sélectionné qui n'existe plus dans le catalogue, **When** j'ouvre le
-   catalogue, **Then** il est retiré de la sélection avec un message bienveillant.
+   catalogue ou une fiche produit (là où la barre de comparaison s'affiche), **Then** il est
+   retiré de la sélection avec un message bienveillant, sans attendre l'ouverture du cadre.
 
 ---
 
@@ -266,9 +267,10 @@ sur une catégorie en un clic.
 - **FR-003**: Plusieurs valeurs cochées pour une même caractéristique MUST être combinées en
   « l'une ou l'autre » ; des caractéristiques différentes MUST être combinées en « et ».
 - **FR-004**: Quand le nombre de produits par valeur est disponible, il MUST être affiché à
-  côté de la valeur, calculé avec tous les autres filtres actifs sauf celui de la
-  caractéristique concernée ; une valeur à 0 MUST être grisée et non cochable, sauf si elle
-  est déjà cochée.
+  côté de chaque valeur de caractéristique **et de chaque marque**, calculé avec tous les
+  autres filtres actifs sauf celui du filtre concerné ; une valeur ou une marque à 0 MUST être
+  grisée et non cochable, sauf si elle est déjà cochée. La liste des marques garde son ordre
+  habituel.
 - **FR-005**: Quand ce nombre n'est pas disponible, les valeurs MUST être proposées sans
   compteur, et la page MUST rester entièrement fonctionnelle.
 - **FR-006**: Une caractéristique dont la liste dépasse l'espace prévu MUST afficher d'abord

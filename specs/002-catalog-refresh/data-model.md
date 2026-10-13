@@ -34,8 +34,15 @@ Source : `ProductFacetsResponseDto` (backend, `dto/response/search/`), endpoint
 | `source` | enum `FacetSource` : `BACKEND = "backend"`, `FALLBACK = "fallback"`, `UNAVAILABLE = "unavailable"` | pilote l'affichage des compteurs et le message discret |
 | `hasCounts` | boolean | vrai seulement pour `BACKEND` |
 | `totalHits` | entier ≥ 0 \| `null` | `null` si `UNAVAILABLE` |
+| `brandCounts` | `Partial<Record<Brand, number>>` \| `null` | compteur par marque (comptage disjonctif du backend) ; `null` en repli et si `UNAVAILABLE` ; une marque absente vaut 0 |
 | `values` | `Record<string, FacetValue[]>` | valeurs texte par clé ; compteur absent (`count: null`) en repli |
 | `ranges` | `Record<string, { min: number \| null; max: number \| null }>` | bornes observées |
+
+Validation : la réponse des facettes passe par `ProductFacetsResponseSchema` ; la réponse du
+repli passe par le schéma de page de produits existant (`lib/schemas/paged.ts` +
+`ProductSchema`) ; une réponse non conforme est loggée en `error` et donne `UNAVAILABLE`
+(constitution V). Une marque inconnue de l'enum `Brand` dans `brands` est ignorée et loggée en
+`warn`.
 
 Règles du repli (`FALLBACK`) : valeurs distinctes non vides des produits de la catégorie,
 triées avec `localeCompare` (`fr`), plafonnées à `FACET_MAX_VALUES` ; bornes = min / max des
@@ -54,6 +61,11 @@ de `TEXT = "text"`).
 | `BOOLEAN` | `key`, `label`, `isChecked` |
 
 `FilterValue` = `{ value, label, count: number | null, isChecked, isDisabled }`.
+
+Les marques sont produites par la même fonction, sous la forme `BrandFilter` =
+`{ values: FilterValue[] }` : une valeur par membre de l'enum `Brand`, dans l'ordre de l'enum
+(liste fixe du lot 1, jamais réordonnée), `count` lu dans `brandCounts` (`null` sans
+compteurs), mêmes règles `isDisabled`.
 
 Règles :
 - l'ordre des facettes suit le schéma de catégorie ; les clés de `FILTER_EXCLUDED_ATTRIBUTES`
