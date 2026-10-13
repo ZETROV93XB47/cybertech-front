@@ -176,6 +176,14 @@ export default tseslint.config(
     },
   },
   {
+    // The theme configuration IS the named-constant table of every visual value
+    // (constitution XIII): each value is documented by its key, e.g. `motion.normal.easing`.
+    files: ["lib/theme/theme.config.ts"],
+    rules: {
+      "@typescript-eslint/no-magic-numbers": "off",
+    },
+  },
+  {
     // Tests: literal values are the point of a test case.
     files: ["tests/**/*.{ts,tsx}"],
     rules: {
