@@ -257,6 +257,16 @@ User stories :
    (POST /events/consume-event, rôle USER uniquement) via une route BFF qui regroupe ou
    échantillonne, sans jamais ralentir l'interface ni envoyer de données personnelles ; aucun
    envoi pour un visiteur. Préciser ce qui est collecté dans la spec (transparence).
+   Constats backend du 2026-10-13 (GorseSyncTasklet, GorseMapper) à intégrer :
+   - les événements sont stockés dans MongoDB puis poussés vers Gorse par une tâche planifiée :
+     les recommandations ne réagissent pas en direct, ne pas le promettre dans l'interface ;
+   - Gorse n'accepte un retour qu'avec un utilisateur ET un produit : un événement sans
+     productId (SEARCH_QUERY sans produit) est stocké mais n'alimente pas les recommandations ;
+     privilégier SEARCH_RESULT_CLICK avec le produit cliqué ;
+   - brancher aussi les surfaces de la feature 002 : clic sur une valeur de filtre (CLICK sans
+     produit, donc sans effet Gorse : à n'envoyer que si utile), ajout à la comparaison et
+     ouverture du cadre de comparaison (CLICK avec productId en attendant un type COMPARE ;
+     prompt 7 optionnel de docs/backend/backend-prompts-lot2.md).
 ````
 
 ---

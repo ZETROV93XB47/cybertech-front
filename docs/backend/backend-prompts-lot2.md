@@ -3,7 +3,7 @@
 > À coller dans une conversation Claude Code ouverte à la racine du repo backend
 > `cybertech-dev-develop_cybertech` (branche `develop_back`). Rédigés le 2026-10-13 à partir de
 > la relecture du commit `a833e58` (voir `docs/backend/api-map.md` §5, §7, §E 23-28, §F).
-> Ordre conseillé : 0 (contexte), puis 1 → 2 → 3 → 4 → 5 ; le prompt 6 est optionnel.
+> Ordre conseillé : 0 (contexte), puis 1 → 2 → 3 → 4 → 5 ; les prompts 6 et 7 sont optionnels.
 > Le prompt 3 (facettes du catalogue) est indépendant des autres : il débloque la feature
 > front 002-catalog-refresh et peut passer en premier.
 > Le prompt 2 dépend du prompt 1 (instantané de la remise). Une conversation par prompt
@@ -257,4 +257,26 @@ Travail demandé :
   réservation de stock, ni commande, ni paiement) ;
 - même rate limit que les lectures de panier ; un test garantit que le devis est égal au total
   de la commande passée juste après avec les mêmes paramètres.
+````
+
+---
+
+## 7. (Optionnel) Type d'événement `COMPARE` pour les recommandations
+
+````text
+Optionnel, utile quand le front branchera les événements comportementaux (sa feature
+004-engagement).
+
+Constat : le front a un comparateur de 2 à 3 produits d'une même catégorie. Ajouter un produit
+à la comparaison est un signal d'intérêt fort, mais UserEventType (entities/enums/UserEventType.java)
+n'a pas de valeur pour lui ; le front enverrait CLICK, qui se confond avec tous les autres clics
+dans Gorse.
+
+Travail demandé :
+- ajouter COMPARE à UserEventType (une valeur, sans renommer les autres) ; il arrive par
+  POST /api/v1/events/consume-event avec le productId du produit ajouté à la comparaison ;
+- vérifier que GorseMapper le transmet comme feedbackType "COMPARE" et que la configuration
+  Gorse (docker-compose, config.toml s'il existe) le compte comme retour positif, au même
+  rang que WISHLIST_ADD ; sinon l'ajouter et l'expliquer dans le résumé ;
+- tests : désérialisation de l'événement, mapping Gorse, IT d'ingestion si elle existe.
 ````
