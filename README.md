@@ -20,13 +20,13 @@ Le front n'est **pas encore codé**. Ce repo contient pour l'instant :
 | `docs/backend/api-map.md` | Cartographie des endpoints, DTO champ par champ, incohérences, endpoints manquants. |
 | `docs/backend/analysis.md` | Architecture, modèle de domaine, flux auth, cycle de vie du panier, contraintes front, risques. |
 | `docs/guest-cart.md` | Conception du panier invité (cookie BFF) et de sa synchronisation avec le panier serveur. |
-| `docs/speckit-prompts.md` | Prompts prêts à coller pour `/speckit.constitution`, `/speckit.specify`, `/speckit.plan` + questions ouvertes. |
+| `docs/speckit-prompts.md` | Prompts prêts à coller pour `/speckit-constitution`, `/speckit-specify`, `/speckit-plan` + questions ouvertes. |
 | `.specify/`, `.claude/` | Spec Kit (intégration Claude Code). |
 
 ## Démarrage (ordre des commandes Spec Kit)
 
-1. `/speckit.constitution` (prompt 4.1 de `docs/speckit-prompts.md`)
-2. `/speckit.specify` (prompt 4.2)
-3. `/speckit.plan` (prompt 4.3)
-4. `/speckit.tasks`
-5. `/speckit.implement`
+1. `/speckit-constitution` (prompt 4.1 de `docs/speckit-prompts.md`)
+2. `/speckit-specify` (prompt 4.2)
+3. `/speckit-plan` (prompt 4.3)
+4. `/speckit-tasks`
+5. `/speckit-implement`
