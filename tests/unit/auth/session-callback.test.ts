@@ -75,3 +75,19 @@ describe("sessionCallback", () => {
     expect(session.error).toBe(SessionError.REFRESH_TOKEN_ERROR);
   });
 });
+
+describe("jwtCallback at a new sign-in", () => {
+  it("forgets the renewal failure of the previous session", async () => {
+    const token = await jwtCallback({
+      token: { sub: "kc-1", error: SessionError.REFRESH_TOKEN_ERROR },
+      account: {
+        provider: "keycloak",
+        type: "oidc",
+        providerAccountId: "kc-1",
+        access_token: ACCESS,
+        expires_at: 2_000_000_000,
+      },
+    });
+    expect(token.error).toBeUndefined();
+  });
+});

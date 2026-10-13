@@ -40,6 +40,7 @@ export async function jwtCallback({ token, account }: JwtCallbackParams): Promis
       idToken: account.id_token,
       expiresAt: (account.expires_at ?? 0) * MS_PER_SECOND,
       roles: readRealmRoles(account.access_token),
+      error: undefined,
     };
   }
   if (token.error || !needsRefresh(token)) {

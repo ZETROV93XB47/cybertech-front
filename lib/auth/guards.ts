@@ -10,16 +10,16 @@
  */
 import "server-only";
 
-import { getToken } from "next-auth/jwt";
+import { getToken, type JWT } from "next-auth/jwt";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { ApiError } from "@/lib/api/errors";
-import { CALLBACK_URL_PARAM, LOGIN_PATH } from "@/lib/constants/auth";
 import { HTTP_STATUS } from "@/lib/constants/http";
 import { getEnv } from "@/lib/env";
 import { FrontErrorCode } from "@/lib/enums/error-code";
 
+import { loginPath } from "./callback-url";
 import { auth } from "./config";
 import { needsRefresh, refreshAccessToken } from "./refresh";
 
@@ -43,18 +43,35 @@ function unauthenticated(): ApiError {
 }
 
 /**
+ * Tells whether the session cookie carries the `__Secure-` prefix (HTTPS deployments).
+ *
+ * @returns `true` when `AUTH_URL` is an HTTPS URL.
+ */
+export function usesSecureCookie(): boolean {
+  return new URL(getEnv().AUTH_URL).protocol === HTTPS_PROTOCOL;
+}
+
+/**
+ * Decrypts the session cookie of the current request (server only: it holds the tokens).
+ *
+ * @returns The cookie content, or `null` without a session.
+ */
+export async function readSessionToken(): Promise<JWT | null> {
+  return getToken({
+    req: { headers: await headers() },
+    secret: getEnv().AUTH_SECRET,
+    secureCookie: usesSecureCookie(),
+  });
+}
+
+/**
  * Returns a valid Keycloak access token for the current request.
  *
  * @returns The access token, renewed if it was about to expire.
  * @throws {ApiError} `UNAUTHENTICATED` (401) when there is no session or it cannot be renewed.
  */
 export async function getAccessTokenOrThrow(): Promise<string> {
-  const env = getEnv();
-  const token = await getToken({
-    req: { headers: await headers() },
-    secret: env.AUTH_SECRET,
-    secureCookie: new URL(env.AUTH_URL).protocol === HTTPS_PROTOCOL,
-  });
+  const token = await readSessionToken();
   if (!token?.accessToken || token.error) {
     throw unauthenticated();
   }
@@ -77,7 +94,6 @@ export async function getAccessTokenOrThrow(): Promise<string> {
 export async function requireSession(callbackPath: string): Promise<void> {
   const session = await auth();
   if (!session || session.error) {
-    const params = new URLSearchParams({ [CALLBACK_URL_PARAM]: callbackPath });
-    redirect(`${LOGIN_PATH}?${params.toString()}`);
+    redirect(loginPath(callbackPath));
   }
 }

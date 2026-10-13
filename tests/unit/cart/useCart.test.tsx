@@ -89,6 +89,21 @@ afterEach(() => {
   session.value = { data: null, status: "unauthenticated" };
 });
 
+describe("useCart — session still loading", () => {
+  it("refuses actions instead of writing a guest cart for a signed-in user", async () => {
+    session.value = { data: null, status: "loading" };
+    const { Wrapper } = wrapper();
+    const { result } = renderHook(() => useCart(), { wrapper: Wrapper });
+    expect(result.current.isReady).toBe(false);
+    let outcome: Awaited<ReturnType<typeof result.current.add>> | undefined;
+    await act(async () => {
+      outcome = await result.current.add(PRODUCT_A, 1);
+    });
+    expect(outcome?.ok).toBe(false);
+    expect(readGuestCart(window.localStorage)).toEqual([]);
+  });
+});
+
 describe("useCart — guest", () => {
   it("reads an empty guest cart without calling the BFF", async () => {
     const { Wrapper } = wrapper();

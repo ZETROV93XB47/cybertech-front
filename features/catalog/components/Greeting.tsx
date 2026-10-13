@@ -40,16 +40,21 @@ function getServerSnapshot(): string {
 /** Props of {@link Greeting}. */
 export interface GreetingProps {
   readonly className?: string;
+  /** Personal title of a signed-in user (« Content de te revoir, Camille »); wins over the rest. */
+  readonly personalTitle?: string | undefined;
 }
 
 /**
  * Main title of the home page.
  *
- * @param props - Optional class names.
+ * @param props - Optional class names and personal title.
  * @returns The `h1`.
  */
-export function Greeting({ className }: GreetingProps): ReactNode {
+export function Greeting({ className, personalTitle }: GreetingProps): ReactNode {
   const greeting = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const isReturning = useRecentlyViewed().length > 0;
+  if (personalTitle) {
+    return <h1 className={className}>{personalTitle}</h1>;
+  }
   return <h1 className={className}>{isReturning ? GREETING_MESSAGES.returning : greeting}</h1>;
 }

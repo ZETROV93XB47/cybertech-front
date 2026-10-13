@@ -14,6 +14,7 @@ import { CartBadge } from "@/components/layout/CartBadge";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
 import { MAIN_CONTENT_ID, SkipLink } from "@/components/layout/SkipLink";
+import { AccountMenu } from "@/features/auth/components/AccountMenu";
 import { GuestCartMerger } from "@/features/cart/components/GuestCartMerger";
 import { CommandPalette } from "@/features/catalog/components/CommandPalette";
 import { SITE_MESSAGES } from "@/features/common/messages";
@@ -80,7 +81,7 @@ export default async function RootLayout({
         <Providers preferences={preferences}>
           <SkipLink />
           <GuestCartMerger />
-          <Header search={<CommandPalette />} cart={<CartBadge />} />
+          <Header search={<CommandPalette />} account={<AccountMenu />} cart={<CartBadge />} />
           <main id={MAIN_CONTENT_ID} className="flex-1">
             {children}
           </main>

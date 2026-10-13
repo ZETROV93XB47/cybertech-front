@@ -97,6 +97,8 @@ export const MERGE_MESSAGES = {
   },
   dropped: (count: number): string =>
     `${count} ${plural(count, "article n'a pas pu être ajouté", "articles n'ont pas pu être ajoutés")} : rupture de stock ou produit retiré.`,
+  pendingReplayed: (outcome: string): string =>
+    `On a repris ce que tu faisais avant de te reconnecter : ${outcome}`,
   retryLater:
     "On n'a pas pu récupérer tout ton panier de visiteur ; on réessaiera à ta prochaine visite.",
 } as const;

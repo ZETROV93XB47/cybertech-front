@@ -20,6 +20,7 @@ import {
 import { useSession } from "next-auth/react";
 import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 
+import { handleExpiredSession } from "@/features/auth/session-expiry";
 import { BffError } from "@/lib/api/bff-client";
 import { CART_STALE_TIME_MS } from "@/lib/constants/cart";
 import { CartAction, CartSource } from "@/lib/enums/cart";
@@ -63,6 +64,11 @@ export interface UseCartResult {
   readonly isLoading: boolean;
   readonly isError: boolean;
   readonly isMutating: boolean;
+  /**
+   * `false` while the session is being read: the cart source is unknown, so actions are refused
+   * (an add would otherwise land in the guest cart of a signed-in user). Disable buttons on it.
+   */
+  readonly isReady: boolean;
   /** Last outcome message, for an `aria-live="polite"` region. */
   readonly announcement: string;
   readonly add: (productUuid: string, quantity: number) => Promise<CartChangeResult>;
@@ -115,15 +121,19 @@ function getServerSnapshot(): string | null {
 /**
  * Reads the cart source from the session.
  *
- * @returns `ACCOUNT` when signed in with a usable session, `GUEST` otherwise, `undefined` while
- * the session is being read.
+ * A signed-in user whose session can no longer be renewed stays on the account cart: the next
+ * change is refused by the BFF (`unauthenticated`), kept aside and replayed after sign-in
+ * (research R14), instead of silently landing in a guest cart.
+ *
+ * @returns `ACCOUNT` when signed in (even with an expired session), `GUEST` otherwise,
+ * `undefined` while the session is being read.
  */
 function useCartSource(): CartSource | undefined {
-  const { data, status } = useSession();
+  const { status } = useSession();
   if (status === LOADING_STATUS) {
     return undefined;
   }
-  return status === AUTHENTICATED_STATUS && !data.error ? CartSource.ACCOUNT : CartSource.GUEST;
+  return status === AUTHENTICATED_STATUS ? CartSource.ACCOUNT : CartSource.GUEST;
 }
 
 /**
@@ -139,7 +149,8 @@ function toFailure(error: unknown): CartChangeResult {
 }
 
 /**
- * Runs a change of the account cart with an optimistic update.
+ * Runs a change of the account cart with an optimistic update. A change refused for lack of a
+ * valid session is kept aside and the user is sent to the sign-in page (FR-018).
  *
  * @param queryClient - Query client.
  * @param change - Requested change.
@@ -162,6 +173,9 @@ async function runAccountChange(
   } catch (error) {
     queryClient.setQueryData(key, before);
     const failure = toFailure(error);
+    if (!failure.ok && failure.code === FrontErrorCode.UNAUTHENTICATED) {
+      handleExpiredSession(change);
+    }
     if (!failure.ok && failure.code === FrontErrorCode.NOT_FOUND) {
       void queryClient.invalidateQueries({ queryKey: key });
     }
@@ -234,10 +248,14 @@ export function useCart(): UseCartResult {
   const query = useCartQuery(source, guestLines);
   const [announcement, setAnnouncement] = useState("");
   const mutation = useMutation({
-    mutationFn: (change: CartViewChange) =>
-      source === CartSource.ACCOUNT
+    mutationFn: async (change: CartViewChange): Promise<CartChangeResult> => {
+      if (source === undefined) {
+        return { ok: false, message: cartErrorMessage(FrontErrorCode.UNKNOWN) };
+      }
+      return source === CartSource.ACCOUNT
         ? runAccountChange(queryClient, change)
-        : runGuestChange(queryClient, change, query.data),
+        : runGuestChange(queryClient, change, query.data);
+    },
   });
   const run = useCallback(
     async (change: CartViewChange): Promise<CartChangeResult> => {
@@ -253,6 +271,7 @@ export function useCart(): UseCartResult {
     isLoading: query.isPending,
     isError: query.isError,
     isMutating: mutation.isPending,
+    isReady: source !== undefined,
     announcement,
     add: (productUuid, quantity) => run({ action: CartAction.ADD, productUuid, quantity }),
     setQuantity: (productUuid, quantity) => run({ action: CartAction.SET, productUuid, quantity }),

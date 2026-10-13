@@ -8,88 +8,11 @@
  * The seeded catalog has 10 000 units of every product: the « not enough stock » and
  * « out of stock » cases rewrite the BFF answers in the browser.
  */
-import { expect, test, type BrowserContext, type Page, type Route } from "@playwright/test";
+import { expect, test, type Page, type Route } from "@playwright/test";
 
-/** Backend started from IntelliJ (constitution X), used only to register test users. */
-const BACKEND_URL = process.env.E2E_BACKEND_URL ?? "http://localhost:8081";
+import { firstProductPaths, registerUser, signIn } from "./support/account";
 
-const PASSWORD = "Passw0rd!";
 const GUEST_CART_KEY = "ct_guest_cart_v1";
-
-async function registerUser(context: BrowserContext): Promise<string> {
-  const email = `e2e.cart.${Date.now()}.${Math.floor(Math.random() * 1_000)}@example.com`;
-  const response = await context.request.post(`${BACKEND_URL}/api/v1/services/user/register`, {
-    headers: { "X-API-VERSION": "1.0" },
-    data: {
-      email,
-      firstName: "Camille",
-      // The backend builds the Keycloak username from the names: they must be unique too.
-      lastName: `Testeur${Date.now()}`,
-      sex: "F",
-      phoneNumber: "+33600000000",
-      favoriteCommunicationChanel: "EMAIL",
-      street: "1 rue du Test",
-      city: "Paris",
-      zipCode: "75001",
-      country: "France",
-      password: PASSWORD,
-    },
-  });
-  expect(response.status()).toBe(201);
-  return email;
-}
-
-/** Signs in through Auth.js and the Keycloak login form (the login page comes with US3). */
-async function signIn(page: Page, email: string, callbackPath = "/"): Promise<void> {
-  await page.evaluate(async (callbackUrl) => {
-    const { csrfToken } = (await (await fetch("/api/auth/csrf")).json()) as { csrfToken: string };
-    const form = document.createElement("form");
-    form.method = "POST";
-    form.action = "/api/auth/signin/keycloak";
-    for (const [name, value] of Object.entries({ csrfToken, callbackUrl })) {
-      const input = document.createElement("input");
-      input.type = "hidden";
-      input.name = name;
-      input.value = value;
-      form.append(input);
-    }
-    document.body.append(form);
-    form.submit();
-  }, callbackPath);
-  await page.waitForURL(/\/realms\/cybertech\//);
-  await page.locator("#username").fill(email);
-  await page.locator("#password").fill(PASSWORD);
-  await page.locator("#kc-login").click();
-  await page.waitForURL((url) => url.pathname === callbackPath && url.port === "3000");
-}
-
-/**
- * Paths of the first products (best sellers, then catalog) that really exist and are in stock. The search
- * index may still list products that were deleted from the database (reseeded backend), so the
- * live stock decides.
- */
-async function firstProductPaths(page: Page, count: number): Promise<string[]> {
-  const hrefs: (string | null)[] = [];
-  for (const [path, list] of [
-    ["/", "Les plus demandés"],
-    ["/products", "Produits"],
-  ] as const) {
-    await page.goto(path);
-    const links = page.getByRole("list", { name: list }).getByRole("heading").getByRole("link");
-    hrefs.push(
-      ...(await links.evaluateAll((nodes) => nodes.map((node) => node.getAttribute("href")))),
-    );
-  }
-  const uuids = [...new Set(hrefs.map((href) => href?.split("/").pop() ?? "").filter(Boolean))];
-  const response = await page.request.get(`/api/availability?uuids=${uuids.join(",")}`);
-  const { items } = (await response.json()) as {
-    items: { productUuid: string; inStock: boolean }[];
-  };
-  const inStock = new Set(items.filter((item) => item.inStock).map((item) => item.productUuid));
-  const paths = uuids.filter((uuid) => inStock.has(uuid)).map((uuid) => `/products/${uuid}`);
-  expect(paths.length).toBeGreaterThanOrEqual(count);
-  return paths.slice(0, count);
-}
 
 async function addFromProductPage(page: Page, path: string, quantity: number): Promise<void> {
   await page.goto(path);

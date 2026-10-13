@@ -65,7 +65,7 @@ function CompactAddButton({
   productName,
   className,
 }: AddToCartButtonProps): ReactNode {
-  const { add, isMutating } = useCart();
+  const { add, isMutating, isReady } = useCart();
   const outOfStock = useIsOutOfStock(productUuid);
   const onAdd = async (): Promise<void> => {
     const result = await add(productUuid, CART_LINE_MIN_QUANTITY);
@@ -81,7 +81,7 @@ function CompactAddButton({
       aria-label={
         outOfStock ? CART_MESSAGES.outOfStockButton : CART_MESSAGES.addProductToCart(productName)
       }
-      disabled={outOfStock || isMutating}
+      disabled={!isReady || outOfStock || isMutating}
       onClick={() => void onAdd()}
       className={cn(CTA, "relative z-10 size-9", className)}
     >
@@ -111,7 +111,7 @@ function Feedback({ result }: { readonly result: CartChangeResult | null }): Rea
  * @returns The block.
  */
 function FullAddToCart({ productUuid, className }: AddToCartButtonProps): ReactNode {
-  const { add, cart, isMutating } = useCart();
+  const { add, cart, isMutating, isReady } = useCart();
   const outOfStock = useIsOutOfStock(productUuid);
   const [quantity, setQuantity] = useState(CART_LINE_MIN_QUANTITY);
   const [result, setResult] = useState<CartChangeResult | null>(null);
@@ -131,7 +131,7 @@ function FullAddToCart({ productUuid, className }: AddToCartButtonProps): ReactN
         />
         <button
           type="button"
-          disabled={outOfStock || isMutating}
+          disabled={!isReady || outOfStock || isMutating}
           onClick={() => void onAdd()}
           className={cn(CTA, "h-11 px-6")}
         >

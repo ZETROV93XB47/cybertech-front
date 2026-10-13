@@ -9,6 +9,7 @@
 import "server-only";
 
 import pino, { type DestinationStream, type Logger } from "pino";
+import pinoPretty from "pino-pretty";
 
 import { getEnv } from "@/lib/env";
 import { LogLevel } from "@/lib/enums/log-level";
@@ -65,7 +66,9 @@ export function createLogger(options: LoggerOptions): Logger {
     return pino(base, options.destination);
   }
   if (options.pretty) {
-    return pino({ ...base, transport: { target: "pino-pretty", options: { colorize: true } } });
+    // A synchronous stream, not a `transport`: transports start a worker thread that resolves
+    // `pino-pretty` by module name, which fails in the bundle of Server Actions.
+    return pino(base, pinoPretty({ colorize: true, sync: true }));
   }
   return pino(base);
 }
