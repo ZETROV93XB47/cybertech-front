@@ -126,7 +126,7 @@ Critères :
 ## Exigences non fonctionnelles côté utilisateur
 - Accessibilité WCAG 2.1 AA ; respect de la préférence « réduire les animations ».
 - Pages catalogue et produit perçues comme instantanées (LCP < 2,5 s sur mobile 4G).
-- Messages en français, ton chaleureux et tutoyant de façon cohérente (à confirmer), jamais culpabilisant.
+- Messages en français, ton chaleureux, tutoiement partout (décision du propriétaire), jamais culpabilisant.
 
 ## Hors périmètre du lot 1
 Commande et paiement, historique de commandes, wishlist, avis, recommandations personnalisées, carte bancaire, profil, mot de passe oublié, administration, tri du catalogue (non supporté par l'API), avis/notes sur la fiche (non exposés publiquement), sons d'interface (prévus mais désactivés), internationalisation (français uniquement).
@@ -332,7 +332,7 @@ Dockerfile multi-stage (node:24-alpine, utilisateur non-root, `HOSTNAME=0.0.0.0`
 | 14 | **Recherche vide** (aucun filtre) renvoie-t-elle tout le catalogue ? | Tester `POST /product/search {}` ; sinon le front envoie `keyword` vide → à ajuster. |
 | 15 | **Politique de mot de passe Keycloak** éventuellement plus stricte que `@Size(min=8)`. | Vérifier dans la console Keycloak ; aligner le schéma Zod. |
 | 16 | **Purge des paniers abandonnés** : aucun job identifié. | Accepter pour le lot 1. |
-| 17 | **Ton des messages** (tutoiement ou vouvoiement). La direction artistique utilise « Content de te revoir ». | Tutoiement cohérent partout (à confirmer par le propriétaire). |
+| 17 | ~~Ton des messages~~ | **Décidé** (2026-10-13) : tutoiement partout. |
 | 18 | **Auth.js v5 encore en bêta** (`5.0.0-beta.32`). | L'utiliser (le chart Helm est déjà câblé dessus) ; alternative : `openid-client` + session maison si la bêta pose problème. |
 | 19 | **Skill `frontend-design`** : non installé dans ce Claude Code. | Installer le plugin officiel `frontend-design` (marketplace Anthropic) avant `/speckit-implement`. |
 | 20 | **Domaine S3 de production** pour `next/image`. | À fournir avec la config Helm de prod. |
