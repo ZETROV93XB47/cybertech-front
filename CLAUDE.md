@@ -25,7 +25,7 @@ structurés et masqués.
    Pas d'enum numérique, pas de `const enum`. Zod dérivé de l'enum (`z.enum(CartSource)`).
    `switch` exhaustifs terminés par `assertNever`.
 3. **Code droit** : une responsabilité par fonction, retours anticipés, ≤ 3 niveaux
-   d'imbrication, ≤ 40 lignes par fonction (hors JSX), pas de ternaire imbriqué, `readonly` et
+   d'imbrication, ≤ 40 lignes par fonction (80 pour un composant `.tsx`), pas de ternaire imbriqué, `readonly` et
    `const` par défaut, types de retour explicites sur les exports, aucun `any`.
 4. **TSDoc complet** sur chaque export et en tête de chaque module : quoi, **pourquoi**,
    `@param`, `@returns`, `@throws`, `@see` (spec, contrat, fichier backend).
@@ -94,6 +94,12 @@ export const CART_MESSAGES = {
   insufficientStock: (available: number): string => `Il n'en reste que ${available}.`,
 } as const;
 ```
+
+## Environnement
+
+Exécution locale uniquement (constitution X) : services du backend via son `docker-compose`,
+backend Spring lancé depuis IntelliJ (`http://localhost:8081`), front avec `npm run dev`
+(`http://localhost:3000`). Cible desktop uniquement. Pas de Dockerfile, pas de CI.
 
 ## Commandes
 

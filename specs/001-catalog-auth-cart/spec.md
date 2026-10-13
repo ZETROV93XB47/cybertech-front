@@ -42,8 +42,8 @@ convient.
   catégorie ; pagination ; l'état des filtres est reflété dans l'adresse de la page (partageable,
   bouton retour fonctionnel).
 - **Fiche produit** : nom, marque, prix, galerie de photos, description, caractéristiques
-  techniques lisibles, disponibilité en temps réel (« en stock », « plus que N », « rupture ») ;
-  bouton d'ajout désactivé en rupture.
+  techniques lisibles, disponibilité en temps réel (« en stock », « plus que N », « rupture »).
+  Le bouton d'ajout au panier, désactivé en rupture, relève de US4.
 - **Recherche instantanée** accessible au clavier (⌘K / Ctrl+K) avec résultats en direct.
 
 **Why this priority**: sans catalogue, aucun autre parcours n'a de sens ; c'est aussi la seule
@@ -64,7 +64,7 @@ sa fiche, sans aucune autre fonctionnalité.
 4. **Given** une fiche produit inexistante, **When** je l'ouvre, **Then** une page « produit
    introuvable » s'affiche avec un retour au catalogue.
 5. **Given** un produit en rupture, **When** j'ouvre sa fiche, **Then** la mention « rupture »
-   s'affiche et le bouton d'ajout est désactivé.
+   s'affiche.
 6. **Given** n'importe quelle page du catalogue, **When** je l'utilise au clavier seul ou avec un
    lecteur d'écran, **Then** toutes les actions sont accessibles et compréhensibles.
 
@@ -118,12 +118,14 @@ interruption, se déconnecter, vérifier que plus aucune donnée privée n'est a
 
 **Acceptance Scenarios**:
 
-1. **Given** une page privée et aucune session, **When** j'y accède, **Then** je suis redirigé vers
-   la connexion puis ramené à la page demandée.
+1. **Given** une action réservée aux comptes (ex. modifier le panier du compte) et une session
+   expirée qui ne peut pas être renouvelée, **When** je lance l'action, **Then** je suis redirigé
+   vers la connexion, ramené à ma page, et l'action est rejouée une fois.
 2. **Given** une session active, **When** je navigue pendant 20 minutes, **Then** je ne suis jamais
    déconnecté ni interrompu.
-3. **Given** une session active, **When** je me déconnecte puis utilise le bouton « retour »,
-   **Then** aucune donnée privée ne s'affiche.
+3. **Given** une session active avec un panier de compte, **When** je me déconnecte puis utilise
+   le bouton « retour », **Then** aucune donnée privée ne s'affiche (ni le panier du compte, ni
+   le prénom).
 4. **Given** une session active, **When** j'arrive sur l'accueil, **Then** je vois
    « Content de te revoir, <prénom> » et mes derniers produits consultés.
 
@@ -163,6 +165,8 @@ se connecte et retrouve un panier fusionné cohérent.
    lieu, **Then** la quantité est limitée au stock disponible et l'utilisateur en est informé.
 6. **Given** n'importe quelle modification du panier, **When** elle aboutit ou échoue, **Then**
    elle est annoncée aux technologies d'assistance.
+7. **Given** un produit en rupture, **When** j'affiche sa fiche ou sa carte, **Then** le bouton
+   d'ajout au panier est désactivé.
 
 ---
 
@@ -232,9 +236,11 @@ se connecte et retrouve un panier fusionné cohérent.
 - **FR-016**: La session MUST rester active sans action de l'utilisateur tant que la session du
   fournisseur d'identité est valide.
 - **FR-017**: La déconnexion MUST fermer la session dans l'application et chez le fournisseur
-  d'identité ; aucune donnée privée ne doit rester visible ensuite, y compris via « retour ».
-- **FR-018**: Les pages privées MUST rediriger un visiteur sans session vers la connexion, puis
-  le ramener à la page demandée.
+  d'identité ; aucune donnée privée ne doit rester visible ensuite, y compris via « retour » et
+  y compris les données déjà chargées dans la page.
+- **FR-018**: Une action réservée aux comptes, lancée sans session valide, MUST rediriger vers la
+  connexion, ramener l'utilisateur à sa page puis rejouer l'action une fois. (Le lot 1 ne
+  contient aucune page privée ; ce mécanisme servira aussi aux pages privées du lot 2.)
 - **FR-019**: Un utilisateur connecté MUST être accueilli par son prénom et voir ses derniers
   produits consultés (historique conservé sur le navigateur, capacité portée par le front).
 
@@ -291,7 +297,7 @@ se connecte et retrouve un panier fusionné cohérent.
 - **SC-001**: Un visiteur trouve un produit précis (recherche ou filtres) et ouvre sa fiche en
   moins de 30 secondes.
 - **SC-002**: Les pages catalogue et produit affichent leur contenu principal en moins de 2,5 s
-  sur un mobile en 4G.
+  sur un ordinateur (mesure Lighthouse desktop).
 - **SC-003**: Chaque interaction (clic, saisie, ajout au panier) donne un retour visible en moins
   de 200 ms.
 - **SC-004**: Aucun décalage visible de mise en page pendant le chargement (score de stabilité
@@ -322,13 +328,18 @@ se connecte et retrouve un panier fusionné cohérent.
 - Une fusion dont la réponse se perd alors que les articles ont déjà été ajoutés peut doubler une
   ligne ; ce cas rare est accepté pour le lot 1.
 - Français uniquement, tutoiement partout.
+- Navigateur desktop récent (Chrome, Firefox, Edge) ; fenêtre d'au moins 1024 px de large.
+- Tout tourne sur le poste du développeur : services du backend via docker-compose, backend
+  Spring depuis IntelliJ, front avec `npm run dev`.
 
 ## Hors périmètre du lot 1
 
 Commande et paiement, historique de commandes, wishlist, avis, recommandations personnalisées,
 carte bancaire, profil, mot de passe oublié, administration, tri du catalogue (non supporté par le
 backend), avis et notes sur la fiche (non exposés publiquement), sons d'interface (prévus mais
-désactivés), internationalisation (français uniquement).
+désactivés), internationalisation (français uniquement), **adaptation mobile** (cible desktop
+uniquement : les variantes tactiles, gyroscope et vibration de l'annexe ne sont pas réalisées),
+déploiement (exécution locale uniquement).
 
 ## Annexe — Direction artistique (reprise intégrale)
 

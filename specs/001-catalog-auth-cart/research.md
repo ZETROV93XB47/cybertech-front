@@ -20,8 +20,8 @@ sur npm le 2026-10-13 (voir `docs/speckit-prompts.md`).
   `cybertech-front-client`, PKCE S256, stratégie de session `jwt` (cookie chiffré httpOnly).
   Le callback `jwt` stocke `accessToken`, `refreshToken`, `idToken`, `expiresAt` ; le callback
   `session` n'expose que `user.name`, `user.email`, `roles`, `error`.
-- **Pourquoi** : principe IV ; le chart Helm `front-app-chart` est déjà câblé sur les variables
-  `AUTH_*` d'Auth.js v5. Auth.js découpe automatiquement le cookie s'il dépasse 4 Ko (trois
+- **Pourquoi** : principe IV ; Auth.js v5 lit directement les variables `AUTH_*` (convention
+  déjà utilisée par le chart Helm du backend). Auth.js découpe automatiquement le cookie s'il dépasse 4 Ko (trois
   tokens Keycloak peuvent dépasser cette taille).
 - **Alternatives** : `openid-client` + session maison (plus de code, plus de risques) — gardé en
   repli si la bêta pose problème ; stockage des tokens en base (inutile : pas de base côté front).
@@ -152,22 +152,29 @@ sur npm le 2026-10-13 (voir `docs/speckit-prompts.md`).
 
 - **Décision** : Vitest 3 + Testing Library + MSW 2 (unitaire, jsdom) ; Playwright (+
   `@axe-core/playwright`) contre la stack locale réelle (Keycloak et backend), avec un projet
-  `reduced-motion` (`reducedMotion: 'reduce'`) ; Lighthouse CI (`@lhci/cli`) sur `/` , `/products`,
-  une fiche produit, budgets LCP 2500 ms, CLS 0,1, TBT 200 ms (proxy de l'INP en labo).
+  `reduced-motion` (`reducedMotion: 'reduce'`) ; Lighthouse lancé à la main dans Chrome DevTools
+  (mode desktop) en fin de story sur `/`, `/products` et une fiche produit, budgets LCP 2500 ms,
+  CLS 0,1, TBT 200 ms (TBT = approximation de l'INP en labo). Pas de CI (constitution X).
+- **Longues tâches** : un test Playwright enregistre les entrées `longtask` via
+  `PerformanceObserver` pendant 5 s d'interaction avec les effets ; aucune ne doit dépasser 50 ms.
+- **Sans JavaScript** : un contexte Playwright `javaScriptEnabled: false` vérifie que l'accueil,
+  la liste filtrée (formulaire GET) et une fiche restent lisibles.
 - **Session expirée en e2e** : route de test `app/api/test/expire-session` active uniquement si
   `E2E=1`, qui force `expiresAt` dans le passé et invalide le refresh.
 
-## R16. Dev local et conteneur
+## R16. Exécution locale (constitution X)
 
-- **Décision** : `docker-compose.yml` du front avec `include:` du compose backend
-  (`../cybertech-dev-develop_cybertech/src/main/resources/docker/docker-compose.yml`, chemin
-  surchargeable par `BACKEND_COMPOSE`) ; backend Spring lancé sur l'hôte
-  (`API_BASE_URL=http://host.docker.internal:8081` dans le conteneur). Dockerfile multi-stage
-  `node:24-alpine`, utilisateur `nextjs`, `output: "standalone"`, `HOSTNAME=0.0.0.0`, `PORT=3000`.
-- **Note** : Keycloak est joint par le navigateur sur `localhost:8080` et par le serveur Next ;
-  dans le conteneur, l'issuer doit rester identique à celui des tokens (`http://localhost:8080/...`)
-  → le front tourne sur l'hôte en dev (`npm run dev`) ; le conteneur est validé avec
-  `network_mode: host` ou en Kubernetes. Documenté dans `quickstart.md`.
+- **Décision** : tout tourne sur le PC du développeur. Services du backend (MySQL, Redis, Mongo,
+  Elasticsearch, Keycloak, LocalStack, Mailpit, moderation-api…) via le `docker-compose.yml` du
+  repo backend ; application Spring lancée depuis IntelliJ sur `http://localhost:8081` ; front
+  lancé avec `npm run dev` sur `http://localhost:3000`. Le front n'a ni Dockerfile, ni
+  docker-compose, ni CI.
+- **Pourquoi** : projet pédagogique et personnel, cible desktop. Lancer le front directement
+  sur la machine évite aussi le piège de l'issuer Keycloak : navigateur et serveur Next joignent
+  Keycloak à la même adresse (`http://localhost:8080`), donc les tokens sont acceptés.
+- **Alternatives** : conteneuriser le front (Dockerfile + chart Helm existant côté backend) —
+  écarté tant que la constitution X n'est pas amendée ; les variables `AUTH_*` sont gardées pour
+  ne pas fermer cette porte.
 
 ## R17. Qualité de code, enums, documentation et logs (principe XII)
 

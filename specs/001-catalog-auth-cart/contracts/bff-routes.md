@@ -17,7 +17,6 @@ avec le statut HTTP d'origine (voir `errors.md`).
 | DELETE | `/api/cart/items/[productUuid]` | USER | — | `200 CartView` | `PATCH /cart/remove/{productUuid}` |
 | DELETE | `/api/cart` | USER | — | `200 CartView` (vide) | `DELETE /cart/clear` |
 | POST | `/api/cart/merge` | USER | `{ items: GuestLine[] }` | `200 MergeReport` | `POST /cart/add` (toutes) ; si 409 `NOT_ENOUGH_STOCK` : `GET /product/availability` puis `POST /cart/add` ligne par ligne plafonnée |
-| GET | `/api/health` | public | — | `200 { status: "ok" }` | aucun (sonde Helm, ne dépend pas du backend) |
 | POST | `/api/test/expire-session` | E2E=1 seulement | — | `204` | aucun ; 404 hors E2E |
 
 `ProductCard = { uuid, name, brand, category, price, imageUrl: string|null }`.

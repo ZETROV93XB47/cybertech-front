@@ -98,8 +98,10 @@ le plus cher.
 
 ### IX. Performance
 
-- Budgets Core Web Vitals : LCP < 2,5 s, INP < 200 ms, CLS < 0,1, mesurés en CI avec
-  Lighthouse sur les pages catalogue et produit.
+- Cible : navigateur **desktop** uniquement (pas d'adaptation mobile).
+- Budgets Core Web Vitals : LCP < 2,5 s, INP < 200 ms, CLS < 0,1, vérifiés **manuellement**
+  avec Lighthouse (Chrome DevTools, mode desktop) sur les pages accueil, catalogue et produit
+  à la fin de chaque user story.
 - Les effets lourds (canvas, WebGL, smooth scroll) sont chargés en différé (`next/dynamic`,
   `ssr: false`), mis en pause quand l'onglet est inactif (`visibilitychange`) ou hors viewport ;
   60 fps visés ; aucun effet ne bloque le thread principal plus de 50 ms.
@@ -107,14 +109,18 @@ le plus cher.
 
 **Pourquoi** : un site « vivant » qui rame perd l'effet recherché et les ventes.
 
-### X. Conteneurisation
+### X. Exécution locale
 
-- `output: "standalone"` et Dockerfile multi-stage (deps → build → runner non-root).
-- L'image MUST être compatible avec le chart Helm existant `front-app-chart` du backend :
-  port 3000, variables `AUTH_*`, sondes HTTP.
+- Le projet tourne uniquement sur le poste du développeur : services du backend via le
+  `docker-compose` du repo backend, application Spring lancée depuis IntelliJ (port 8081),
+  front lancé avec `npm run dev` (port 3000).
+- Pas de conteneurisation du front, pas de CI, pas de déploiement : aucun Dockerfile, chart
+  Helm ni pipeline n'est produit tant que ce principe n'est pas amendé.
+- Les noms de variables d'environnement restent ceux d'Auth.js (`AUTH_*`) pour ne pas fermer
+  la porte à un déploiement ultérieur.
 
-**Pourquoi** : le déploiement Kubernetes est déjà préparé côté backend ; le front s'y insère
-sans adaptation.
+**Pourquoi** : projet pédagogique et personnel ; l'outillage de déploiement coûterait du temps
+sans rien apporter à l'apprentissage visé.
 
 ### XI. Code pédagogique
 
@@ -157,7 +163,8 @@ Niveau d'exigence calqué sur le backend Java (`CartServiceImp`, `CyberTechAppCo
 
 **Code droit et structuré**
 - Une fonction = une responsabilité ; retours anticipés plutôt qu'imbrication ; profondeur
-  d'imbrication ≤ 3 ; pas de ternaire imbriqué ; fonctions de 40 lignes maximum hors JSX.
+  d'imbrication ≤ 3 ; pas de ternaire imbriqué ; fonctions de 40 lignes maximum (80 pour un
+  composant `.tsx`, JSX compris).
 - Paramètres et propriétés `readonly` par défaut ; `const` partout ; pas de mutation d'argument.
 - Types de retour explicites sur toute fonction exportée
   (`@typescript-eslint/explicit-module-boundary-types`).
@@ -208,18 +215,18 @@ relit, se débogue et s'enseigne ; c'est le standard déjà tenu par le backend.
   `/speckit-tasks` → `/speckit-implement`. Le plan MUST passer le « Constitution Check ».
 - Une tâche n'est terminée que si `tsc --noEmit`, ESLint (0 erreur, 0 warning), Vitest et les
   tests Playwright concernés passent, et si chaque export ajouté est documenté (principe XII).
-- Toute PR vérifie la conformité aux principes I à XII ; une violation non justifiée bloque
-  la fusion.
+- Avant chaque commit, la conformité aux principes I à XII est vérifiée ; une violation non
+  justifiée n'est pas commitée.
 
 ## Governance
 
 - Cette constitution prime sur toute autre pratique du repo.
 - Toute dérogation à un principe MUST être justifiée dans la section « Complexity Tracking »
   du plan concerné et approuvée par le propriétaire du projet.
-- Amendement : modification de ce fichier dans une PR dédiée, avec rapport d'impact et mise
-  à jour des modèles Spec Kit si nécessaire.
+- Amendement : modification de ce fichier dans un commit dédié, avec mise à jour de la spec,
+  du plan et des tâches concernés.
 - Versionnement sémantique : MAJOR pour un principe retiré ou redéfini de façon incompatible,
   MINOR pour un principe ou une section ajouté ou nettement étendu, PATCH pour une
   clarification ou une correction de forme.
 
-**Version**: 1.2.0 | **Ratified**: 2026-10-13 | **Last Amended**: 2026-10-13
+**Version**: 2.0.0 | **Ratified**: 2026-10-13 | **Last Amended**: 2026-10-13

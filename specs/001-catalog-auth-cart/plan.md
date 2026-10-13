@@ -29,22 +29,23 @@ server-only, pino (logs JSON serveur, `pino-pretty` en dev) ; qualité : typescr
 données non sensibles. Source de vérité : backend Spring (MySQL/Redis).
 
 **Testing**: Vitest + Testing Library + MSW (unitaire), Playwright + @axe-core/playwright (e2e,
-contre la stack locale), Lighthouse CI (budgets CWV)
+contre la stack locale), Lighthouse manuel en mode desktop (budgets CWV)
 
-**Target Platform**: navigateurs evergreen (Chrome, Firefox, Safari, Edge — 2 dernières versions),
-mobile et desktop ; serveur Node 24 en conteneur (Kubernetes via le chart `front-app-chart`)
+**Target Platform**: navigateurs desktop récents (Chrome, Firefox, Edge), fenêtre ≥ 1024 px ;
+exécution locale uniquement (`npm run dev`), backend Spring depuis IntelliJ, services backend
+via docker-compose
 
 **Project Type**: application web (front Next.js + BFF intégré), backend externe existant
 
-**Performance Goals**: LCP < 2,5 s (mobile 4G), INP < 200 ms, CLS < 0,1 ; effets à 60 fps,
+**Performance Goals**: LCP < 2,5 s (Lighthouse desktop), INP < 200 ms, CLS < 0,1 ; effets à 60 fps,
 aucune tâche > 50 ms due aux effets
 
 **Constraints**: aucun appel navigateur → Spring/Keycloak hors redirections OIDC ; tokens jamais
 côté client ; access token 5 min ; rate limit backend `cart/**` 60/min/utilisateur et inscription
 5/min/IP ; recherche sans tri ; `priceMin ≥ 100` ; WCAG 2.1 AA ; `prefers-reduced-motion`
 
-**Scale/Scope**: 6 pages (accueil, liste, fiche, panier, inscription, connexion), 11 routes BFF,
-2 Server Actions, ~15 endpoints Spring/Keycloak ; catalogue de quelques centaines de produits
+**Scale/Scope**: 6 pages (accueil, liste, fiche, panier, inscription, connexion), 8 fichiers de
+Route Handlers (11 opérations), 2 Server Actions, ~15 endpoints Spring/Keycloak ; catalogue de quelques centaines de produits
 
 ## Constitution Check
 
@@ -53,15 +54,15 @@ côté client ; access token 5 min ; rate limit backend `cart/**` 60/min/utilisa
 | Principe | Vérification dans ce plan | Statut |
 |---|---|---|
 | I. TypeScript strict | `tsconfig` strict + `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes` ; ESLint `no-explicit-any` en erreur ; types API générés | ✅ |
-| II. App Router | Server Components par défaut ; `"use client"` limité à `features/*/components/*Client*`, `components/effects/`, providers ; `proxy.ts` + `auth()` dans `app/(account)/layout.tsx` | ✅ |
+| II. App Router | Server Components par défaut ; `"use client"` limité à `features/*/components/*Client*`, `components/effects/`, providers ; aucune page privée au lot 1 : `proxy.ts` prêt pour `/account/**` (lot 2) et chaque route BFF USER revérifie la session côté serveur (`getAccessTokenOrThrow`) | ✅ |
 | III. BFF | Navigateur → `app/api/*` / Server Actions uniquement ; `lib/api/client.ts` unique, `server-only`, en-têtes `Authorization` + `X-API-VERSION: 1.0` | ✅ |
 | IV. Session et tokens | Auth.js JWT chiffré httpOnly/Secure/Lax ; `session` callback n'expose pas les tokens ; refresh serveur (R3) ; localStorage uniquement pour données non sensibles (amendement IV) | ✅ |
 | V. Contrat d'API | `npm run gen:api` → `lib/api/schema.d.ts` ; Zod sur chaque réponse (`lib/schemas/`) ; total compte = `totalPrice` backend ; total invité marqué estimé | ✅ |
 | VI. Configuration | `lib/env.ts` Zod, import au démarrage via `instrumentation.ts` ; une seule variable publique `NEXT_PUBLIC_SITE_URL` | ✅ |
 | VII. Tests | Unitaires listés + 9 parcours Playwright + projet reduced-motion + axe | ✅ |
 | VIII. Accessibilité | `aria-live` panier/erreurs, focus visible, palette clavier, `MotionConfig reducedMotion="user"`, canvas figé | ✅ |
-| IX. Performance | Effets en `next/dynamic` `ssr:false`, pause visibilité/viewport ; `next/image` ; Lighthouse CI | ✅ |
-| X. Conteneurisation | `output: "standalone"`, Dockerfile multi-stage non-root, `/api/health`, variables `AUTH_*` du chart | ✅ |
+| IX. Performance | Effets en `next/dynamic` `ssr:false`, pause visibilité/viewport ; `next/image` ; Lighthouse desktop manuel en fin de story ; mesure des longues tâches en e2e | ✅ |
+| X. Exécution locale | `npm run dev` ; backend IntelliJ + services docker-compose du backend ; aucun Dockerfile, CI ni chart ; variables `AUTH_*` conservées | ✅ |
 | XI. Code pédagogique | Code, commentaires, TSDoc et logs en anglais ; textes UI en français dans `features/*/messages.ts` ; pas de couche d'abstraction au-delà de `lib/api/endpoints/*` | ✅ |
 | XII. Code propre et observable | Constantes dans `lib/constants/*` ; enums string dans `lib/enums/*` (Zod dérivé) ; `assertNever` ; TSDoc sur tous les exports ; `lib/logger.ts` (pino, `maskUuid`/`maskEmail`) ; ESLint : `no-magic-numbers`, `switch-exhaustiveness-check`, `explicit-module-boundary-types`, `jsdoc/require-jsdoc`, `no-console`, `max-depth` 3, `max-lines-per-function` 40, `no-nested-ternary` (R17) | ✅ |
 | Contraintes (tutoiement, CSP, aiguillage `errorCode`) | `messages.ts` au tutoiement ; CSP avec nonce (R7) ; `contracts/errors.md` | ✅ |
@@ -110,7 +111,6 @@ app/
     ├── cart/items/[productUuid]/route.ts  # PATCH, DELETE
     ├── cart/preview/route.ts
     ├── cart/merge/route.ts
-    ├── health/route.ts
     └── test/expire-session/route.ts   # E2E=1 uniquement
 components/
 ├── ui/                                # shadcn restylé
@@ -137,7 +137,7 @@ tests/
 ├── unit/      (schemas, errors, guest-cart, merge, useCart, components a11y)
 ├── e2e/       (catalog, search, register, auth, guest-cart-merge, stock, session-expired, backend-down, a11y)
 └── msw/       handlers.ts
-Dockerfile · .dockerignore · docker-compose.yml · .env.example · lighthouserc.json
+.env.example · README.md
 ```
 
 **Structure Decision** : projet unique Next.js à la racine (le backend vit dans un autre repo).
@@ -197,9 +197,9 @@ et rejeu de l'action en attente (R14) ; déconnexion via `end_session_endpoint` 
 - `proxy.ts` : CSP avec nonce (`script-src 'self' 'nonce-…' 'strict-dynamic'`,
   `img-src 'self' data: <S3>`, `connect-src 'self'`, `frame-ancestors 'none'`) ;
   `next.config` : `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`
-  (gyroscope autorisé en self pour l'inclinaison mobile), `X-Content-Type-Options: nosniff`.
-- `images.remotePatterns` : `http://localhost:4566/cybertech-products/**` (dev) ; domaine S3 prod
-  via variable `IMAGES_REMOTE_HOST` (à fournir).
+  (caméra, micro, géolocalisation, gyroscope désactivés), `X-Content-Type-Options: nosniff`.
+- `images.remotePatterns` : `http://localhost:4566/cybertech-products/**` (LocalStack), hôte lu
+  dans `IMAGES_REMOTE_HOST`.
 - Aucune donnée privée dans un fetch caché.
 
 ## Variables d'environnement (`lib/env.ts`)
@@ -216,10 +216,10 @@ et rejeu de l'action en attente (R14) ; déconnexion via `end_session_endpoint` 
 | `IMAGES_REMOTE_HOST` | `localhost:4566` | non (lu au build par `next.config`) |
 | `NEXT_PUBLIC_SITE_URL` | `http://localhost:3000` | oui |
 | `E2E` | `0` | non |
-| `LOG_LEVEL` | `debug` (dev) / `info` (prod) | non |
+| `LOG_LEVEL` | `debug` (défaut `info`) | non |
 
-À aligner côté chart Helm du backend : `NEXT_PUBLIC_API_BASE` → `API_BASE_URL` (l'URL backend ne
-doit pas être publique) — modification à faire dans le repo backend, hors de ce repo.
+`API_VERSION` (défaut `1.0`), `LOG_LEVEL` (défaut `info`) et `E2E` (défaut `false`) ont une
+valeur par défaut ; les autres sont obligatoires.
 
 ## Tests
 
@@ -231,14 +231,17 @@ doit pas être publique) — modification à faire dans le repo backend, hors de
 - E2E (Playwright, stack réelle) : recherche « lenvo », filtres + URL, fiche + rupture,
   inscription (erreurs champ, email existant), login/logout Keycloak, panier invité → fusion,
   stock insuffisant, session expirée (`/api/test/expire-session`), backend coupé ; axe-core sans
-  violation `serious`/`critical` ; projet `reduced-motion`.
-- Lighthouse CI : `/`, `/products`, une fiche ; LCP ≤ 2500 ms, CLS ≤ 0,1, TBT ≤ 200 ms.
+  violation `serious`/`critical` ; projet `reduced-motion` ; navigation sans JavaScript sur le
+  catalogue ; aucune longue tâche > 50 ms due aux effets ; vidage du cache client à la
+  déconnexion.
+- Lighthouse (Chrome DevTools, mode desktop), lancé à la main en fin de story : `/`,
+  `/products`, une fiche ; LCP ≤ 2500 ms, CLS ≤ 0,1, TBT ≤ 200 ms.
 
-## Dev local et infra
+## Dev local
 
-Voir [quickstart.md](./quickstart.md) et R16 : `docker-compose.yml` incluant le compose backend,
-backend Spring sur l'hôte, `npm run gen:api`, Dockerfile multi-stage `node:24-alpine` non-root,
-`.env.example`, `/api/health`. L'UI est implémentée avec le skill **frontend-design** en prenant
+Voir [quickstart.md](./quickstart.md) et R16 : services du backend via son docker-compose,
+backend Spring depuis IntelliJ, front avec `npm run dev`, `npm run gen:api`, `.env.example`.
+L'UI est implémentée avec le skill **frontend-design** en prenant
 l'annexe « Direction artistique » de la spec comme référence (redémarrer Claude Code avant
 `/speckit-implement` pour charger le plugin).
 
