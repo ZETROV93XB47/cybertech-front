@@ -97,7 +97,10 @@ Zod, TanStack Query, thème unique, effets) est celui du lot 1 : voir
   `ct:compare-changed` pour synchroniser les composants de la page. Rendu serveur : sélection
   vide (aucune case cochée côté serveur, hydratation sans écart grâce au `getServerSnapshot`).
 - **Rationale** : clarification 3 (durée de l'onglet) ; même mécanisme que
-  `ct_pending_action_v1` ; aucune donnée personnelle (constitution IV).
+  `ct_pending_action_v1` ; aucune donnée personnelle. Conforme à la constitution IV : des
+  identifiants de produits sont des données non sensibles, de même nature que le panier
+  invité et les derniers produits consultés cités en exemple, revalidées par Zod et ne faisant
+  jamais foi.
 - **Alternatives considered** : état React en contexte (perdu au rechargement) ; paramètre
   d'URL (pollue toutes les adresses du catalogue) ; `localStorage` (durée de vie rejetée).
 

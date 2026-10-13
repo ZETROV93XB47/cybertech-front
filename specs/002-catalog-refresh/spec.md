@@ -12,8 +12,8 @@
 
 Le lot 1 (`specs/001-catalog-auth-cart`) a livré le catalogue, la fiche produit, la recherche,
 le compte et le panier. Cette feature rend le catalogue plus utile pour choisir : filtrer sur
-toutes les caractéristiques, voir plus de produits d'un coup d'œil, comparer des produits côte à
-côte, et retrouver la même présentation sur l'accueil, le catalogue et l'en-tête.
+toutes les caractéristiques, comparer des produits côte à côte, et retrouver la même
+présentation sur l'accueil, le catalogue et l'en-tête.
 
 **État des données constaté le 2026-10-13** (backend local) :
 
@@ -192,7 +192,7 @@ En tant que visiteur, je veux que l'accueil et le catalogue partagent la même p
 (gabarit, titres, cartes, états vides, chargement), et que l'accueil m'amène vite vers les
 bons produits.
 
-- Même en-tête de page : fil d'Ariane, titre vivant, sous-titre.
+- Même en-tête de page : titre vivant, sous-titre, et fil d'Ariane sauf sur l'accueil.
 - Mêmes cartes produit, mêmes titres de section, même rythme vertical, même largeur.
 - L'accueil présente uniquement des données réelles : meilleures ventes, accès aux catégories
   vers le catalogue préfiltré, offre active s'il y en a une, derniers produits consultés.
@@ -295,9 +295,8 @@ sur une catégorie en un clic.
 
 - **FR-013**: Chaque carte produit du catalogue MUST proposer une case « Comparer » accessible,
   dont le libellé inclut le nom du produit ; la fiche produit MUST proposer un bouton bascule
-  « Ajouter à la comparaison » / « Retirer de la comparaison », soumis aux mêmes règles (même
-  catégorie, 3 produits maximum, raison affichée s'il est indisponible). Les autres cartes
-  produit (accueil, produits similaires) ne proposent pas la comparaison.
+  « Ajouter à la comparaison » / « Retirer de la comparaison », soumis aux règles de FR-014.
+  Les autres cartes produit (accueil, produits similaires) ne proposent pas la comparaison.
 - **FR-014**: La sélection MUST contenir au plus 3 produits d'une seule catégorie ; une case qui
   ne peut pas être cochée MUST être désactivée avec sa raison, visible et lue par les lecteurs
   d'écran.
@@ -339,7 +338,8 @@ sur une catégorie en un clic.
   une fiche produit MUST rattacher la page à la rubrique de sa catégorie.
 - **FR-027**: Un lien « Aller au contenu » MUST être le premier élément atteignable au clavier.
 - **FR-028**: L'accueil et le catalogue MUST partager le même gabarit (largeur, marges, en-tête
-  de page avec fil d'Ariane, titre vivant et sous-titre), les mêmes cartes produit, les mêmes
+  de page avec titre vivant et sous-titre, et fil d'Ariane sauf sur l'accueil, qui est la racine
+  du site), les mêmes cartes produit, les mêmes
   titres de section, le même état vide illustré et les mêmes squelettes de chargement.
 - **FR-029**: L'accueil MUST proposer un accès direct à chaque catégorie vers le catalogue
   préfiltré, et ne MUST afficher que des données réelles (meilleures ventes, offre active,
