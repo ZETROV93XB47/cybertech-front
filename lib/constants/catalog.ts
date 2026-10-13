@@ -81,3 +81,15 @@ export const PAGINATION_SIBLING_COUNT = 2;
 
 /** Maximum length of a product page meta description (search engines cut longer ones). */
 export const META_DESCRIPTION_MAX_LENGTH = 160;
+
+/** Number of key specs shown as chips under the product name. */
+export const PRODUCT_HIGHLIGHTS_COUNT = 4;
+
+/** Number of similar products shown at the bottom of a product page. */
+export const SIMILAR_PRODUCTS_COUNT = 3;
+
+/**
+ * Products fetched to pick the similar ones: more than shown, since the current product and
+ * duplicated models are skipped.
+ */
+export const SIMILAR_PRODUCTS_FETCH_SIZE = 8;

@@ -23,7 +23,7 @@ export interface DiscountBannerProps {
  * @param discount - Campaign.
  * @returns « BLACK_FRIDAY : 20 % de remise sur ta commande ».
  */
-function describe(discount: ActiveDiscount): string {
+export function describeDiscount(discount: ActiveDiscount): string {
   const { discountKey: key } = discount;
   switch (discount.calculationType) {
     case DiscountCalculationType.PERCENTAGE:
@@ -76,7 +76,7 @@ export function DiscountBanner({ discounts }: DiscountBannerProps): ReactNode {
             const details = conditions(discount);
             return (
               <li key={discount.discountKey} className="text-sm text-text">
-                {describe(discount)}
+                {describeDiscount(discount)}
                 {details && <span className="text-text-muted"> ({details})</span>}
               </li>
             );

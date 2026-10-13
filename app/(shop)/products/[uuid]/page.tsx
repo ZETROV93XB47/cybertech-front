@@ -9,20 +9,31 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { AddToCartButton } from "@/features/cart/components/AddToCartButton";
-import { AvailabilityBadge } from "@/features/catalog/components/AvailabilityBadge";
+import { ProductBreadcrumb } from "@/features/catalog/components/ProductBreadcrumb";
+import {
+  ProductSpecs,
+  ProductSummary,
+  SimilarProducts,
+} from "@/features/catalog/components/ProductDetails";
 import { ProductGallery } from "@/features/catalog/components/ProductGallery";
 import { RecordProductView } from "@/features/catalog/components/RecordProductView";
-import { BRAND_LABELS, PRODUCT_MESSAGES } from "@/features/catalog/messages";
+import { PRODUCT_MESSAGES } from "@/features/catalog/messages";
 import { buildProductSpecs } from "@/features/catalog/product-specs";
 import { getCategorySchema } from "@/lib/api/endpoints/categories";
-import { getAvailability, getProductByUuid } from "@/lib/api/endpoints/products";
-import { META_DESCRIPTION_MAX_LENGTH } from "@/lib/constants/catalog";
+import { getActiveDiscounts } from "@/lib/api/endpoints/discounts";
+import { getAvailability, getProductByUuid, searchProducts } from "@/lib/api/endpoints/products";
+import {
+  META_DESCRIPTION_MAX_LENGTH,
+  PRODUCT_HIGHLIGHTS_COUNT,
+  SIMILAR_PRODUCTS_COUNT,
+  SIMILAR_PRODUCTS_FETCH_SIZE,
+} from "@/lib/constants/catalog";
 import { SearchParam } from "@/lib/enums/search-param";
-import { formatPrice } from "@/lib/format";
 import { createModuleLogger } from "@/lib/logger";
 import { toCategoryKey } from "@/lib/schemas/category";
-import type { ProductAvailability, Product } from "@/lib/schemas/product";
+import type { ActiveDiscount } from "@/lib/schemas/discount";
+import type { Product, ProductAvailability, ProductCard } from "@/lib/schemas/product";
+import { EMPTY_SEARCH_FILTERS } from "@/lib/schemas/search";
 
 /** Props given by Next.js to the page. */
 interface ProductPageProps {
@@ -91,10 +102,67 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 }
 
 /**
+ * Loads the current discount campaign; a bonus, so a failure only hides the offer.
+ *
+ * @returns The first displayable campaign, if any.
+ */
+async function loadOffer(): Promise<ActiveDiscount | undefined> {
+  try {
+    return (await getActiveDiscounts())[0];
+  } catch {
+    log.warn({}, "Active discounts not loaded; the offer block is hidden");
+    return undefined;
+  }
+}
+
+/**
+ * Keeps one card per model name, without the product shown: the catalog can hold the same
+ * model twice under different UUIDs.
+ *
+ * @param cards - Search results.
+ * @param product - The product shown.
+ * @returns The cards, in order, one per name.
+ */
+function distinctByName(cards: readonly ProductCard[], product: Product): ProductCard[] {
+  const seen = new Set([product.name]);
+  const kept: ProductCard[] = [];
+  for (const card of cards) {
+    if (!seen.has(card.name)) {
+      seen.add(card.name);
+      kept.push(card);
+    }
+  }
+  return kept;
+}
+
+/**
+ * Loads a few products of the same category; a bonus, so a failure only hides the section.
+ *
+ * @param product - The product shown.
+ * @returns Up to {@link SIMILAR_PRODUCTS_COUNT} other products.
+ */
+async function loadSimilar(product: Product): Promise<ProductCard[]> {
+  const category = toCategoryKey(product.category);
+  if (!category) {
+    return [];
+  }
+  try {
+    const page = await searchProducts(
+      { ...EMPTY_SEARCH_FILTERS, category },
+      SIMILAR_PRODUCTS_FETCH_SIZE,
+    );
+    return distinctByName(page.content, product).slice(0, SIMILAR_PRODUCTS_COUNT);
+  } catch {
+    log.warn({}, "Similar products not loaded; the section is hidden");
+    return [];
+  }
+}
+
+/**
  * Product page.
  *
  * @param props - Page props.
- * @returns Gallery, price, stock, technical sheet and description.
+ * @returns Breadcrumb, gallery, summary, technical sheet, description and similar products.
  */
 export default async function ProductPage({
   params,
@@ -104,59 +172,43 @@ export default async function ProductPage({
   if (!product) {
     notFound();
   }
-  const [labels, availability] = await Promise.all([
+  const [labels, availability, offer, similar] = await Promise.all([
     categoryLabels(product),
     readInitialAvailability(product.uuid),
+    loadOffer(),
+    loadSimilar(product),
   ]);
   const specs = buildProductSpecs(product.attributes, labels);
   const photo = selectedPhoto((await searchParams)[SearchParam.PHOTO], product.photoUrls.length);
   return (
     <article className="mx-auto flex w-full max-w-site flex-col gap-12 px-6 py-10">
       <RecordProductView productUuid={product.uuid} />
+      <ProductBreadcrumb category={toCategoryKey(product.category)} brand={product.brand} />
       <div className="grid gap-10 lg:grid-cols-12">
         <div className="lg:col-span-7">
           <ProductGallery product={product} selected={photo} />
         </div>
-        <div className="flex flex-col gap-6 lg:col-span-5">
-          <div className="flex flex-col gap-2">
-            <p className="text-sm text-text-muted">
-              <span className="sr-only">{PRODUCT_MESSAGES.brandLabel} : </span>
-              {BRAND_LABELS[product.brand]}
-            </p>
-            <h1 className="text-3xl leading-tight">{product.name}</h1>
-          </div>
-          <p className="price text-3xl">{formatPrice(product.price)}</p>
-          <AvailabilityBadge
-            productUuid={product.uuid}
-            {...(availability === undefined ? {} : { initialAvailability: availability })}
+        <div className="lg:col-span-5">
+          <ProductSummary
+            product={product}
+            highlights={specs.slice(0, PRODUCT_HIGHLIGHTS_COUNT)}
+            offer={offer}
+            availability={availability}
           />
-          <AddToCartButton productUuid={product.uuid} productName={product.name} />
-          {specs.length > 0 && (
-            <section
-              aria-labelledby="specs-title"
-              className="glass flex flex-col gap-4 rounded-card p-6"
-            >
-              <h2 id="specs-title" className="text-lg">
-                {PRODUCT_MESSAGES.specsTitle}
-              </h2>
-              <dl className="grid grid-cols-3 gap-x-4 gap-y-3 text-sm">
-                {specs.map((spec) => (
-                  <div key={spec.key} className="contents">
-                    <dt className="text-text-muted">{spec.label}</dt>
-                    <dd className="col-span-2 text-text">{spec.value}</dd>
-                  </div>
-                ))}
-              </dl>
-            </section>
-          )}
         </div>
       </div>
-      <section aria-labelledby="description-title" className="flex max-w-prose flex-col gap-4">
-        <h2 id="description-title" className="text-xl">
-          {PRODUCT_MESSAGES.descriptionTitle}
-        </h2>
-        <p className="whitespace-pre-line text-text-muted">{product.description}</p>
-      </section>
+      <div className="grid gap-10 lg:grid-cols-12">
+        <section aria-labelledby="description-title" className="flex flex-col gap-4 lg:col-span-5">
+          <h2 id="description-title" className="text-xl">
+            {PRODUCT_MESSAGES.descriptionTitle}
+          </h2>
+          <p className="whitespace-pre-line text-text-muted">{product.description}</p>
+        </section>
+        <div className="lg:col-span-7">
+          <ProductSpecs specs={specs} />
+        </div>
+      </div>
+      <SimilarProducts products={similar} />
     </article>
   );
 }

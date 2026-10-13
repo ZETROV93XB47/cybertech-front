@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 
 import { PRODUCT_MESSAGES } from "../messages";
 
+import { GalleryStage } from "./GalleryStage";
 import { PRODUCT_TRANSITION_PREFIX } from "./ProductCard";
 import { ProductImage } from "./ProductImage";
 
@@ -36,14 +37,16 @@ export function ProductGallery({ product, selected }: ProductGalleryProps): Reac
   return (
     <section aria-label={PRODUCT_MESSAGES.galleryLabel} className="flex flex-col gap-4">
       <div style={style} className="glass aspect-4/3 overflow-hidden rounded-card">
-        <ProductImage
-          src={product.photoUrls[selected] ?? null}
-          alt={PRODUCT_MESSAGES.photoAlt(product.name, selected + 1)}
-          category={product.category}
-          media={THEME.media.gallery}
-          priority
-          iconClassName="size-16"
-        />
+        <GalleryStage photoKey={selected}>
+          <ProductImage
+            src={product.photoUrls[selected] ?? null}
+            alt={PRODUCT_MESSAGES.photoAlt(product.name, selected + 1)}
+            category={product.category}
+            media={THEME.media.gallery}
+            priority
+            iconClassName="size-16"
+          />
+        </GalleryStage>
       </div>
       {product.photoUrls.length > 1 && (
         <ul className="flex flex-wrap gap-3">

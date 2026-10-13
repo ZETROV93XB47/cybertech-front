@@ -4,22 +4,12 @@
  * Runs against the real local backend. The out-of-stock case mocks the browser call to
  * `/api/availability`, because the seeded catalog has no product without stock.
  */
-import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+
+import { expectNoBlockingViolations } from "./support/a11y";
 
 /** A UUID that no product uses. */
 const UNKNOWN_UUID = "00000000-0000-4000-8000-000000000000";
-
-/** axe impacts that fail the test. */
-const BLOCKING_IMPACTS = new Set(["serious", "critical"]);
-
-async function expectNoBlockingViolations(page: Page): Promise<void> {
-  const results = await new AxeBuilder({ page }).analyze();
-  const blocking = results.violations.filter((violation) =>
-    BLOCKING_IMPACTS.has(violation.impact ?? ""),
-  );
-  expect(blocking.map((violation) => violation.id)).toEqual([]);
-}
 
 async function firstProductPath(page: Page): Promise<string> {
   await page.goto("/products");
@@ -92,7 +82,8 @@ test.describe("catalog", () => {
       }),
     );
     await page.goto(path);
-    await expect(page.getByRole("status").filter({ hasText: "Rupture" })).toBeVisible();
+    // The similar products below share the mocked stock: check the product's own badge.
+    await expect(page.getByRole("status").filter({ hasText: "Rupture" }).first()).toBeVisible();
   });
 
   test("the command palette opens with Ctrl+K and leads to a product", async ({ page }) => {

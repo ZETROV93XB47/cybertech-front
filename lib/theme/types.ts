@@ -138,6 +138,8 @@ export interface EffectsSettings {
     readonly radiusPx: number;
   };
   readonly smoothScroll: { readonly enabled: boolean; readonly durationSeconds: number };
+  /** Magnifier of the product photo on hover; `scale` is the zoom factor. */
+  readonly galleryZoom: { readonly enabled: boolean; readonly scale: number };
   readonly viewTransitions: { readonly enabled: boolean };
   readonly liveTitle: {
     readonly enabled: boolean;

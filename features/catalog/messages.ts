@@ -140,6 +140,12 @@ export const PRODUCT_MESSAGES = {
   backToCatalog: "Retour au catalogue",
   notFoundTitle: "Produit introuvable",
   notFoundBody: "Ce produit n'existe pas ou n'est plus vendu. Le reste du catalogue t'attend.",
+  breadcrumbLabel: "Fil d'Ariane",
+  highlightsLabel: "Points clés",
+  offerLabel: "Offre en cours",
+  offerHint: "La remise s'applique au moment de la commande, sur tout le panier.",
+  similarTitle: "Dans le même esprit",
+  similarLabel: "Produits similaires",
   booleanTrue: "Oui",
   booleanFalse: "Non",
 } as const;
