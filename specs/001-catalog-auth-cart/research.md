@@ -169,6 +169,39 @@ sur npm le 2026-10-13 (voir `docs/speckit-prompts.md`).
   → le front tourne sur l'hôte en dev (`npm run dev`) ; le conteneur est validé avec
   `network_mode: host` ou en Kubernetes. Documenté dans `quickstart.md`.
 
+## R17. Qualité de code, enums, documentation et logs (principe XII)
+
+- **Décision** :
+  - **Constantes** : `lib/constants/{api,auth,cart,catalog,storage-keys,ui}.ts`, chacune
+    documentée en TSDoc avec l'origine de sa valeur (ex. `ACCESS_TOKEN_REFRESH_MARGIN_MS = 30_000`,
+    `BACKEND_TIMEOUT_MS = 8_000`, `GUEST_CART_MAX_LINES = 50`, `LOW_STOCK_THRESHOLD = 5`,
+    `SEARCH_PAGE_SIZE = 24`, `COMMAND_PALETTE_DEBOUNCE_MS = 200`).
+  - **Enums string** : `lib/enums/` (`Brand`, `CategoryKey`, `CartSource`, `CartLineStatus`,
+    `AvailabilityLevel`, `BackendErrorCode` (miroir de l'OpenAPI), `FrontErrorCode`,
+    `MergeDropReason`, `PendingActionType`, `CommunicationChannel`, `Sex`, `LogLevel`,
+    `QueryKey`, `StorageKey`). Schémas Zod construits avec `z.enum(MonEnum)`.
+    `BackendErrorCode` est vérifié par un test contre l'union générée par `openapi-typescript`
+    pour détecter toute dérive du backend.
+  - **Exhaustivité** : `assertNever(value: never): never` dans `lib/assert-never.ts`.
+  - **Logs serveur** : `pino` (JSON, niveaux depuis `LOG_LEVEL`), déclaré dans
+    `serverExternalPackages` ; `pino-pretty` en dev uniquement ; `redact` configuré sur
+    `authorization`, `cookie`, `*.password`, `*.accessToken`, `*.refreshToken`, `*.idToken` en
+    plus des helpers `maskUuid` / `maskEmail`. Le client HTTP serveur logge chaque appel backend
+    (`method`, `path`, `status`, `durationMs`, `requestId`, `errorCode`).
+  - **Logs client** : `clientLogger` minimal (erreurs seulement en production), `no-console`.
+  - **ESLint** (flat config, `typescript-eslint` type-checked) : `no-explicit-any`,
+    `no-magic-numbers` (ignore 0/1/-1, enums, index, `readonly` class props ; désactivé dans
+    `tests/`), `switch-exhaustiveness-check`, `explicit-module-boundary-types`,
+    `prefer-readonly`, `naming-convention`, `jsdoc/require-jsdoc` (exports) +
+    `jsdoc/require-param` + `jsdoc/require-returns`, `no-console`, `max-depth: 3`,
+    `max-lines-per-function: 40` (JSX exclu via `skipBlankLines`/`skipComments` et override
+    `*.tsx` à 80), `no-nested-ternary`, `import/no-cycle`.
+- **Pourquoi** : demande du propriétaire, alignement sur le niveau du backend Java ; les règles
+  sont outillées pour être vérifiées automatiquement plutôt que laissées à la relecture.
+- **Alternatives** : unions de littéraux `as const` (plus idiomatiques en TS moderne, mais le
+  propriétaire veut des enums explicites, nommés et documentés) ; `console` structuré maison
+  (moins de fonctionnalités que pino : redaction, niveaux, enfants).
+
 ## Points restant à vérifier à l'exécution (non bloquants)
 
 | Point | Où vérifier | Impact si faux |

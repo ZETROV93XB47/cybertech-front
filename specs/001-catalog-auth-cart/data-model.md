@@ -4,6 +4,11 @@ Le front n'a pas de base de données. Ce document décrit les **schémas Zod** (
 ceux qui valident les réponses du backend, les entrées utilisateur et les données stockées sur le
 navigateur. Types backend : `docs/backend/api-map.md` §D et OpenAPI (`lib/api/schema.d.ts` généré).
 
+> **Convention (principe XII)** : les unions de littéraux écrites ci-dessous pour la lisibilité
+> (`"guest" | "account"`, `"ok" | "insufficient-stock" | "unavailable"`, statuts, marques, codes…)
+> sont implémentées en **enums string** dans `lib/enums/` ; les limites (50, 99, 5, 8, 24…) sont
+> des constantes nommées de `lib/constants/`. Voir research R17.
+
 ## 1. Données backend (validées à la réception)
 
 ### Product — `lib/schemas/product.ts` (← `ProductResponseDto`)

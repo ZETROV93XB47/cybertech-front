@@ -21,7 +21,8 @@ détaillées : [research.md](./research.md).
 
 **Primary Dependencies**: next-auth 5.0.0-beta.32 (provider Keycloak), zod 4.6, @tanstack/react-query 5.104,
 tailwindcss 4.3, shadcn/ui (Radix + cmdk), motion 14.1, lenis 1.3, openapi-typescript 7.13,
-server-only
+server-only, pino (logs JSON serveur, `pino-pretty` en dev) ; qualité : typescript-eslint
+(type-checked), eslint-plugin-jsdoc
 
 **Storage**: aucune base côté front. Session : cookie chiffré httpOnly (Auth.js). Navigateur :
 `localStorage` (`ct_guest_cart_v1`, `ct_recent_v1`) et `sessionStorage` (`ct_pending_action_v1`),
@@ -62,6 +63,7 @@ côté client ; access token 5 min ; rate limit backend `cart/**` 60/min/utilisa
 | IX. Performance | Effets en `next/dynamic` `ssr:false`, pause visibilité/viewport ; `next/image` ; Lighthouse CI | ✅ |
 | X. Conteneurisation | `output: "standalone"`, Dockerfile multi-stage non-root, `/api/health`, variables `AUTH_*` du chart | ✅ |
 | XI. Code pédagogique | Commentaires « pourquoi » en français ; pas de couche d'abstraction au-delà de `lib/api/endpoints/*` | ✅ |
+| XII. Code propre et observable | Constantes dans `lib/constants/*` ; enums string dans `lib/enums/*` (Zod dérivé) ; `assertNever` ; TSDoc sur tous les exports ; `lib/logger.ts` (pino, `maskUuid`/`maskEmail`) ; ESLint : `no-magic-numbers`, `switch-exhaustiveness-check`, `explicit-module-boundary-types`, `jsdoc/require-jsdoc`, `no-console`, `max-depth` 3, `max-lines-per-function` 40, `no-nested-ternary` (R17) | ✅ |
 | Contraintes (tutoiement, CSP, aiguillage `errorCode`) | `messages.ts` au tutoiement ; CSP avec nonce (R7) ; `contracts/errors.md` | ✅ |
 
 Gate initial : **PASS**. Re-vérification après Phase 1 : **PASS** (un écart au prompt 4.3, pas à
@@ -120,6 +122,10 @@ features/
 └── auth/      (register-form, actions.ts, sign-out, messages.ts)
 lib/
 ├── env.ts
+├── logger.ts  # pino, logger enfant par module, maskUuid / maskEmail ; clientLogger séparé
+├── assert-never.ts
+├── constants/ api · auth · cart · catalog · storage-keys · ui (constantes nommées et documentées)
+├── enums/     brand · category · cart · availability · error-code · log-level · … (enums string)
 ├── api/       client.ts · errors.ts · endpoints/{products,categories,discounts,cart,users}.ts · schema.d.ts
 ├── schemas/   product · paged · search · cart · user · error · storage
 ├── auth/      config.ts · refresh.ts · guards.ts
@@ -210,6 +216,7 @@ et rejeu de l'action en attente (R14) ; déconnexion via `end_session_endpoint` 
 | `IMAGES_REMOTE_HOST` | `localhost:4566` | non (lu au build par `next.config`) |
 | `NEXT_PUBLIC_SITE_URL` | `http://localhost:3000` | oui |
 | `E2E` | `0` | non |
+| `LOG_LEVEL` | `debug` (dev) / `info` (prod) | non |
 
 À aligner côté chart Helm du backend : `NEXT_PUBLIC_API_BASE` → `API_BASE_URL` (l'URL backend ne
 doit pas être publique) — modification à faire dans le repo backend, hors de ce repo.

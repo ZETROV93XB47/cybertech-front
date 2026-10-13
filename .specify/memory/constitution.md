@@ -124,6 +124,67 @@ sans adaptation.
 
 **Pourquoi** : le projet sert à apprendre ; le code doit pouvoir être lu et expliqué.
 
+### XII. Code propre, explicite et observable
+
+Niveau d'exigence calqué sur le backend Java (`CartServiceImp`, `CyberTechAppConstants`).
+
+**Aucun magic number ni magic string**
+- Toute valeur métier ou technique (durées, seuils, limites, tailles de page, clés de stockage,
+  chemins d'API, codes, en-têtes) est une constante nommée en `SCREAMING_SNAKE_CASE`, typée,
+  documentée par un commentaire TSDoc qui dit à quoi elle sert et d'où vient sa valeur
+  (ex. « 300 s = `accessTokenLifespan` du realm Keycloak »).
+- Les constantes vivent dans `lib/constants/` (par domaine : `api.ts`, `cart.ts`, `auth.ts`,
+  `catalog.ts`, `storage-keys.ts`, `ui.ts`) ou en tête du module si elles lui sont privées.
+- Les durées portent leur unité dans le nom (`ACCESS_TOKEN_REFRESH_MARGIN_MS`,
+  `CATALOG_REVALIDATE_SECONDS`) ; séparateurs numériques pour la lisibilité (`8_000`).
+- ESLint `@typescript-eslint/no-magic-numbers` MUST être en erreur (exceptions : `0`, `1`, `-1`,
+  index de tableau, valeurs d'enum, tests).
+
+**Enums pour tout ensemble fermé de valeurs**
+- Tout ensemble fini de valeurs (statuts, codes d'erreur, catégories, marques, types d'action,
+  clés de query, niveaux de disponibilité, sources de panier, niveaux de log…) est un
+  **`enum` TypeScript à valeurs string** (`enum CartSource { GUEST = "guest", ACCOUNT = "account" }`).
+  Pas d'enum numérique, pas de `const enum`, pas d'union de littéraux dupliquée ailleurs.
+- Les enums alignés sur le backend reprennent exactement ses valeurs ; les schémas Zod sont
+  construits depuis l'enum (`z.enum(Brand)`), jamais l'inverse.
+- Tout `switch` sur un enum est exhaustif, terminé par `assertNever(value)`
+  (règle ESLint `switch-exhaustiveness-check`).
+
+**Code droit et structuré**
+- Une fonction = une responsabilité ; retours anticipés plutôt qu'imbrication ; profondeur
+  d'imbrication ≤ 3 ; pas de ternaire imbriqué ; fonctions de 40 lignes maximum hors JSX.
+- Paramètres et propriétés `readonly` par défaut ; `const` partout ; pas de mutation d'argument.
+- Types de retour explicites sur toute fonction exportée
+  (`@typescript-eslint/explicit-module-boundary-types`).
+- Nommage : `PascalCase` pour types, enums, composants ; `camelCase` pour fonctions et variables ;
+  verbes pour les fonctions (`fetchCart`, `mergeGuestCart`), booléens en `is/has/can/should`.
+- Imports via l'alias `@/` ; aucune dépendance circulaire ; pas de code mort ni de code commenté.
+
+**Documentation à la manière du backend**
+- Chaque module commence par un bloc TSDoc décrivant son rôle et sa place dans l'architecture.
+- Chaque fonction, composant, hook, type et constante **exportés** porte un TSDoc complet :
+  ce qu'il fait, **pourquoi** il est conçu ainsi (contraintes backend, cas limites, alternatives
+  écartées), `@param`, `@returns`, `@throws`, et `@see` vers la spec, le contrat ou le fichier
+  backend concerné (ex. `@see docs/guest-cart.md §4`, `@see CartServiceImp#addItemsToCart`).
+- Les choix non évidents à l'intérieur d'une fonction sont commentés en ligne (le pourquoi).
+- ESLint `eslint-plugin-jsdoc` MUST exiger le TSDoc sur les exports.
+
+**Logs structurés et sûrs**
+- Côté serveur, un logger unique (`lib/logger.ts`, JSON structuré, niveaux `debug`/`info`/
+  `warn`/`error` via un enum `LogLevel`, niveau piloté par `LOG_LEVEL`) ; un logger enfant par
+  module (`logger.child({ module: "cart.merge" })`).
+- Chaque appel backend est loggué : méthode, route, statut, durée, `X-Request-Id`, `errorCode`.
+  Chaque décision métier notable est logguée (`info` : fusion de panier avec ses compteurs ;
+  `warn` : rejeu, stock plafonné, refresh échoué ; `error` : 5xx, réponse non conforme à Zod).
+- **Jamais** de token, mot de passe, cookie, email complet ni corps de formulaire dans un log ;
+  les identifiants sont masqués (`maskUuid`, `maskEmail` dans `lib/logger.ts`, équivalents de
+  `LogSafetyUtils`).
+- Côté client, aucun `console.*` (ESLint `no-console` en erreur) ; un `clientLogger` limité aux
+  erreurs, silencieux en production sauf `error`.
+
+**Pourquoi** : un code sans valeurs magiques, typé par des enums, documenté et observable se
+relit, se débogue et s'enseigne ; c'est le standard déjà tenu par le backend.
+
 ## Contraintes techniques et sécurité
 
 - Sources de vérité : `docs/backend/api-map.md`, `docs/backend/analysis.md`,
@@ -140,9 +201,9 @@ sans adaptation.
 
 - Chaque fonctionnalité suit Spec Kit : `/speckit-specify` → `/speckit-plan` →
   `/speckit-tasks` → `/speckit-implement`. Le plan MUST passer le « Constitution Check ».
-- Une tâche n'est terminée que si `tsc --noEmit`, ESLint, Vitest et les tests Playwright
-  concernés passent.
-- Toute PR vérifie la conformité aux principes I à XI ; une violation non justifiée bloque
+- Une tâche n'est terminée que si `tsc --noEmit`, ESLint (0 erreur, 0 warning), Vitest et les
+  tests Playwright concernés passent, et si chaque export ajouté est documenté (principe XII).
+- Toute PR vérifie la conformité aux principes I à XII ; une violation non justifiée bloque
   la fusion.
 
 ## Governance
@@ -156,4 +217,4 @@ sans adaptation.
   MINOR pour un principe ou une section ajouté ou nettement étendu, PATCH pour une
   clarification ou une correction de forme.
 
-**Version**: 1.0.0 | **Ratified**: 2026-10-13 | **Last Amended**: 2026-10-13
+**Version**: 1.1.0 | **Ratified**: 2026-10-13 | **Last Amended**: 2026-10-13
