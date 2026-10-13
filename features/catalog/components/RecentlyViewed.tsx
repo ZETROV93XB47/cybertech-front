@@ -4,7 +4,8 @@
  * « Tu regardais » strip of the home page: the products the visitor opened recently.
  *
  * Rendered only in the browser (the list lives in `localStorage`); without history or without
- * JavaScript it renders nothing.
+ * JavaScript it renders nothing. While the cards load, the shared card skeletons hold their
+ * place (feature 002, FR-028).
  */
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
@@ -17,9 +18,12 @@ import { QueryKey } from "@/lib/enums/query-key";
 import { ProductCardSchema } from "@/lib/schemas/product";
 import { UUID_LIST_SEPARATOR } from "@/lib/schemas/uuid-list";
 
+import { SectionHeading } from "@/components/layout/SectionHeading";
+
 import { useRecentlyViewed } from "../hooks/useRecentlyViewed";
 import { HOME_MESSAGES } from "../messages";
 
+import { ProductGridSkeleton } from "./ProductCardSkeleton";
 import { ProductGrid } from "./ProductGrid";
 
 /** Body of `GET /api/products`. */
@@ -44,19 +48,24 @@ export function RecentlyViewed(): ReactNode {
     enabled: uuids.length > 0,
   });
   const products = query.data?.products ?? [];
-  if (products.length === 0) {
+  const isLoading = uuids.length > 0 && query.isPending;
+  if (!isLoading && products.length === 0) {
     return null;
   }
   return (
     <section aria-labelledby="recently-viewed-title" className="flex flex-col gap-6">
-      <h2 id="recently-viewed-title" className="text-2xl">
+      <SectionHeading id="recently-viewed-title">
         {HOME_MESSAGES.recentlyViewedTitle}
-      </h2>
-      <ProductGrid
-        products={products}
-        withTransition={false}
-        label={HOME_MESSAGES.recentlyViewedTitle}
-      />
+      </SectionHeading>
+      {isLoading ? (
+        <ProductGridSkeleton count={uuids.length} />
+      ) : (
+        <ProductGrid
+          products={products}
+          withTransition={false}
+          label={HOME_MESSAGES.recentlyViewedTitle}
+        />
+      )}
     </section>
   );
 }

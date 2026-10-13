@@ -7,6 +7,9 @@ import type { ProductCard as ProductCardData } from "@/lib/schemas/product";
 
 import { ProductCard } from "./ProductCard";
 
+/** Layout of every product grid and of its loading placeholder. */
+export const PRODUCT_GRID_CLASS = "grid grid-cols-2 gap-6 lg:grid-cols-3";
+
 /** Number of cards of a grid loaded eagerly: the first row is visible at first paint. */
 const EAGER_CARD_COUNT = 3;
 
@@ -37,7 +40,7 @@ export function ProductGrid({
   comparable = false,
 }: ProductGridProps): ReactNode {
   return (
-    <ul aria-label={label} className="grid grid-cols-2 gap-6 lg:grid-cols-3">
+    <ul aria-label={label} className={PRODUCT_GRID_CLASS}>
       {products.map((product, index) => (
         <li key={product.uuid} className="flex">
           <ProductCard

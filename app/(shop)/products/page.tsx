@@ -5,19 +5,22 @@
  * redirected to its canonical form when it differs (invalid parameters, no-JavaScript form
  * submission), so every result page has exactly one URL. Facet values and counts are loaded
  * with the results and shown as filters and active-filter pills (feature 002, US1). Every
- * result card can join the product comparison, shown in the bar at the bottom (US2).
+ * result card can join the product comparison, shown in the bar at the bottom (US2). The page
+ * uses the template shared with the home page: breadcrumb, living title, result count (US4).
  *
- * @see specs/002-catalog-refresh/spec.md US1, US2
+ * @see specs/002-catalog-refresh/spec.md US1, US2, US4
  */
 import type { Metadata } from "next";
 import { SearchX } from "lucide-react";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { StateIllustration } from "@/components/effects/StateIllustration";
-import { buttonVariants } from "@/components/ui/button";
+import { LiveTitle } from "@/components/effects/LiveTitle";
+import { EmptyState } from "@/components/layout/EmptyState";
+import { PAGE_TITLE_CLASS, PageHeader } from "@/components/layout/PageHeader";
+import { PageShell } from "@/components/layout/PageShell";
 import { ActiveFilters } from "@/features/catalog/components/ActiveFilters";
+import { CatalogBreadcrumb } from "@/features/catalog/components/CatalogBreadcrumb";
 import { Filters } from "@/features/catalog/components/Filters";
 import { Pagination } from "@/features/catalog/components/Pagination";
 import { ProductGrid } from "@/features/catalog/components/ProductGrid";
@@ -88,27 +91,6 @@ export async function generateMetadata({ searchParams }: ProductsPageProps): Pro
 }
 
 /**
- * Explicit empty state with a way out (FR-005).
- *
- * @param props - Whether filters are set (the reset link is useless otherwise).
- * @returns The message.
- */
-function EmptyResults({ canReset }: { readonly canReset: boolean }): ReactNode {
-  return (
-    <div className="glass flex flex-col items-start gap-4 rounded-card p-8">
-      <StateIllustration icon={<SearchX className="size-10" />} />
-      <h2 className="text-xl">{LIST_MESSAGES.emptyTitle}</h2>
-      <p className="max-w-prose text-text-muted">{LIST_MESSAGES.emptyBody}</p>
-      {canReset && (
-        <Link href={CATALOG_PATH} className={buttonVariants()}>
-          {LIST_MESSAGES.reset}
-        </Link>
-      )}
-    </div>
-  );
-}
-
-/**
  * Product list page.
  *
  * @param props - Page props.
@@ -128,39 +110,48 @@ export default async function ProductsPage({
     redirect(buildSearchUrl({ ...filters, page: totalPages - 1 }));
   }
   const facets = buildFilterFacets(schema, facetData, filters);
+  const title = filters.keyword ? LIST_MESSAGES.searchTitle(filters.keyword) : LIST_MESSAGES.title;
   return (
-    <div className="mx-auto grid w-full max-w-site gap-10 px-6 py-10 lg:grid-cols-4">
-      <aside className="lg:col-span-1">
-        <Filters
-          filters={filters}
-          facets={facets}
-          brandFilter={buildBrandFilter(facetData, filters)}
-          facetSource={facetData.source}
-        />
-      </aside>
-      <section aria-labelledby="results-title" className="flex flex-col gap-8 lg:col-span-3">
-        <header className="flex items-baseline justify-between gap-4">
-          <h1 id="results-title" className="text-3xl">
-            {filters.keyword ? LIST_MESSAGES.searchTitle(filters.keyword) : LIST_MESSAGES.title}
-          </h1>
-          <p className="text-sm text-text-muted" aria-live="polite">
-            {LIST_MESSAGES.resultCount(totalElements)}
-          </p>
-        </header>
-        <ActiveFilters filters={filters} facets={facets} />
-        {results.content.length === 0 ? (
-          <EmptyResults canReset={hasActiveFilters(filters)} />
-        ) : (
-          <ProductGrid
-            products={results.content}
-            label={LIST_MESSAGES.gridLabel}
-            eager
-            comparable
+    <PageShell>
+      <PageHeader
+        breadcrumb={<CatalogBreadcrumb category={filters.category} />}
+        title={<LiveTitle text={title} className={PAGE_TITLE_CLASS} />}
+        live={LIST_MESSAGES.resultCount(totalElements)}
+      />
+      <div className="grid gap-10 lg:grid-cols-4">
+        <aside className="lg:col-span-1">
+          <Filters
+            filters={filters}
+            facets={facets}
+            brandFilter={buildBrandFilter(facetData, filters)}
+            facetSource={facetData.source}
           />
-        )}
-        <Pagination filters={filters} totalPages={totalPages} />
-        <CompareBar />
-      </section>
-    </div>
+        </aside>
+        <section aria-label={LIST_MESSAGES.gridLabel} className="flex flex-col gap-8 lg:col-span-3">
+          <ActiveFilters filters={filters} facets={facets} />
+          {results.content.length === 0 ? (
+            <EmptyState
+              icon={<SearchX className="size-10" />}
+              title={LIST_MESSAGES.emptyTitle}
+              body={LIST_MESSAGES.emptyBody}
+              action={
+                hasActiveFilters(filters)
+                  ? { href: CATALOG_PATH, label: LIST_MESSAGES.reset }
+                  : undefined
+              }
+            />
+          ) : (
+            <ProductGrid
+              products={results.content}
+              label={LIST_MESSAGES.gridLabel}
+              eager
+              comparable
+            />
+          )}
+          <Pagination filters={filters} totalPages={totalPages} />
+          <CompareBar />
+        </section>
+      </div>
+    </PageShell>
   );
 }

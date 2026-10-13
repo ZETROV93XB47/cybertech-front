@@ -33,6 +33,23 @@ export const HOME_MESSAGES = {
   discountMinOrder: (amount: string): string => `dès ${amount} d'achat`,
   discountUntil: (date: string): string => `jusqu'au ${date}`,
   discountHint: "La remise s'applique au moment de la commande.",
+  categoriesTitle: "Catégories",
+  emptyTitle: "Rien à te montrer pour l'instant",
+  emptyBody:
+    "Les meilleures ventes et les produits que tu consultes apparaîtront ici. En attendant, le catalogue t'attend.",
+} as const;
+
+/** Category tiles of the home page (FR-029). */
+export const CATEGORY_TILE_MESSAGES = {
+  count: (count: number): string =>
+    count === 1 ? "1 produit" : `${count.toLocaleString(UI_LOCALE)} produits`,
+  empty: "Aucun produit pour l'instant",
+} as const;
+
+/** Breadcrumb of the catalog. */
+export const CATALOG_BREADCRUMB_MESSAGES = {
+  label: "Fil d'Ariane",
+  home: "Accueil",
 } as const;
 
 /** Category names shown in filters and on cards. */

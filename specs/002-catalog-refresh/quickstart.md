@@ -140,8 +140,8 @@ pas indexés ; animations de la barre et du cadre reportées à la phase 7 (T069
 
 **Contrôles automatiques** : `npm run typecheck` 0 erreur, `npm run lint` 0 erreur et 0 warning,
 `npm run test` 427 tests verts (51 fichiers), `navigation.spec.ts` 3/3, `preferences.spec.ts`
-vert (front sur 3123). `auth.spec.ts` non rejoué : le backend Spring (8081) s'est arrêté pendant
-la vérification ; à relancer sur le port 3000 une fois le backend redémarré.
+vert (front sur 3123). `auth.spec.ts` 4/4 sur le port 3000 (les 2 tests d'expiration de
+session sont ignorés sans `E2E=true`), rejoué après un arrêt temporaire du backend.
 
 **Changements** : liens Accueil, Catalogue, Ordinateurs, Écrans (`MainNav` dans un `Suspense`,
 version statique sans rubrique courante en repli) ; rubrique courante soulignée en or et
@@ -154,3 +154,24 @@ contenu » y place réellement le focus.
 |---|---|---|
 | 18 | OK | Mêmes liens dans le même ordre sur l'accueil, le catalogue, Ordinateurs, une fiche d'ordinateur (Ordinateurs actif), le panier, l'inscription et la connexion. |
 | 19 | OK | Premier Tab : « Aller au contenu » visible ; Entrée place le focus sur `main` ; tous les contrôles de l'en-tête atteints au clavier. |
+
+### US4 — Accueil et catalogue cohérents (2026-10-13)
+
+**Contrôles automatiques** : `npm run typecheck` 0 erreur, `npm run lint` 0 erreur et 0 warning,
+`npm run test` 437 tests verts (53 fichiers), `home.spec.ts` 3/3, `catalog-filters.spec.ts` 9/9,
+`compare.spec.ts` 5/5, `navigation.spec.ts` 3/3, `catalog.spec.ts` 7/8 (palette Ctrl+K, échec
+connu sous Turbopack, voir US2).
+
+**Changements** : `PageShell` (largeur, marges, rythme vertical), `PageHeader` (fil d'Ariane
+optionnel, titre vivant, sous-titre, actions, compteur annoncé), `SectionHeading`, `EmptyState`
+et squelettes de cartes (`ProductCardSkeleton`, `ProductGridSkeleton`, utilisés par « Tu
+regardais » pendant le chargement) partagés par l'accueil et le catalogue. Accueil : tuiles
+Ordinateurs / Écrans avec le nombre réel de produits (`getCategoryCounts`, `totalHits` des
+facettes), offre affichée seulement si une campagne est active, état vide illustré sans
+meilleure vente. Catalogue : fil d'Ariane Accueil › Catalogue › catégorie, titre vivant, nombre
+de résultats annoncé ; colonne de filtres et grille à 3 colonnes inchangées. Les vignettes de la
+barre de comparaison gardent leur petit bloc `skeleton-shimmer` (format vignette).
+
+| # | Résultat | Commentaire |
+|---|---|---|
+| 20 | OK | Même largeur, mêmes marges et même style de titre mesurés sur l'accueil et le catalogue ; tuile « Ordinateurs » (531 produits) → `/products?category=COMPUTER` ; « Écrans » : « Aucun produit pour l'instant » (index local sans écran). Offre BLACK_FRIDAY active, affichée. |

@@ -27,7 +27,7 @@ import {
 } from "@/lib/constants/catalog";
 import { HTTP_STATUS } from "@/lib/constants/http";
 import { Brand } from "@/lib/enums/brand";
-import type { CategoryKey } from "@/lib/enums/category-key";
+import { CategoryKey } from "@/lib/enums/category-key";
 import { FacetSource } from "@/lib/enums/facet-source";
 import { HttpMethod } from "@/lib/enums/http-method";
 import { UI_LOCALE } from "@/lib/format";
@@ -42,6 +42,7 @@ import {
 import { pagedSchema } from "@/lib/schemas/paged";
 import { ProductSchema, type Product } from "@/lib/schemas/product";
 import {
+  EMPTY_SEARCH_FILTERS,
   toProductSearchRequest,
   type ProductSearchRequest,
   type SearchFilters,
@@ -270,4 +271,34 @@ export async function getFacets(filters: SearchFilters): Promise<FacetData> {
     logEndpointFailure(error);
     return filters.category ? getFallbackFacets(filters.category) : UNAVAILABLE_FACETS;
   }
+}
+
+/**
+ * Reads the number of products of a facets answer.
+ *
+ * @param data - Facets of one category.
+ * @returns `totalHits`, or `null` when the facets are unavailable.
+ */
+function toProductCount(data: FacetData): number | null {
+  return data.source === FacetSource.UNAVAILABLE ? null : data.totalHits;
+}
+
+/**
+ * Counts the products of every category, for the category tiles of the home page.
+ *
+ * One facets call per category (same cache as the catalog), read from `totalHits`: the backend
+ * endpoint or the fallback scan, so the number is always a real catalog count (FR-029).
+ *
+ * @returns The number of products by category; `null` when the facets are unavailable.
+ * @see specs/002-catalog-refresh/research.md R13
+ */
+export async function getCategoryCounts(): Promise<Record<CategoryKey, number | null>> {
+  const [computers, monitors] = await Promise.all([
+    getFacets({ ...EMPTY_SEARCH_FILTERS, category: CategoryKey.COMPUTER }),
+    getFacets({ ...EMPTY_SEARCH_FILTERS, category: CategoryKey.MONITOR }),
+  ]);
+  return {
+    [CategoryKey.COMPUTER]: toProductCount(computers),
+    [CategoryKey.MONITOR]: toProductCount(monitors),
+  };
 }

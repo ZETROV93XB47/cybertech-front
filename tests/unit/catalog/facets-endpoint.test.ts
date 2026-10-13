@@ -168,3 +168,22 @@ describe("getFacets", () => {
     expect(scan).not.toHaveBeenCalled();
   });
 });
+
+describe("getCategoryCounts", () => {
+  it("returns the total of each category, null when its facets are unavailable", async () => {
+    server.use(
+      http.post(FACETS_URL, async ({ request }) => {
+        const { category } = (await request.json()) as { category?: string };
+        return category === CategoryKey.COMPUTER
+          ? HttpResponse.json({ ...FACETS_BODY, totalHits: 531 })
+          : HttpResponse.error();
+      }),
+      http.post(SEARCH_URL, () => HttpResponse.error()),
+    );
+    const { getCategoryCounts } = await loadFacetsModule();
+    expect(await getCategoryCounts()).toEqual({
+      [CategoryKey.COMPUTER]: 531,
+      [CategoryKey.MONITOR]: null,
+    });
+  });
+});
