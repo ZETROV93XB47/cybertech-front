@@ -28,9 +28,9 @@ describe("parseEnv", () => {
   });
 
   it("lists every missing or invalid variable", () => {
-    expect(() => parseEnv({ ...VALID_ENV, API_BASE_URL: "not-a-url", AUTH_SECRET: undefined })).toThrow(
-      /API_BASE_URL[\s\S]*AUTH_SECRET|AUTH_SECRET[\s\S]*API_BASE_URL/,
-    );
+    expect(() =>
+      parseEnv({ ...VALID_ENV, API_BASE_URL: "not-a-url", AUTH_SECRET: undefined }),
+    ).toThrow(/API_BASE_URL[\s\S]*AUTH_SECRET|AUTH_SECRET[\s\S]*API_BASE_URL/);
   });
 
   it("rejects an unknown log level", () => {
