@@ -42,7 +42,7 @@ récents, notamment 409 USER_ALREADY_EXISTS à l'inscription) :
   résume-moi les écarts avant de lancer la première feature.
 
 Découpage proposé, une feature Spec Kit par ligne, dans cet ordre :
-- 002-catalog-refresh : filtres par attribut sur le catalogue, grille de 4 produits par ligne,
+- 002-catalog-refresh : filtres par attribut sur le catalogue (connectique exclue),
   comparateur de 2 à 3 produits d'une même catégorie, accueil, catalogue et barre de
   navigation harmonisés (front seul, aucune dépendance
   backend : à faire pendant que le backend traite docs/backend/backend-prompts-lot2.md) ;
@@ -118,7 +118,8 @@ User stories (à prioriser) :
    - afficher le compteur de chaque valeur quand le backend le fournit, griser une valeur à 0 ;
    - rappel des contraintes : priceMin ≥ 100, pas de tri côté backend (à signaler, pas à
      simuler).
-2. Grille du catalogue à 4 produits par ligne sur desktop (au lieu de 3), avec la colonne de
+2. (Reportée le 2026-10-13, hors feature 002 : à reprendre plus tard.) Grille du catalogue à
+   4 produits par ligne sur desktop (au lieu de 3), avec la colonne de
    filtres conservée : adapter la largeur de contenu, la taille des cartes et des images
    (next/image sizes), la taille de page (SEARCH_PAGE_SIZE = 24, multiple de 4, à garder
    cohérent) et les squelettes de chargement ; vérifier que les cartes restent lisibles (nom,
@@ -137,7 +138,8 @@ User stories (à prioriser) :
    en tokens du thème ; navigation clavier complète et lien d'évitement vers le contenu.
 5. Comparateur de produits (2 à 3 produits d'une même catégorie), front seul :
    - chaque carte produit du catalogue porte une case à cocher « Comparer » (vraie case
-     accessible, libellé incluant le nom du produit) ;
+     accessible, libellé incluant le nom du produit), et la fiche produit un bouton
+     « Ajouter à la comparaison » ; la sélection dure le temps de l'onglet ;
    - la première case cochée fixe la catégorie de la comparaison : les cases des produits
      d'une autre catégorie sont désactivées avec une explication (infobulle et texte lu par
      les lecteurs d'écran) ; au 3e produit coché, les autres cases sont désactivées
