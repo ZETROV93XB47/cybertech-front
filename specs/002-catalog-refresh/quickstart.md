@@ -220,3 +220,35 @@ d'effets) ; `a11y.spec.ts` (catalogue filtré, cadre ouvert, fiche avec bouton) 
 **Captures après (T076)** : `screenshots/after/` (mêmes pages que `before/` plus les états de
 l'audit). Scénario 21 (effets désactivés, `prefers-reduced-motion`) : OK en unitaire (fondu
 seul, aucune transformation).
+
+### Retouches visuelles demandées (2026-10-13)
+
+Tuiles de catégorie illustrées par de vraies photos du catalogue (`getCategoryPhotos`, icône si la
+catégorie n'a pas de produit) ; case « Comparer » en pastille sur la photo de la carte ; photos
+posées sur la couleur de leur propre fond (`photoBackdrop` du thème) : elles occupent tout le
+cadre, sans bandes sombres et sans être rognées.
+
+### Bilan final de la feature 002 (2026-10-13)
+
+**Contrôles** : `npm run typecheck` 0 erreur, `npm run lint` 0 erreur et 0 warning,
+`npm run test` 458 tests verts (54 fichiers).
+
+| Spec Playwright | Serveur | Résultat |
+|---|---|---|
+| `a11y` | dev 3123 | 3/3 |
+| `catalog-filters` | dev 3123 | 9/9 |
+| `catalog` | dev 3123 | 7/8 — palette Ctrl+K : raccourci envoyé avant l'hydratation sous Turbopack, échec identique sur le commit `67722fd`, passe avec `next dev --webpack` |
+| `compare` | dev 3123 | 5/5 |
+| `home` | dev 3123 | 3/3 |
+| `navigation` | dev 3123 | 3/3 |
+| `preferences` | dev 3123 | 4/4 (1 ignoré, comme au lot 1) |
+| `auth` | 3000 | 4/4 (2 ignorés sans `E2E=true`) |
+| `cart` | 3000 | 6/7 — « Indisponible » sur la fiche : sélecteur ambigu avec les produits similaires (lot 1), indépendant de la feature 002 |
+| `register` | 3000 | 5/5 |
+| `backend-down` | build de prod, backend injoignable | 3/3 |
+| `long-tasks` | build de prod 3124 | 2/2 |
+
+**Points restants** : scénarios MONITOR non testables (0 écran dans l'index local le 2026-10-13,
+malgré le scraping des moniteurs ajouté côté backend au commit `ecc76e1` : réindexation
+nécessaire) ; les deux tests e2e ci-dessus à corriger dans une passe dédiée ; page panier à aligner
+sur le gabarit commun avec la feature commande.

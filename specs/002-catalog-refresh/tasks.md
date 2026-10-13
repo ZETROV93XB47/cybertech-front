@@ -198,10 +198,10 @@ description: "Task list for feature 002 — catalog filters, comparator, navigat
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T077 [P] Update `docs/backend/api-map.md`: §3 `POST /product/search/facets` (contract, cap 50, disjunctive counts) once committed on the backend side, §F facets row marked done; also record the other endpoints delivered by the backend (order price breakdown, shipping options, quote, `place/auto` removed) for feature 003
-- [ ] T078 [P] TSDoc and constants audit of every file touched by the feature (no magic value, no raw visual value, `@see` to spec / contract / backend file), fixing what `npm run lint` does not catch
-- [ ] T079 Full run: `npm run typecheck`, `npm run lint`, `npm run test`, then every Playwright spec one by one (`--workers=1`, one-minute pause between specs that create accounts); complete `specs/002-catalog-refresh/quickstart.md` §5 with the date, counts and remaining manual points (MONITOR scenarios if still not indexed)
-- [ ] T080 Final commit `docs: wrap up feature 002` and checkpoint with the user (in French)
+- [X] T077 [P] Update `docs/backend/api-map.md`: §3 `POST /product/search/facets` (contract, cap 50, disjunctive counts) once committed on the backend side, §F facets row marked done; also record the other endpoints delivered by the backend (order price breakdown, shipping options, quote, `place/auto` removed) for feature 003
+- [X] T078 [P] TSDoc and constants audit of every file touched by the feature (no magic value, no raw visual value, `@see` to spec / contract / backend file), fixing what `npm run lint` does not catch
+- [X] T079 Full run: `npm run typecheck`, `npm run lint`, `npm run test`, then every Playwright spec one by one (`--workers=1`, one-minute pause between specs that create accounts); complete `specs/002-catalog-refresh/quickstart.md` §5 with the date, counts and remaining manual points (MONITOR scenarios if still not indexed)
+- [X] T080 Final commit `docs: wrap up feature 002` and checkpoint with the user (in French)
 
 ---
 

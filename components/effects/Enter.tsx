@@ -7,15 +7,8 @@
  */
 import type { CSSProperties, ReactNode } from "react";
 
+import { EnterAnimation } from "@/lib/enums/enter-animation";
 import { cn } from "@/lib/utils";
-
-/** Kind of entrance. */
-export enum EnterAnimation {
-  /** Plain fade (active-filter pills). */
-  FADE = "enter-fade",
-  /** Fade and rise, a plain fade when effects are reduced (grid cards, home sections). */
-  RISE = "enter-rise",
-}
 
 /** Position after which every element enters at the same time, so long lists never lag. */
 export const ENTER_MAX_INDEX = 8;

@@ -10,7 +10,8 @@
 import { X } from "lucide-react";
 import Link from "next/link";
 
-import { EnterAnimation, enterStyle } from "@/components/effects/Enter";
+import { enterStyle } from "@/components/effects/Enter";
+import { EnterAnimation } from "@/lib/enums/enter-animation";
 import type { ReactNode } from "react";
 
 import { buttonVariants } from "@/components/ui/button";

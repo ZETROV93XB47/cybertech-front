@@ -5,7 +5,8 @@
  */
 import type { ReactNode } from "react";
 
-import { EnterAnimation, enterStyle } from "@/components/effects/Enter";
+import { enterStyle } from "@/components/effects/Enter";
+import { EnterAnimation } from "@/lib/enums/enter-animation";
 import type { ProductCard as ProductCardData } from "@/lib/schemas/product";
 
 import { ProductCard } from "./ProductCard";

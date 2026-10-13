@@ -108,6 +108,7 @@ Controller : `{ctrl}/ProductSearchController.java` (base `/api/v1/services/produ
 | POST | `/api/v1/services/product/search` | `#searchProducts` (:39) | Public | — | `ProductSearchRequestDto` (§D.10) | `PagedModel<ProductResponseDto>` | 200, 400 | **Dans le body** (`page` défaut 0, `size` défaut 20) | Elasticsearch : `multiMatch` fuzzy (`AUTO`) sur le mot-clé, filtres catégorie / marques / attributs / plages. **Pas de tri** paramétrable (pertinence). `ProductSearchServiceImp.java:42-161`. |
 | GET | `/api/v1/services/product/availability` | `#getAvailability` | Public | query `uuids` (1 à 50 UUID, séparés par des virgules ou répétés) | — | `ProductAvailabilityDto[]` (§D.12b) | 200, 400 `INVALID_REQUEST` (vide / > 50) ou `METHOD_ARGUMENT_TYPE_MISMATCH` (UUID invalide) | — | **Stock en direct** (`max(0, stock - reservedStock)`, lu en base), réponse `Cache-Control: no-store`. UUID inconnus absents du résultat. À ne **jamais** mettre en cache côté front. |
 | GET | `/api/v1/services/product/best-sellers` | `#getBestSellers` (:45) | Public | query `page`, `size` (défaut 15), `sort` | — | `PagedModel<ProductResponseDto>` | 200 | Query | — |
+| POST | `/api/v1/services/product/search/facets` | `#getSearchFacets` (:60) | Public | — | `ProductSearchRequestDto` (§D.10, `page` / `size` ignorés) | `ProductFacetsResponseDto` (§D.26) | 200, 400 (`UNKNOWN_PRODUCT_CATEGORY` compris) | — | Mêmes critères que `/search`. Compteurs **disjonctifs** : les valeurs d'un filtre sont comptées avec tous les autres filtres actifs sauf le sien. Au plus `FACET_MAX_VALUES` = **50** valeurs par attribut (`CyberTechAppConstants.java:91`), triées par nombre décroissant puis alphabétiquement. `attributes` / `numericAttributes` présents seulement avec une catégorie. `Cache-Control: public`. Livré au commit backend `3a3a62c` ; utilisé par le front depuis la feature 002 (`lib/api/endpoints/facets.ts`, repli sans compteurs si absent). |
 
 Recherche vide (tous champs `null`) = liste de tout le catalogue : **confirmé à l'exécution** le 2026-10-13 (531 produits renvoyés).
 
@@ -157,14 +158,23 @@ Controller : `{ctrl}/OrderManagementController.java` (base `/api/v1/services/man
 | Méthode | Chemin | Controller#méthode | Auth | Params | Body | Réponse | Codes HTTP | Pagination | Notes |
 |---|---|---|---|---|---|---|---|---|---|
 | POST | `/api/v1/services/management/order/place` | `#placeOrder` (:44) | USER/ADMIN | — | `OrderPlacingRequestDto` (§D.8) | `201` `OrderResponseDto` (§D.17) | 201, 400 (`DISCOUNT_TYPE_NOT_ACTIVE` compris), 403 `USER_NOT_ACTIVE`, 409 `CART_IS_EMPTY`/`NOT_ENOUGH_STOCK`, 500 | — | Convertit le **panier serveur** en commande, **vide le panier** et **déclenche le paiement Stripe côté serveur** (PaymentIntent confirmé avec le moyen de paiement configuré, voir analysis §6). **Ne renvoie jamais 402** : un paiement refusé ou une panne Stripe donnent quand même 201 (stock libéré, commande à relancer par `retry-payment`) ; l'issue se lit par polling de `/status/{uuid}`. `totalAmount` inclut remise et frais de port. |
+| POST | `/api/v1/services/management/order/quote` | `#quote` (:53) | USER/ADMIN | — | `OrderQuoteRequestDto` (§D.27) | `OrderQuoteResponseDto` (§D.27) | 200, 400, 403 | — | Chiffre le **panier serveur** de l'appelant sans rien créer : sous-total, remise (`discountApplied` faux sous `minOrderAmount`), frais de port, total = `max(0, sous-total − remise) + port`. Livré au commit backend `a8b83ae` (feature 003). |
 | GET | `/api/v1/services/management/order/status/{uuid}` | `#getOrderStatusByUuid` (:96) | USER/ADMIN, propriétaire | path `uuid` | — | `OrderStatusDto` (§D.18) | 200, 403, 404 | — | Prévu pour le **polling** de la page de confirmation. |
 | GET | `/api/v1/services/management/order/get/{uuid}` | `#getOrderByUuid` (:84) | USER/ADMIN, propriétaire | path `uuid` | — | `OrderResponseDto` | 200, 403, 404 | — | — |
 | GET | `/api/v1/services/management/order/mine` | `#getMyOrders` (:119) | USER/ADMIN | query `status` (multi, `OrderStatus`), `page`, `size` (20), `sort` (`createdAt,desc`) | — | `PagedModel<OrderResponseDto>` | 200, 400 | Query | — |
-| POST | `/api/v1/services/management/order/update` | `#updateOrder` (:60) | USER/ADMIN, propriétaire | — | `OrderUpdateRequestDto` (§D.9) | `OrderResponseDto` | 200, 400, 402 `PAYMENT_FAILED` (complément refusé), 403, 404, 409 `ORDER_ALREADY_SHIPPED`/`NOT_ENOUGH_STOCK`/`ORDER_NOT_FUNDED` | — | Possible tant que la commande n'est pas expédiée (fenêtre de grâce `cybertech.shipping.grace-period=30m` après paiement). Complément / remboursement partiel automatique. ⚠️ Le total est **recalculé avec `NO_DISCOUNT`** : modifier une commande remisée fait perdre la remise (§E 23). |
+| POST | `/api/v1/services/management/order/update` | `#updateOrder` (:60) | USER/ADMIN, propriétaire | — | `OrderUpdateRequestDto` (§D.9) | `OrderResponseDto` | 200, 400, 402 `PAYMENT_FAILED` (complément refusé), 403, 404, 409 `ORDER_ALREADY_SHIPPED`/`NOT_ENOUGH_STOCK`/`ORDER_NOT_FUNDED` | — | Possible tant que la commande n'est pas expédiée (fenêtre de grâce `cybertech.shipping.grace-period=30m` après paiement). Complément / remboursement partiel automatique. Le total est recalculé avec la remise d'origine de la commande (corrigé au commit backend `e0b93b4`, §E 23). |
 | POST | `/api/v1/services/management/order/cancel` | `#cancelOrder` (:52) | USER/ADMIN, propriétaire | — | `OrderCancellationRequestDto` (§D.9b) | `200` `OrderResponseDto` | 200, 403, 404, 409 `CANNOT_CANCEL_ORDER`/`ORDER_REFUND_FAILED` | — | Refusé dès `AWAITING_SHIPPING` (`OrderCancellationTransactionalDelegateImp.java:76-77`). Annuler une commande déjà annulée = no-op. |
 | POST | `/api/v1/services/management/order/retry-payment/{uuid}` | `#retryPayment` (:67) | USER/ADMIN, propriétaire | path `uuid` | — | `OrderResponseDto` | 200, 402, 404 `NO_PREVIOUS_PAYMENT_ATTEMPT_FOUND`, 409 `PAYMENT_ALREADY_COMPLETED`, 422 | — | Après `PAYMENT_FAILED`. |
 
 Cycle de vie `OrderStatus` (`{pkg}/entities/enums/OrderStatus.java`) : `CREATED → AWAITING_PAYMENT → (PAYMENT_FAILED | PAID) → AWAITING_SHIPPING → SHIPPED → DELIVERED`, + `RETURNED`, `CANCELED`, `REFUNDED`.
+
+## 7b. Livraison (public)
+
+Controller : `{ctrl}/ShippingController.java` (base `/api/v1/services/shipping`, **public** via `SecurityConfig.java:98`).
+
+| Méthode | Chemin | Controller#méthode | Auth | Params | Body | Réponse | Codes HTTP | Pagination | Notes |
+|---|---|---|---|---|---|---|---|---|---|
+| GET | `/api/v1/services/shipping/options` | `ShippingController#getShippingOptions` (:46) | Public | query `provider` optionnel (`DHL` \| `FEDEX`) | — | `ShippingOptionResponseDto[]` (§D.28) | 200, 400 `METHOD_ARGUMENT_TYPE_MISMATCH` (transporteur inconnu) | — | Chaque couple (transporteur, type) avec son prix, exactement le `shippingCost` facturé. `Cache-Control: public, max-age=600`. Livré au commit backend `9728d0b` (feature 003). |
 
 ## 8. Carte bancaire enregistrée (une par utilisateur)
 
@@ -232,7 +242,6 @@ Tous `hasRole('ADMIN')`.
 | PATCH | `/api/v1/services/admin/management/product/update/{productUuid}` | `#updateProduct` (:59) | `ProductUpdateRequestDto` | `ProductResponseDto` |
 | DELETE | `/api/v1/services/admin/management/product/delete/{productUuid}` | `#deleteProductByUuid` (:73) | — | 204 |
 | GET | `/api/v1/services/admin/management/order/get/all` | `OrderManagementAdminController#getAllOrders` (:55) | `status` (multi), `userKeycloakId`, pageable | `PagedModel<OrderResponseDto>` |
-| POST | `/api/v1/services/admin/management/order/place/auto` | `#placeOrder2` (:64) | — | `OrderResponseDto` |
 | DELETE | `/api/v1/services/admin/management/order/delete/{uuid}` | `#deleteOrderByUuid` (:70) | — | 204 |
 | GET/POST/PATCH/DELETE | `/api/v1/services/admin/discounts[/{discountKey}]` | `DiscountAdminController` (:44-78) | `DiscountCampaign{Create,Update}RequestDto` | `DiscountCampaignResponseDto` ; 404 / 409 |
 | GET/POST/PATCH/DELETE | `/api/v1/services/admin/product-category-schemas/{get/all,get/{k},create,update/{k},delete/{k}}` | `ProductCategorySchemaAdminController` (:38-64) | `ProductCategorySchema{Create,Update}RequestDto` | `ProductCategorySchemaResponseDto` |
@@ -380,8 +389,12 @@ Même forme que D.5 (`cartItemAddRequestDtos`), sémantique **remplacement compl
 | `refundedAmount` | number (dérivé) |
 | `shippingAddress` | string (adresse **aplatie**) |
 | `orderItems[]` | `{ orderItemUuid, productUuid, productName, quantity, unitPrice, lineItemTotalPrice }` |
+| `subtotalAmount`, `discountAmount`, `shippingCost` | number, `null` sur les commandes antérieures au détail (commit backend `e0b93b4` et suivants) |
+| `discountKey`, `discountCalculationType` | string, `DiscountCalculationType` (`null` idem) |
+| `shippingType`, `shippingProvider` | enums de §D.8 |
+| `currency` | ISO 4217 |
 
-Absents : devise, frais de port, montant de remise, `discountKey`, statut de paiement, numéro de suivi.
+Invariant : `totalAmount = max(0, subtotalAmount − discountAmount) + shippingCost`. Absents : statut de paiement, numéro de suivi.
 
 ### D.18 `OrderStatusDto`
 `{ uuid: UUID, status: OrderStatus }`.
@@ -409,6 +422,15 @@ Absents : devise, frais de port, montant de remise, `discountKey`, statut de pai
 
 ---
 
+### D.26 `ProductFacetsResponseDto` — `response/search/ProductFacetsResponseDto.java`
+`totalHits` (long, = `page.totalElements` de `/search`), `brands` (`FacetValueDto[]` : `value`, `count`), `price` (`RangeFacetDto` : `min`, `max`, `null` sans produit), `attributes` (`Map<clé, FacetValueDto[]>`, présent seulement avec une catégorie, chaque attribut texte du schéma est une clé, liste éventuellement vide), `numericAttributes` (`Map<clé, RangeFacetDto>`, idem). Schéma Zod front : `lib/schemas/facets.ts`.
+
+### D.27 `OrderQuoteRequestDto` / `OrderQuoteResponseDto` — `request/order/`, `response/order/`
+Requête : `shippingType` (req), `shippingProvider` (req), `discountKey` (défaut `NO_DISCOUNT`). Réponse : `subtotalAmount`, `discountKey`, `discountCalculationType`, `discountAmount` (0 si non appliquée), `discountApplied`, `minOrderAmount` (nullable), `shippingCost`, `totalAmount`, `currency` (ISO 4217, `EUR`).
+
+### D.28 `ShippingOptionResponseDto` — `response/shipping/ShippingOptionResponseDto.java`
+`provider` (`DHL` \| `FEDEX`), `type` (`STANDARD` \| `EXPRESS`), `cost` (décimal), `currency` (ISO 4217).
+
 ## E. Incohérences et points faibles relevés
 
 | # | Constat | Source | Impact front |
@@ -435,12 +457,12 @@ Absents : devise, frais de port, montant de remise, `discountKey`, statut de pai
 | 20 | `GET /user/ok` renvoie une chaîne avec emojis et n'est pas public. | `UserManagementController.java:135-138` | Ne pas l'utiliser comme health check public ; préférer `/actuator/health`. |
 | 21 | Paiement confirmé **côté serveur** avec un `payment_method` fixé par configuration (`stripe.payment-method=pm_card_visa`), `allow_redirects=never`. `paymentType` n'influence pas le moyen réellement débité. | `StripePaymentAttemptProcessor.java:42,179-195`, `application.properties` | Aucun formulaire de paiement réel possible dans le lot actuel (pas de Stripe Elements, pas de 3DS). |
 | 22 | Le prompt initial décrit PostgreSQL et un JWT maison : le code utilise **MySQL** et **Keycloak**. | `pom.xml`, `application.properties`, `SecurityConfig.java` | La doc et le docker-compose du front suivent le code. |
-| 23 | `POST /order/update` recalcule le total avec `NO_DISCOUNT` : une commande passée avec une remise la perd à la première modification (complément de paiement demandé). | `OrderManagementServiceImp.java:~300` | Prévenir avant de modifier une commande remisée, ou réserver la modification aux commandes sans remise. |
-| 24 | `OrderResponseDto` ne contient ni `discountKey`, ni montant de remise, ni frais de port, alors que l'entité connaît `discountKey`, `shippingType` et `shippingProvider`. | `OrderResponseDto.java`, `OrderCreationTransactionalDelegateImp.java:107` | Le détail d'une commande ne peut pas décomposer son total ; seul `totalAmount` fait foi. |
+| 23 | ~~`POST /order/update` recalcule le total avec `NO_DISCOUNT`.~~ | — | **Corrigé** : une commande modifiée garde la remise avec laquelle elle a été passée (commit backend `e0b93b4`). |
+| 24 | ~~`OrderResponseDto` ne contient ni `discountKey`, ni montant de remise, ni frais de port.~~ | — | **Corrigé** côté backend : détail du total ajouté (§D.17), `null` sur les commandes anciennes ; une commande modifiée garde sa remise (commit `e0b93b4`). |
 | 25 | Frais de port (15 € / 25 €) codés dans `DHLShippingProviderService` et `FedexShippingProviderService`, exposés par aucun endpoint. | `*ShippingProviderService.java` | Le tunnel ne peut afficher qu'un port « estimé » à partir d'une constante front alignée, signalée comme telle. |
 | 26 | `POST /order/place` ne renvoie jamais 402 : l'échec de paiement n'est visible que dans le statut. | `OrderManagementServiceImp#placeOrder` | La page de confirmation doit sonder `/status/{uuid}` et proposer `retry-payment`. |
 | 27 | Un `minOrderAmount` non atteint annule la remise sans erreur. | `OrderPriceCalculationServiceImp#computeDiscount` | Le front doit le signaler lui-même avant l'envoi. |
-| 28 | `POST /admin/management/order/place/auto` déclare `consumes = application/json` sans body. | `OrderManagementAdminController.java:64` | **Non utilisé par le front** (décision du 2026-10-13) ; retrait demandé au backend (`docs/backend/backend-prompts-lot2.md`). |
+| 28 | ~~`POST /admin/management/order/place/auto` déclare `consumes = application/json` sans body.~~ | — | **Corrigé** : endpoint retiré au commit backend `26043a5`. |
 
 ---
 
@@ -452,13 +474,13 @@ Absents : devise, frais de port, montant de remise, `discountKey`, statut de pai
 | Liste publique des catégories | `GET /api/v1/services/product-category-schemas` | Liste codée en dur (`COMPUTER`, `MONITOR`). |
 | ~~Disponibilité / stock produit~~ | **Fait** : `GET /api/v1/services/product/availability` | — |
 | Tri du catalogue (prix, nouveautés) | param `sort` sur `/product/search` | Aucun (pertinence ES uniquement). |
-| Facettes (marques, plages de prix, attributs avec compteurs) | agrégations ES sur `/product/search` | `jsonSchema` de la catégorie + enum `Brand` statique. |
+| ~~Facettes (marques, plages de prix, attributs avec compteurs)~~ | **Fait** : `POST /api/v1/services/product/search/facets` (§3) | Repli front sans compteurs si l'endpoint manque (feature 002). |
 | Suggestions / autocomplétion (palette ⌘K) | `GET /product/suggest?q=` | `POST /product/search` avec `size` réduit + debounce. |
 | Avis publics d'un produit + note moyenne | `GET /api/v1/services/review/product/{uuid}` (public, paginé) | Aucun. |
 | Panier invité + fusion à la connexion | `POST /cart/merge` idempotent (optionnel) | **Retenu** : panier invité en `localStorage` puis rejoué via le BFF → `/cart/add` à la connexion — voir [`../guest-cart.md`](../guest-cart.md). |
-| Récapitulatif de prix avant commande (remise, port) | `POST /order/quote` (le DTO `PriceCalculationRequestDto` existe déjà, sans controller) | Total « estimé » calculé côté front avec les règles de §5 (remise + port) ; montant final connu après `/order/place`. |
-| Frais de port par transporteur et type | `GET /shipping/options` | Constantes front alignées sur `*ShippingProviderService` (15 € / 25 €). |
-| Détail du total d'une commande (remise, port) | `discountKey`, `discountAmount`, `shippingCost` sur `OrderResponseDto` | Aucun : seul `totalAmount` est affiché. |
+| ~~Récapitulatif de prix avant commande (remise, port)~~ | **Fait** : `POST /api/v1/services/management/order/quote` (§7) | — (à utiliser par la feature 003). |
+| ~~Frais de port par transporteur et type~~ | **Fait** : `GET /api/v1/services/shipping/options` (§7b) | — (remplace les constantes front 15 € / 25 €). |
+| ~~Détail du total d'une commande (remise, port)~~ | **Fait** : `subtotalAmount`, `discountKey`, `discountCalculationType`, `discountAmount`, `shippingCost` sur `OrderResponseDto` (§D.17) | `null` sur les commandes antérieures à ce champ : n'afficher que `totalAmount` dans ce cas. |
 | Paiement côté client (Stripe Payment Element, 3DS) | `POST /order/{uuid}/payment-intent` → `client_secret` | Paiement serveur simulé. |
 | Derniers produits consultés (« Content de te revoir ») | `GET /api/v1/events/recently-viewed` | Historique local (cookie / localStorage non sensible) côté front. |
 | Changement de mot de passe / mot de passe oublié | Keycloak account console ou action `UPDATE_PASSWORD` | Lien vers la console Keycloak. |
