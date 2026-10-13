@@ -42,6 +42,13 @@ présentation sur l'accueil, le catalogue et l'en-tête.
 
 - Q: Comment faire de la place pour 4 cartes par ligne à côté des filtres, alors que le contenu ne dépasse pas 1 200 pixels ? → A: Rien pour l'instant : la grille à 4 produits par ligne est retirée de la feature et reportée ; la grille actuelle à 3 colonnes est conservée.
 - Q: Depuis quels endroits du site peut-on ajouter un produit à la comparaison ? → A: Depuis les cartes du catalogue (case « Comparer ») et depuis la fiche produit (bouton « Ajouter à la comparaison ») ; la barre de comparaison est visible sur ces deux pages.
+- Q (retouches du 2026-10-13) : bannière, cartes du catalogue, avis, livraison ? → A: bannière
+  photo d'un ordinateur portable en haut de l'accueil (photo libre de droits, `docs/credits.md`) ;
+  cartes du catalogue à la même taille que celles de l'accueil, 3 par ligne (la page catalogue
+  s'élargit de la largeur de la colonne de filtres) ; section « Avis clients » prête mais vide
+  tant que le backend ne liste pas les avis (aucun avis inventé) ; bloc « Livraison » avec les
+  prix réels du backend et des délais indicatifs du front, sans retrait en magasin (absent du
+  backend) ; plus d'espace avant le pied de page. Demandes backend : `docs/backend/backend-prompts-lot2.md` §8 et §9.
 - Q: Combien de temps la sélection de produits à comparer doit-elle être conservée ? → A: Le temps de l'onglet : elle survit à la navigation et au rechargement, et se vide à la fermeture de l'onglet ou du navigateur. La comparaison s'affiche dans un grand cadre au-dessus de la page d'où elle est ouverte, sans page dédiée.
 
 ## User Scenarios & Testing *(mandatory)*

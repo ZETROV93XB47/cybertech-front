@@ -57,6 +57,12 @@ export const JSON_CONTENT_TYPE = "application/json";
  * @see docs/backend/api-map.md §2–§6
  */
 export const BACKEND_PATHS = {
+  /**
+   * `GET` — public shipping options (carrier, type, fee), optional `provider` query param.
+   *
+   * @see docs/backend/api-map.md §7b
+   */
+  shippingOptions: `${API_BASE_PATH}/shipping/options`,
   /** `GET` — public product detail. Append the product UUID. */
   productByUuid: `${API_BASE_PATH}/product/get`,
   /** `POST` — public Elasticsearch search, pagination in the body. */

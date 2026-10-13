@@ -185,11 +185,18 @@ export interface ThemeMedia {
   readonly card: MediaSize;
   readonly gallery: MediaSize;
   readonly thumbnail: MediaSize;
+  /** Banner photo at the top of the home page. */
+  readonly hero: MediaSize;
 }
 
 /** Page layout tokens. */
 export interface ThemeLayout {
   readonly containerMaxWidth: CssValue;
+  /**
+   * Width of the catalog page: the site width plus the filter column and its gap, so the
+   * results area is as wide as the home page content and the cards have the same size.
+   */
+  readonly catalogMaxWidth: CssValue;
   readonly headerHeight: CssValue;
 }
 

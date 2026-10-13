@@ -280,3 +280,50 @@ Travail demandé :
   rang que WISHLIST_ADD ; sinon l'ajouter et l'expliquer dans le résumé ;
 - tests : désérialisation de l'événement, mapping Gorse, IT d'ingestion si elle existe.
 ````
+
+---
+
+## 8. Avis publics d'un produit et note moyenne
+
+````text
+Objectif : afficher sur la fiche produit du front une section « Avis clients » (note moyenne,
+répartition des notes, liste des avis), comme LDLC.
+
+Constat : ReviewCrudController n'expose que get/{reviewUuid}, create, update, delete et
+reviewable, tous réservés au rôle USER ; aucun endpoint ne liste les avis d'un produit ni ne
+calcule sa note moyenne. ReviewResponseDto n'a ni date ni nom d'auteur.
+
+Travail demandé :
+- GET /api/v1/services/review/product/{productUuid}, PUBLIC (SecurityConfig), paginé
+  (page, size défaut 10, tri createdAt desc), seulement les avis acceptés par la modération ;
+- réponse : { averageRating (number | null, 1 décimale), reviewCount, distribution
+  { "1": n, ..., "5": n }, reviews: PagedModel<PublicReviewDto> } ;
+- PublicReviewDto : uuid, rating (1..5), comment (nullable), authorFirstName (prénom seul,
+  jamais l'e-mail ni le nom complet), createdAt (date ISO) ;
+- 404 PRODUCT_NOT_FOUND pour un produit inconnu ;
+- Cache-Control public court ; tests d'intégration (moyenne, répartition, pagination, avis
+  refusé par la modération exclu, aucune donnée personnelle au-delà du prénom).
+````
+
+---
+
+## 9. Délais de livraison et retrait en magasin
+
+````text
+Objectif : que la fiche produit et le tunnel de commande annoncent des délais tenus par le
+backend (« Commande avant 15 h, livré demain ») et, si le magasin le permet, un retrait en
+magasin.
+
+Constat : ShippingType ne connaît que STANDARD et EXPRESS, ShippingOptionResponseDto ne donne
+que le prix ; aucun délai, aucune heure limite, aucun retrait en magasin. Le front affiche
+aujourd'hui des délais indicatifs codés de son côté (standard 3 à 5 jours ouvrés, express
+livré le lendemain pour une commande avant 15 h du lundi au jeudi), signalés comme indicatifs.
+
+Travail demandé :
+- ajouter à ShippingOptionResponseDto : minDeliveryBusinessDays, maxDeliveryBusinessDays,
+  cutoffTime (heure locale, nullable) et timeZone ;
+- optionnel : ShippingType PICKUP (retrait en magasin, coût 0, adresse du magasin), pris en
+  compte par OrderPlacingRequestDto / OrderQuoteRequestDto (adresse de livraison facultative
+  pour ce type) et par le calcul du prix ;
+- tests : valeurs renvoyées identiques à celles appliquées à la commande.
+````

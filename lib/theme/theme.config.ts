@@ -238,9 +238,13 @@ export const THEME = {
     card: { width: 480, height: 360, sizes: "(min-width: 1024px) 384px, 50vw" },
     gallery: { width: 800, height: 600, sizes: "(min-width: 1024px) 680px, 100vw" },
     thumbnail: { width: 120, height: 90, sizes: "96px" },
+    // Home banner: full content width (1152px inside the 1200px container).
+    hero: { width: 2400, height: 1600, sizes: "(min-width: 1200px) 1152px, 100vw" },
   },
   layout: {
     containerMaxWidth: "1200px",
+    // 1200px + filter column (16rem = 256px) + gap (2.5rem = 40px).
+    catalogMaxWidth: "1496px",
     headerHeight: "64px",
   },
 } as const satisfies ThemeConfig;

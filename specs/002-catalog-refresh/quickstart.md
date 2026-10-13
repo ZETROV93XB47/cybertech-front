@@ -252,3 +252,19 @@ cadre, sans bandes sombres et sans être rognées.
 malgré le scraping des moniteurs ajouté côté backend au commit `ecc76e1` : réindexation
 nécessaire) ; les deux tests e2e ci-dessus à corriger dans une passe dédiée ; page panier à aligner
 sur le gabarit commun avec la feature commande.
+
+### Retouches du 2026-10-13 (soir) : bannière, cartes, avis, livraison
+
+- **Bannière de l'accueil** : photo d'un portable (Ludovic Delot, licence Unsplash, `docs/credits.md`)
+  derrière le titre, assombrie à gauche pour la lisibilité (axe : 0 violation).
+- **Cartes du catalogue** : 3 par ligne, même largeur que sur l'accueil (vérifié par
+  `home.spec.ts` à 1 600 px de large) ; la page catalogue s'élargit de la colonne de filtres
+  (`PageWidth.CATALOG`, `layout.catalogMaxWidth` du thème). Sous 1 496 px d'écran, les cartes
+  rétrécissent légèrement et le contenu du catalogue dépasse l'alignement de l'en-tête.
+- **Fiche produit** : bloc « Livraison » (prix réels de `/shipping/options`, délais indicatifs du
+  front, promesse express selon l'heure de Paris, pas de retrait en magasin) ; section « Avis
+  clients » vide en attendant l'endpoint backend (§8 des demandes) ; plus d'espace avant le pied
+  de page (toutes les pages du gabarit).
+- **Contrôles** : 473 tests unitaires verts ; `home` 4/4, `product-page` 2/2, `catalog-filters`
+  9/9, `compare` 5/5, `navigation` 3/3, `a11y` 3/3, `catalog` 7/8 (palette, connu) ;
+  Lighthouse : `/` 98 (LCP 1,06 s), catalogue 98 (LCP 1,12 s), CLS 0,002, TBT 0 ms.

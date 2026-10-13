@@ -68,6 +68,7 @@ export const CSS_VARIABLES = {
   cardHoverLift: "--card-hover-lift",
   auroraOpacity: "--aurora-opacity",
   containerMaxWidth: "--container-max-width",
+  catalogMaxWidth: "--catalog-max-width",
   headerHeight: "--header-height",
   popover: "--popover",
   popoverForeground: "--popover-foreground",
@@ -203,6 +204,7 @@ function baseDeclarations(theme: ThemeConfig): Declarations {
     [CSS_VARIABLES.shadowNeumorphicRaised, shadows.neumorphicRaised],
     [CSS_VARIABLES.shadowNeumorphicInset, shadows.neumorphicInset],
     [CSS_VARIABLES.containerMaxWidth, layout.containerMaxWidth],
+    [CSS_VARIABLES.catalogMaxWidth, layout.catalogMaxWidth],
     [CSS_VARIABLES.headerHeight, layout.headerHeight],
   ];
 }

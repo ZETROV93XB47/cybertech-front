@@ -5,6 +5,7 @@
  */
 import { Brand } from "@/lib/enums/brand";
 import { CategoryKey } from "@/lib/enums/category-key";
+import { ShippingProvider, ShippingType } from "@/lib/enums/shipping";
 import { UI_LOCALE } from "@/lib/format";
 
 /** Greetings of the home page, chosen from the visitor's local time (FR-001). */
@@ -200,4 +201,48 @@ export const PALETTE_MESSAGES = {
   error: "La recherche ne répond pas. Réessaie dans un instant.",
   resultsHeading: "Produits",
   seeAll: (keyword: string): string => `Voir tous les résultats pour « ${keyword} »`,
+} as const;
+
+/** Delivery block of the product page (fees from the backend, indicative delays). */
+export const DELIVERY_MESSAGES = {
+  title: "Livraison",
+  typeLabels: {
+    [ShippingType.STANDARD]: "Livraison standard",
+    [ShippingType.EXPRESS]: "Livraison express",
+  } satisfies Record<ShippingType, string>,
+  providerLabels: {
+    [ShippingProvider.DHL]: "DHL",
+    [ShippingProvider.FEDEX]: "FedEx",
+  } satisfies Record<ShippingProvider, string>,
+  delay: (min: number, max: number): string =>
+    min === max
+      ? `Livré en ${min} jour${min > 1 ? "s" : ""} ouvré${min > 1 ? "s" : ""}`
+      : `Livré en ${min} à ${max} jours ouvrés`,
+  expressTomorrow: (cutoffHour: number): string =>
+    `Commande avant ${cutoffHour} h, tu es livré demain`,
+  expressNextBusinessDay: "Commande maintenant, tu es livré le jour ouvré suivant",
+  fromCost: (amount: string): string => `dès ${amount}`,
+  carriers: (names: readonly string[]): string => `avec ${names.join(" ou ")}`,
+  feesUnavailable: "Les frais de port s'afficheront au moment de la commande.",
+  indicative: "Délais indicatifs, en jours ouvrés.",
+} as const;
+
+/** Customer reviews of the product page. */
+export const REVIEW_MESSAGES = {
+  title: "Avis clients",
+  average: (value: string): string => `${value} sur 5`,
+  noAverage: "—",
+  count: (count: number): string => {
+    if (count === 0) {
+      return "Aucun avis pour l'instant";
+    }
+    return count === 1 ? "1 avis" : `${count.toLocaleString(UI_LOCALE)} avis`;
+  },
+  starsLabel: (rating: number): string => `${rating} étoile${rating > 1 ? "s" : ""}`,
+  distributionLabel: "Répartition des notes",
+  ratingLabel: (rating: number): string => `Note : ${rating} sur 5`,
+  emptyTitle: "Sois le premier à donner ton avis",
+  emptyBody:
+    "Une fois ta commande reçue, tu pourras noter ce produit et partager ton expérience avec les autres clients.",
+  listLabel: "Avis des clients",
 } as const;

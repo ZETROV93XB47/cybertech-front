@@ -4,7 +4,8 @@
  * Product data comes from the data cache (60 s); the stock is read live on the server for the
  * first paint and refreshed by the client badge. An unknown or malformed UUID shows the
  * « produit introuvable » page. The product can join the comparison (feature 002, US2), whose
- * bar is shown at the bottom of the page.
+ * bar is shown at the bottom of the page. A delivery block (fees from the backend, indicative
+ * delays) and the customer reviews section complete the page.
  */
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -17,14 +18,19 @@ import {
   ProductSummary,
   SimilarProducts,
 } from "@/features/catalog/components/ProductDetails";
+import { DeliveryInfo } from "@/features/catalog/components/DeliveryInfo";
 import { ProductGallery } from "@/features/catalog/components/ProductGallery";
+import { ProductReviewsSection } from "@/features/catalog/components/ProductReviews";
 import { RecordProductView } from "@/features/catalog/components/RecordProductView";
 import { PRODUCT_MESSAGES } from "@/features/catalog/messages";
+import { buildDeliveryLines, expressPromise } from "@/features/catalog/delivery";
 import { buildProductSpecs } from "@/features/catalog/product-specs";
+import { NO_REVIEWS } from "@/features/catalog/reviews";
 import { CompareBar } from "@/features/compare/components/CompareBar";
 import { getCategorySchema } from "@/lib/api/endpoints/categories";
 import { getActiveDiscounts } from "@/lib/api/endpoints/discounts";
 import { getAvailability, getProductByUuid, searchProducts } from "@/lib/api/endpoints/products";
+import { getShippingOptions } from "@/lib/api/endpoints/shipping";
 import {
   META_DESCRIPTION_MAX_LENGTH,
   PRODUCT_HIGHLIGHTS_COUNT,
@@ -175,16 +181,17 @@ export default async function ProductPage({
   if (!product) {
     notFound();
   }
-  const [labels, availability, offer, similar] = await Promise.all([
+  const [labels, availability, offer, similar, shippingOptions] = await Promise.all([
     categoryLabels(product),
     readInitialAvailability(product.uuid),
     loadOffer(),
     loadSimilar(product),
+    getShippingOptions(),
   ]);
   const specs = buildProductSpecs(product.attributes, labels);
   const photo = selectedPhoto((await searchParams)[SearchParam.PHOTO], product.photoUrls.length);
   return (
-    <article className="mx-auto flex w-full max-w-site flex-col gap-12 px-6 py-10">
+    <article className="mx-auto flex w-full max-w-site flex-col gap-12 px-6 pt-10 pb-24">
       <RecordProductView productUuid={product.uuid} />
       <NavSectionMarker category={toCategoryKey(product.category)} />
       <ProductBreadcrumb category={toCategoryKey(product.category)} brand={product.brand} />
@@ -192,12 +199,16 @@ export default async function ProductPage({
         <div className="lg:col-span-7">
           <ProductGallery product={product} selected={photo} />
         </div>
-        <div className="lg:col-span-5">
+        <div className="flex flex-col gap-8 lg:col-span-5">
           <ProductSummary
             product={product}
             highlights={specs.slice(0, PRODUCT_HIGHLIGHTS_COUNT)}
             offer={offer}
             availability={availability}
+          />
+          <DeliveryInfo
+            lines={buildDeliveryLines(shippingOptions)}
+            promise={expressPromise(new Date())}
           />
         </div>
       </div>
@@ -212,6 +223,7 @@ export default async function ProductPage({
           <ProductSpecs specs={specs} />
         </div>
       </div>
+      <ProductReviewsSection reviews={NO_REVIEWS} />
       <SimilarProducts products={similar} />
       <CompareBar />
     </article>

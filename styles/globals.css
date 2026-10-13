@@ -64,6 +64,7 @@
   /* Motion and layout. */
   --ease-aurora: var(--easing);
   --container-site: var(--container-max-width);
+  --container-catalog: var(--catalog-max-width);
   --spacing-header: var(--header-height);
 
   --animate-shimmer: shimmer var(--duration-slow) linear infinite;

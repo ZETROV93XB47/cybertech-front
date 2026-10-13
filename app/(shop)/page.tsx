@@ -21,6 +21,7 @@ import { PageShell } from "@/components/layout/PageShell";
 import { SectionHeading } from "@/components/layout/SectionHeading";
 import { Welcome } from "@/features/auth/components/Welcome";
 import { CategoryTiles } from "@/features/catalog/components/CategoryTiles";
+import { HomeHero } from "@/features/catalog/components/HomeHero";
 import { DiscountBanner } from "@/features/catalog/components/DiscountBanner";
 import { ProductGrid } from "@/features/catalog/components/ProductGrid";
 import { RecentlyViewed } from "@/features/catalog/components/RecentlyViewed";
@@ -95,17 +96,19 @@ export default async function HomePage(): Promise<ReactNode> {
   ]);
   return (
     <PageShell>
-      <PageHeader
-        title={<Welcome className={PAGE_TITLE_CLASS} />}
-        subtitle={HOME_MESSAGES.intro}
-        actions={
-          <MagneticButton>
-            <Link href={CATALOG_PATH} className={PRIMARY_CTA_CLASS}>
-              {HOME_MESSAGES.searchCta}
-            </Link>
-          </MagneticButton>
-        }
-      />
+      <HomeHero>
+        <PageHeader
+          title={<Welcome className={PAGE_TITLE_CLASS} />}
+          subtitle={HOME_MESSAGES.intro}
+          actions={
+            <MagneticButton>
+              <Link href={CATALOG_PATH} className={PRIMARY_CTA_CLASS}>
+                {HOME_MESSAGES.searchCta}
+              </Link>
+            </MagneticButton>
+          }
+        />
+      </HomeHero>
       <Enter index={HOME_SECTION_ORDER.CATEGORIES}>
         <section aria-labelledby="categories-title" className="flex flex-col gap-6">
           <SectionHeading id="categories-title">{HOME_MESSAGES.categoriesTitle}</SectionHeading>

@@ -11,27 +11,32 @@ const DISCOUNTS_URL = "http://localhost:8081/api/v1/services/discounts/active";
 /** Campaign key meaning « no campaign ». */
 const NO_DISCOUNT = "NO_DISCOUNT";
 
+/** Viewport wide enough for the catalog page (site width plus the filter column). */
+const WIDE_VIEWPORT = { width: 1_600, height: 900 } as const;
+
 /** Layout values compared between the two pages. */
 interface ShellMetrics {
-  readonly width: number;
+  /** Width of the first product card of the page. */
+  readonly cardWidth: number;
   readonly paddingLeft: string;
   readonly paddingRight: string;
   readonly headingClass: string;
 }
 
 /**
- * Measures the page shell and the main heading.
+ * Measures the first product card, the page shell padding and the main heading.
  *
  * @param page - Playwright page.
- * @returns The width, horizontal padding and heading classes.
+ * @returns The card width, horizontal padding and heading classes.
  */
 async function shellMetrics(page: Page): Promise<ShellMetrics> {
   return page.evaluate(() => {
     const shell = document.querySelector<HTMLElement>("[data-page-shell]");
+    const card = document.querySelector<HTMLElement>("main ul li .product-card");
     const heading = document.querySelector("h1");
     const style = shell ? getComputedStyle(shell) : null;
     return {
-      width: shell?.getBoundingClientRect().width ?? 0,
+      cardWidth: Math.round(card?.getBoundingClientRect().width ?? 0),
       paddingLeft: style?.paddingLeft ?? "",
       paddingRight: style?.paddingRight ?? "",
       headingClass: heading?.getAttribute("class") ?? "",
@@ -40,13 +45,21 @@ async function shellMetrics(page: Page): Promise<ShellMetrics> {
 }
 
 test.describe("home and catalog", () => {
-  test("share the same width, padding and heading style", async ({ page }) => {
+  test("share the same card size, padding and heading style", async ({ page }) => {
+    await page.setViewportSize(WIDE_VIEWPORT);
     await page.goto("/");
     const home = await shellMetrics(page);
     await page.goto("/products");
     const catalog = await shellMetrics(page);
-    expect(home.width).toBeGreaterThan(0);
+    expect(home.cardWidth).toBeGreaterThan(0);
     expect(catalog).toEqual(home);
+  });
+
+  test("the home page opens on the laptop banner", async ({ page }) => {
+    await page.goto("/");
+    const banner = page.locator("main img[src*='hero-laptop']");
+    await expect(banner).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   });
 
   test("the « Ordinateurs » tile leads to the filtered catalog", async ({ page }) => {

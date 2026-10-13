@@ -38,6 +38,7 @@ import { getCategorySchema } from "@/lib/api/endpoints/categories";
 import { getFacets } from "@/lib/api/endpoints/facets";
 import { searchProducts } from "@/lib/api/endpoints/products";
 import { CATALOG_PATH } from "@/lib/constants/routes";
+import { PageWidth } from "@/lib/enums/page-width";
 import type { ParsedCategorySchema } from "@/lib/schemas/category";
 import { hasActiveFilters, type SearchFilters } from "@/lib/schemas/search";
 
@@ -125,14 +126,14 @@ export default async function ProductsPage({
   const facets = buildFilterFacets(schema, facetData, filters);
   const title = pageTitle(filters);
   return (
-    <PageShell>
+    <PageShell width={PageWidth.CATALOG}>
       <PageHeader
         breadcrumb={<CatalogBreadcrumb category={filters.category} />}
         title={<LiveTitle text={title} className={PAGE_TITLE_CLASS} />}
         live={LIST_MESSAGES.resultCount(totalElements)}
       />
-      <div className="grid gap-10 lg:grid-cols-4">
-        <aside className="lg:col-span-1">
+      <div className="flex flex-col gap-10 lg:flex-row">
+        <aside className="lg:w-64 lg:shrink-0">
           <Filters
             filters={filters}
             facets={facets}
@@ -140,7 +141,10 @@ export default async function ProductsPage({
             facetSource={facetData.source}
           />
         </aside>
-        <section aria-label={LIST_MESSAGES.gridLabel} className="flex flex-col gap-8 lg:col-span-3">
+        <section
+          aria-label={LIST_MESSAGES.gridLabel}
+          className="flex min-w-0 flex-1 flex-col gap-8"
+        >
           <ActiveFilters filters={filters} facets={facets} />
           {results.content.length === 0 ? (
             <EmptyState
