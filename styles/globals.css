@@ -21,6 +21,7 @@
   --color-text-muted: var(--text-muted);
   --color-gold: var(--gold);
   --color-rose: var(--rose);
+  --color-photo-backdrop: var(--photo-backdrop);
   --color-brand: var(--accent-color);
   --color-brand-text: var(--accent-text);
   --color-on-brand: var(--on-accent);

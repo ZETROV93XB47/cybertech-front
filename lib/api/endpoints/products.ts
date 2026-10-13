@@ -19,10 +19,13 @@ import { BACKEND_PATHS, BACKEND_QUERY_PARAMS } from "@/lib/constants/api";
 import { AVAILABILITY_MAX_UUIDS_PER_REQUEST } from "@/lib/constants/cart";
 import {
   BEST_SELLERS_SIZE,
+  CATEGORY_TILE_FETCH_SIZE,
+  CATEGORY_TILE_PHOTOS,
   PRODUCTS_CACHE_TAG,
   PRODUCTS_REVALIDATE_SECONDS,
   SEARCH_PAGE_SIZE,
 } from "@/lib/constants/catalog";
+import { CategoryKey } from "@/lib/enums/category-key";
 import { FrontErrorCode } from "@/lib/enums/error-code";
 import { HttpMethod } from "@/lib/enums/http-method";
 import { maskUuid } from "@/lib/log-safety";
@@ -36,7 +39,11 @@ import {
   type ProductAvailability,
   type ProductCard,
 } from "@/lib/schemas/product";
-import { toProductSearchRequest, type SearchFilters } from "@/lib/schemas/search";
+import {
+  EMPTY_SEARCH_FILTERS,
+  toProductSearchRequest,
+  type SearchFilters,
+} from "@/lib/schemas/search";
 import { UUID_LIST_SEPARATOR } from "@/lib/schemas/uuid-list";
 
 /** Data-cache options shared by every catalog read. */
@@ -200,4 +207,46 @@ export async function getAvailability(uuids: readonly string[]): Promise<Product
     ),
   );
   return pages.flat();
+}
+
+/**
+ * Picks a few distinct product photos of a category, for its home page tile.
+ *
+ * A bonus: a failure only leaves the tile with its icon, so it is logged and swallowed.
+ *
+ * @param category - Category key.
+ * @returns Up to {@link CATEGORY_TILE_PHOTOS} photo URLs of different models.
+ */
+async function categoryPhotos(category: CategoryKey): Promise<string[]> {
+  try {
+    const page = await searchProducts(
+      { ...EMPTY_SEARCH_FILTERS, category },
+      CATEGORY_TILE_FETCH_SIZE,
+    );
+    const seen = new Set<string>();
+    const photos: string[] = [];
+    for (const card of page.content) {
+      if (card.imageUrl !== null && !seen.has(card.name)) {
+        seen.add(card.name);
+        photos.push(card.imageUrl);
+      }
+    }
+    return photos.slice(0, CATEGORY_TILE_PHOTOS);
+  } catch {
+    log.warn({ category }, "Category photos not loaded; the tile shows its icon");
+    return [];
+  }
+}
+
+/**
+ * Loads real product photos for every category tile of the home page.
+ *
+ * @returns Photo URLs by category; empty for a category without product or on failure.
+ */
+export async function getCategoryPhotos(): Promise<Record<CategoryKey, readonly string[]>> {
+  const [computers, monitors] = await Promise.all([
+    categoryPhotos(CategoryKey.COMPUTER),
+    categoryPhotos(CategoryKey.MONITOR),
+  ]);
+  return { [CategoryKey.COMPUTER]: computers, [CategoryKey.MONITOR]: monitors };
 }

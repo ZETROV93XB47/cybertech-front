@@ -77,6 +77,8 @@ export const THEME = {
     textMuted: "#8B93B0",
     gold: "#D4AF6A",
     rose: "#F08BB8",
+    // The catalog photos are shot on white (S3 seed, 2026-10-13).
+    photoBackdrop: "#FFFFFF",
   },
   defaultAccent: AccentVariant.VIOLET,
   accents: {

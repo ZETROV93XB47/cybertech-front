@@ -28,7 +28,7 @@ import { HOME_MESSAGES } from "@/features/catalog/messages";
 import { COMMON_MESSAGES } from "@/features/common/messages";
 import { getActiveDiscounts } from "@/lib/api/endpoints/discounts";
 import { getCategoryCounts } from "@/lib/api/endpoints/facets";
-import { getBestSellers } from "@/lib/api/endpoints/products";
+import { getBestSellers, getCategoryPhotos } from "@/lib/api/endpoints/products";
 import { CATALOG_PATH } from "@/lib/constants/routes";
 import { createModuleLogger } from "@/lib/logger";
 import type { ActiveDiscount } from "@/lib/schemas/discount";
@@ -87,10 +87,11 @@ function BestSellers({ products }: { readonly products: readonly ProductCard[] }
  * @returns Greeting, category tiles, offers, recently viewed products and best sellers.
  */
 export default async function HomePage(): Promise<ReactNode> {
-  const [bestSellers, discounts, counts] = await Promise.all([
+  const [bestSellers, discounts, counts, photos] = await Promise.all([
     getBestSellers(),
     loadDiscounts(),
     getCategoryCounts(),
+    getCategoryPhotos(),
   ]);
   return (
     <PageShell>
@@ -108,7 +109,7 @@ export default async function HomePage(): Promise<ReactNode> {
       <Enter index={HOME_SECTION_ORDER.CATEGORIES}>
         <section aria-labelledby="categories-title" className="flex flex-col gap-6">
           <SectionHeading id="categories-title">{HOME_MESSAGES.categoriesTitle}</SectionHeading>
-          <CategoryTiles counts={counts} />
+          <CategoryTiles counts={counts} photos={photos} />
         </section>
       </Enter>
       {discounts.length > 0 && (

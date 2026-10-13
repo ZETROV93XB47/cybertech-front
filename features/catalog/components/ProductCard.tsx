@@ -84,18 +84,18 @@ export function ProductCard(props: ProductCardProps): ReactNode {
   return (
     <TiltCard className="glass product-card relative flex w-full flex-col overflow-hidden rounded-card">
       <CardImage {...props} />
-      <div className="flex flex-1 flex-col gap-2 p-5">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-xs text-text-muted">{BRAND_LABELS[product.brand]}</p>
-          {category && (
-            <CompareToggle
-              productUuid={product.uuid}
-              productName={product.name}
-              category={category}
-              variant={CompareToggleVariant.CHECKBOX}
-            />
-          )}
+      {category && (
+        <div className="absolute top-3 right-3">
+          <CompareToggle
+            productUuid={product.uuid}
+            productName={product.name}
+            category={category}
+            variant={CompareToggleVariant.CHECKBOX}
+          />
         </div>
+      )}
+      <div className="flex flex-1 flex-col gap-2 p-5">
+        <p className="text-xs text-text-muted">{BRAND_LABELS[product.brand]}</p>
         <h3 className="line-clamp-2 text-base leading-snug">
           <TransitionLink
             href={productPath(product.uuid)}

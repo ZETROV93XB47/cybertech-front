@@ -25,6 +25,11 @@ export interface ThemePalette {
   readonly gold: CssColor;
   /** Soft alerts, rare. */
   readonly rose: CssColor;
+  /**
+   * Background behind product photos: the colour of the photos' own backdrop, so a photo shown
+   * whole (`object-contain`) fills its frame without dark side bands.
+   */
+  readonly photoBackdrop: CssColor;
 }
 
 /** Token set of one accent variant. */

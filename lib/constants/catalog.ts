@@ -136,3 +136,12 @@ export const FACET_FALLBACK_SCAN_SIZE = 1_000;
  * the scan is heavy and the values it derives change rarely.
  */
 export const FACETS_FALLBACK_REVALIDATE_SECONDS = 300;
+
+/**
+ * Product photos shown on each category tile of the home page: real catalog photos, so the
+ * tiles are not text only.
+ */
+export const CATEGORY_TILE_PHOTOS = 3;
+
+/** Products fetched to pick the tile photos: more than shown, since models repeat. */
+export const CATEGORY_TILE_FETCH_SIZE = 12;

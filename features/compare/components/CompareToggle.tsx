@@ -153,8 +153,9 @@ export function CompareToggle({
       {variant === CompareToggleVariant.CHECKBOX ? (
         <label
           className={cn(
-            "inline-flex cursor-pointer items-center gap-2 text-xs text-text-muted",
-            reason && "cursor-not-allowed opacity-60",
+            "inline-flex cursor-pointer items-center gap-2 rounded-full border border-border bg-surface/90 px-3 py-1.5 text-xs text-text shadow-card backdrop-blur-sm transition-colors duration-(--duration-fast) hover:border-brand-text",
+            isSelected && "border-brand-text text-brand-text",
+            reason && "cursor-not-allowed opacity-70",
           )}
         >
           <input

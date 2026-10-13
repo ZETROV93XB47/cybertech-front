@@ -28,6 +28,7 @@ export const CSS_VARIABLES = {
   textMuted: "--text-muted",
   gold: "--gold",
   rose: "--rose",
+  photoBackdrop: "--photo-backdrop",
   accent: "--accent-color",
   accentText: "--accent-text",
   onAccent: "--on-accent",
@@ -147,13 +148,12 @@ function effectsDeclarations(settings: EffectsSettings): Declarations {
 }
 
 /**
- * Declarations of the values that never change with preferences.
+ * Palette declarations (never change with preferences).
  *
- * @param theme - Theme configuration.
+ * @param palette - Base palette.
  * @returns The declarations.
  */
-function baseDeclarations(theme: ThemeConfig): Declarations {
-  const { palette, typography, shape, shadows, layout } = theme;
+function paletteDeclarations(palette: ThemeConfig["palette"]): Declarations {
   return [
     [CSS_VARIABLES.bg, palette.bg],
     [CSS_VARIABLES.surface, palette.surface],
@@ -163,8 +163,22 @@ function baseDeclarations(theme: ThemeConfig): Declarations {
     [CSS_VARIABLES.textMuted, palette.textMuted],
     [CSS_VARIABLES.gold, palette.gold],
     [CSS_VARIABLES.rose, palette.rose],
+    [CSS_VARIABLES.photoBackdrop, palette.photoBackdrop],
     [CSS_VARIABLES.popover, palette.surface2],
     [CSS_VARIABLES.popoverForeground, palette.text],
+  ];
+}
+
+/**
+ * Declarations of the values that never change with preferences.
+ *
+ * @param theme - Theme configuration.
+ * @returns The declarations.
+ */
+function baseDeclarations(theme: ThemeConfig): Declarations {
+  const { palette, typography, shape, shadows, layout } = theme;
+  return [
+    ...paletteDeclarations(palette),
     [CSS_VARIABLES.fontHeading, typography.fontHeading],
     [CSS_VARIABLES.fontBody, typography.fontBody],
     [CSS_VARIABLES.fontMono, typography.fontMono],

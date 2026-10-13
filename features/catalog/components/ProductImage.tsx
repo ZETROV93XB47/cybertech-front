@@ -3,6 +3,9 @@
 /**
  * Product photo with a fallback: when the file cannot be loaded (deleted from S3, LocalStack
  * restarted without persistence), the category icon replaces the broken image.
+ *
+ * The photo is shown whole (`object-contain`, never cropped) on the colour of the photos' own
+ * backdrop (`photoBackdrop` in the theme), so it fills its frame without dark side bands.
  */
 import Image from "next/image";
 import { Laptop, Monitor } from "lucide-react";
@@ -80,7 +83,7 @@ export function ProductImage({
       onError={() => {
         setFailedSrc(src);
       }}
-      className={cn("size-full object-contain", className)}
+      className={cn("size-full bg-photo-backdrop object-contain", className)}
     />
   );
 }

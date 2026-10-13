@@ -18,11 +18,14 @@ import { installMatchMedia } from "../../helpers/match-media";
  * @param counts - Counts by category.
  * @returns The render result.
  */
-function renderTiles(counts: CategoryTilesProps["counts"]): ReturnType<typeof render> {
+function renderTiles(
+  counts: CategoryTilesProps["counts"],
+  photos?: CategoryTilesProps["photos"],
+): ReturnType<typeof render> {
   installMatchMedia();
   return render(
     <PreferencesProvider initialPreferences={DEFAULT_PREFERENCES}>
-      <CategoryTiles counts={counts} />
+      <CategoryTiles counts={counts} {...(photos ? { photos } : {})} />
     </PreferencesProvider>,
   );
 }
@@ -43,5 +46,20 @@ describe("CategoryTiles", () => {
     renderTiles({ [CategoryKey.COMPUTER]: null, [CategoryKey.MONITOR]: 1 });
     expect(screen.getByRole("link", { name: /Ordinateurs/ })).not.toHaveTextContent(/produit/);
     expect(screen.getByRole("link", { name: /Écrans/ })).toHaveTextContent("1 produit");
+  });
+
+  it("shows real product photos, and the icon for a category without any", () => {
+    const { container } = renderTiles(
+      { [CategoryKey.COMPUTER]: 531, [CategoryKey.MONITOR]: 0 },
+      {
+        [CategoryKey.COMPUTER]: [
+          "http://localhost:4566/cybertech-products/a.jpg",
+          "http://localhost:4566/cybertech-products/b.jpg",
+        ],
+        [CategoryKey.MONITOR]: [],
+      },
+    );
+    expect(container.querySelectorAll("img")).toHaveLength(2);
+    expect(container.querySelectorAll("svg.lucide-monitor")).toHaveLength(1);
   });
 });
