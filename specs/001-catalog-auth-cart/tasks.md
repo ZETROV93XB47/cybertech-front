@@ -229,17 +229,17 @@ description: "Task list for lot 1 — catalog, authentication and cart"
 
 ### Tests for User Story 2 ⚠️ (write first, must fail)
 
-- [ ] T100 [P] [US2] Unit tests `tests/unit/auth/register-schema.test.ts` (`email` z.email(); `firstName`/`lastName` trimmed 2–50; `sex` z.enum(Sex); `phoneNumber` non-empty; `favoriteCommunicationChanel` z.enum(CommunicationChannel); `street`, `city`, `zipCode`, `country` non-empty; `birthDate` optional past date → `YYYY-MM-DDT00:00:00`; `password` ≥ 8)
-- [ ] T101 [P] [US2] Unit tests `tests/unit/auth/register-action.test.ts` (MSW: 201 → ok; 400 with `fieldErrors` → mapped to fields; 409 `USER_ALREADY_EXISTS` → email field « Un compte existe déjà avec cet email. »; 429 → `retryAfterSeconds`; `X-Forwarded-For` forwarded; password never logged)
-- [ ] T102 [P] [US2] E2E `tests/e2e/register.spec.ts`: invalid email shows field error without network call; existing email; successful registration → invitation to sign in; keyboard-only completion; axe clean
+- [X] T100 [P] [US2] Unit tests `tests/unit/auth/register-schema.test.ts` (`email` z.email(); `firstName`/`lastName` trimmed 2–50; `sex` z.enum(Sex); `phoneNumber` non-empty; `favoriteCommunicationChanel` z.enum(CommunicationChannel); `street`, `city`, `zipCode`, `country` non-empty; `birthDate` optional past date → `YYYY-MM-DDT00:00:00`; `password` ≥ 8)
+- [X] T101 [P] [US2] Unit tests `tests/unit/auth/register-action.test.ts` (MSW: 201 → ok; 400 with `fieldErrors` → mapped to fields; 409 `USER_ALREADY_EXISTS` → email field « Un compte existe déjà avec cet email. »; 429 → `retryAfterSeconds`; `X-Forwarded-For` forwarded; password never logged)
+- [X] T102 [P] [US2] E2E `tests/e2e/register.spec.ts`: invalid email shows field error without network call; existing email; successful registration → invitation to sign in; keyboard-only completion; axe clean
 
 ### Implementation for User Story 2
 
-- [ ] T103 [P] [US2] Create `lib/schemas/register.ts`: `RegisterInputSchema` with the exact constraints of T100 and French messages from `features/auth/messages.ts`; `toUserCreateRequest(input)` (never sends `bankCardCreationRequestDto`)
-- [ ] T104 [US2] Implement `registerUser` in `lib/api/endpoints/users.ts` (`POST /user/register`, `X-Forwarded-For` from incoming headers, `info` log with `maskEmail`)
-- [ ] T105 [US2] Create Server Action `registerUserAction` in `features/auth/actions.ts` returning `{ ok: true }` or `{ ok: false, fieldErrors, formError, retryAfterSeconds? }` (backend `fieldErrors` mapped by field name)
-- [ ] T106 [US2] Create `features/auth/components/RegisterForm.tsx` (`"use client"`, client-side Zod validation on blur/submit, labels and `aria-describedby` errors, focus first invalid field, progressive enhancement via the Server Action) and `app/(auth)/register/page.tsx` (success state with « Se connecter » link)
-- [ ] T107 [US2] Add registration messages to `features/auth/messages.ts` (field errors, « Un compte existe déjà avec cet email. », « Doucement ! Réessaie dans {n} s. », success)
+- [X] T103 [P] [US2] Create `lib/schemas/register.ts`: `RegisterInputSchema` with the exact constraints of T100 and French messages from `features/auth/messages.ts`; `toUserCreateRequest(input)` (never sends `bankCardCreationRequestDto`)
+- [X] T104 [US2] Implement `registerUser` in `lib/api/endpoints/users.ts` (`POST /user/register`, `X-Forwarded-For` from incoming headers, `info` log with `maskEmail`)
+- [X] T105 [US2] Create Server Action `registerUserAction` in `features/auth/actions.ts` returning `{ ok: true }` or `{ ok: false, fieldErrors, formError, retryAfterSeconds? }` (backend `fieldErrors` mapped by field name)
+- [X] T106 [US2] Create `features/auth/components/RegisterForm.tsx` (`"use client"`, client-side Zod validation on blur/submit, labels and `aria-describedby` errors, focus first invalid field, progressive enhancement via the Server Action) and `app/(auth)/register/page.tsx` (success state with « Se connecter » link)
+- [X] T107 [US2] Add registration messages to `features/auth/messages.ts` (field errors, « Un compte existe déjà avec cet email. », « Doucement ! Réessaie dans {n} s. », success)
 
 **Checkpoint**: US1–US4 independently functional
 

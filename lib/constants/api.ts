@@ -94,3 +94,9 @@ export const BACKEND_QUERY_PARAMS = {
   /** Page size (Spring pageable). */
   size: "size",
 } as const;
+
+/** Header set by some local proxies with the browser IP, used when `X-Forwarded-For` is absent. */
+export const REAL_IP_HEADER = "X-Real-IP";
+
+/** Separator of the IP list in `X-Forwarded-For` (the first entry is the browser). */
+export const FORWARDED_FOR_SEPARATOR = ",";

@@ -19,10 +19,11 @@ import { useEffect, useState, type ReactNode } from "react";
 import { clearGuestCart } from "@/features/cart/guest-storage";
 import { clearPendingAction } from "@/features/cart/pending-action";
 import { loginPath } from "@/lib/auth/callback-url";
+import { REGISTER_PATH } from "@/lib/constants/routes";
 import { resetClientState } from "@/lib/query/query-client";
 
 import { signOutEverywhere } from "../actions";
-import { AUTH_MESSAGES } from "../messages";
+import { AUTH_MESSAGES, REGISTER_MESSAGES } from "../messages";
 
 /** Session status of Auth.js meaning « signed in ». */
 const AUTHENTICATED_STATUS = "authenticated";
@@ -75,10 +76,15 @@ export function AccountMenu(): ReactNode {
   }
   if (!signedIn) {
     return (
-      <Link href={loginPath(pathname)} className={ACTION}>
-        <UserRound aria-hidden className="size-4" />
-        {AUTH_MESSAGES.signIn}
-      </Link>
+      <div className="flex items-center gap-1">
+        <Link href={REGISTER_PATH} className={ACTION}>
+          {REGISTER_MESSAGES.headerLink}
+        </Link>
+        <Link href={loginPath(pathname)} className={ACTION}>
+          <UserRound aria-hidden className="size-4" />
+          {AUTH_MESSAGES.signIn}
+        </Link>
+      </div>
     );
   }
   const name = session.user?.name ?? session.user?.email ?? "";

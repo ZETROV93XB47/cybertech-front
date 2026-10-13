@@ -46,3 +46,6 @@ export const BFF_ROUTES = {
 export function cartItemRoute(productUuid: string): string {
   return `${BFF_ROUTES.cart}/items/${encodeURIComponent(productUuid)}`;
 }
+
+/** Registration page (`app/(auth)/register/page.tsx`). */
+export const REGISTER_PATH = "/register";
