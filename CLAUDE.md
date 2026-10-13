@@ -5,8 +5,12 @@ Front Next.js de cybertech. Lire d'abord `.specify/memory/constitution.md` (fait
 dans `specs/`. Le backend (`C:\Users\guill\Downloads\cybertech-dev-develop_cybertech`) est en
 **lecture seule**.
 
-Langue : documentation, commentaires et messages UI en **français** (tutoiement dans l'UI),
-identifiants en anglais.
+Langues :
+- **Code en anglais** : identifiants, commentaires, TSDoc, messages de log, erreurs internes,
+  commits.
+- **Interface en français** (tutoiement) : tout texte visible par l'utilisateur, centralisé dans
+  `features/*/messages.ts`, jamais en dur dans un composant.
+- Documentation projet (`docs/`, `specs/`, `README.md`) en français.
 
 ## Règles de code (non négociables — constitution, principe XII)
 
@@ -35,42 +39,43 @@ structurés et masqués.
 
 ```ts
 /**
- * Constantes du panier.
+ * Cart constants.
  *
- * Valeurs alignées sur le backend et sur `docs/guest-cart.md` ; ne jamais les dupliquer en dur.
+ * Values are aligned with the backend and with `docs/guest-cart.md`; never hard-code them
+ * elsewhere.
  */
 
 /**
- * Nombre maximal de lignes d'un panier invité.
+ * Maximum number of lines in a guest cart.
  *
- * Garde-fou côté navigateur : le backend accepte plus, mais la prévisualisation appelle
- * `GET /product/availability`, plafonné à 50 UUID par requête.
+ * Browser-side guard: the backend accepts more, but the guest-cart preview calls
+ * `GET /product/availability`, which is capped at 50 UUIDs per request.
  *
  * @see docs/guest-cart.md §2
  */
 export const GUEST_CART_MAX_LINES = 50;
 
-/** Origine des données d'un panier affiché. */
+/** Where the data of a displayed cart comes from. */
 export enum CartSource {
-  /** Panier du visiteur, conservé dans le navigateur jusqu'à la fusion. */
+  /** Visitor cart, kept in the browser until it is merged at sign-in. */
   GUEST = "guest",
-  /** Panier du compte, dont le backend est la source de vérité. */
+  /** Account cart; the backend is the source of truth. */
   ACCOUNT = "account",
 }
 
 const log = logger.child({ module: "cart.merge" });
 
 /**
- * Fusionne le panier invité dans le panier du compte, une seule fois, à la connexion.
+ * Merges the guest cart into the account cart, exactly once, right after sign-in.
  *
- * Tente d'abord un `POST /cart/add` groupé (additif côté backend). En cas de
- * `NOT_ENOUGH_STOCK`, rejoue ligne par ligne avec des quantités plafonnées au stock disponible
- * pour isoler les lignes problématiques plutôt que de tout rejeter.
+ * First tries a single batched `POST /cart/add` (additive on the backend side). On
+ * `NOT_ENOUGH_STOCK`, replays line by line with quantities capped to the available stock, so
+ * that one problematic line does not reject the whole merge.
  *
- * @param lines - Lignes invitées déjà validées par Zod.
- * @param accessToken - Token Keycloak de l'utilisateur, jamais loggué.
- * @returns Le rapport de fusion (lignes fusionnées, plafonnées, abandonnées, en échec).
- * @throws {ApiError} Si le backend est indisponible après le rejeu unique.
+ * @param lines - Guest lines, already validated by Zod.
+ * @param accessToken - The user's Keycloak access token; never logged.
+ * @returns The merge report (merged, capped, dropped and failed lines).
+ * @throws {ApiError} When the backend is still unavailable after the single retry.
  * @see docs/guest-cart.md §4
  * @see CartServiceImp#addItemsToCart (backend)
  */
@@ -82,6 +87,12 @@ export async function mergeGuestCart(
   log.info({ merged: report.merged.length, capped: report.capped.length }, "Guest cart merged");
   return report;
 }
+
+// features/cart/messages.ts — the only place where user-facing text lives (French, tutoiement)
+export const CART_MESSAGES = {
+  mergeSuccess: (count: number): string => `${count} article(s) ajouté(s) à ton panier.`,
+  insufficientStock: (available: number): string => `Il n'en reste que ${available}.`,
+} as const;
 ```
 
 ## Commandes

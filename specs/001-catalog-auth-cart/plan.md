@@ -62,7 +62,7 @@ côté client ; access token 5 min ; rate limit backend `cart/**` 60/min/utilisa
 | VIII. Accessibilité | `aria-live` panier/erreurs, focus visible, palette clavier, `MotionConfig reducedMotion="user"`, canvas figé | ✅ |
 | IX. Performance | Effets en `next/dynamic` `ssr:false`, pause visibilité/viewport ; `next/image` ; Lighthouse CI | ✅ |
 | X. Conteneurisation | `output: "standalone"`, Dockerfile multi-stage non-root, `/api/health`, variables `AUTH_*` du chart | ✅ |
-| XI. Code pédagogique | Commentaires « pourquoi » en français ; pas de couche d'abstraction au-delà de `lib/api/endpoints/*` | ✅ |
+| XI. Code pédagogique | Code, commentaires, TSDoc et logs en anglais ; textes UI en français dans `features/*/messages.ts` ; pas de couche d'abstraction au-delà de `lib/api/endpoints/*` | ✅ |
 | XII. Code propre et observable | Constantes dans `lib/constants/*` ; enums string dans `lib/enums/*` (Zod dérivé) ; `assertNever` ; TSDoc sur tous les exports ; `lib/logger.ts` (pino, `maskUuid`/`maskEmail`) ; ESLint : `no-magic-numbers`, `switch-exhaustiveness-check`, `explicit-module-boundary-types`, `jsdoc/require-jsdoc`, `no-console`, `max-depth` 3, `max-lines-per-function` 40, `no-nested-ternary` (R17) | ✅ |
 | Contraintes (tutoiement, CSP, aiguillage `errorCode`) | `messages.ts` au tutoiement ; CSP avec nonce (R7) ; `contracts/errors.md` | ✅ |
 

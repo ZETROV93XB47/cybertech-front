@@ -120,7 +120,12 @@ sans adaptation.
 
 - Code lisible, nommage explicite, commentaires sur les choix non évidents (le pourquoi, pas
   le quoi). Pas d'abstraction prématurée.
-- Documentation et commentaires en français, identifiants techniques en anglais.
+- **Code entièrement en anglais** : identifiants, commentaires, TSDoc, messages de log, messages
+  d'exception internes, noms de fichiers et messages de commit.
+- **Interface entièrement en français** : tout texte affiché à l'utilisateur (libellés, messages
+  d'erreur, `aria-label`, métadonnées de page) est en français, au tutoiement, et centralisé dans
+  les fichiers `messages.ts` — jamais écrit en dur dans un composant.
+- La documentation projet (`docs/`, `specs/`, `README.md`) reste en français.
 
 **Pourquoi** : le projet sert à apprendre ; le code doit pouvoir être lu et expliqué.
 
@@ -217,4 +222,4 @@ relit, se débogue et s'enseigne ; c'est le standard déjà tenu par le backend.
   MINOR pour un principe ou une section ajouté ou nettement étendu, PATCH pour une
   clarification ou une correction de forme.
 
-**Version**: 1.1.0 | **Ratified**: 2026-10-13 | **Last Amended**: 2026-10-13
+**Version**: 1.2.0 | **Ratified**: 2026-10-13 | **Last Amended**: 2026-10-13
