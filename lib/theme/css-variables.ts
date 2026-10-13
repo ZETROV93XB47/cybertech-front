@@ -5,6 +5,9 @@
  * uses the right tokens. Variants follow the attributes set on `<html>` from the preferences:
  * `[data-accent="blue"]`, `[data-motion="soft"]`, `[data-effects="off"]`.
  * `styles/globals.css` maps Tailwind tokens to these variables and contains no value itself.
+ *
+ * Names avoid Tailwind's own theme namespaces (`--font-*`, `--radius-*`, `--shadow-*`): the
+ * mapping `--font-display: var(--family-heading)` would otherwise reference itself.
  */
 import {
   AccentVariant,
@@ -32,25 +35,27 @@ export const CSS_VARIABLES = {
   gradientFrom: "--gradient-from",
   gradientTo: "--gradient-to",
   success: "--success",
-  fontHeading: "--font-heading",
-  fontBody: "--font-body",
-  fontMono: "--font-mono",
+  fontHeading: "--family-heading",
+  fontBody: "--family-body",
+  fontMono: "--family-mono",
   headingWeight: "--heading-weight",
   headingWeightStrong: "--heading-weight-strong",
   bodyWeight: "--body-weight",
   headingLetterSpacing: "--heading-letter-spacing",
   bodyLineHeight: "--body-line-height",
   radiusCard: "--radius",
-  radiusButton: "--radius-button",
-  radiusField: "--radius-field",
+  radiusButton: "--shape-radius-button",
+  radiusField: "--shape-radius-field",
   borderWidth: "--border-width",
   glassOpacity: "--glass-opacity",
   glassBlur: "--glass-blur",
   focusRingWidth: "--focus-ring-width",
   focusRingOffset: "--focus-ring-offset",
-  shadowCard: "--shadow-card",
-  shadowCardHover: "--shadow-card-hover",
-  shadowCta: "--shadow-cta",
+  ctaGradientAngle: "--cta-gradient-angle",
+  shimmerAccentMix: "--shimmer-accent-mix",
+  shadowCard: "--elevation-card",
+  shadowCardHover: "--elevation-card-hover",
+  shadowCta: "--elevation-cta",
   durationFast: "--duration-fast",
   durationBase: "--duration-base",
   durationSlow: "--duration-slow",
@@ -174,6 +179,8 @@ function baseDeclarations(theme: ThemeConfig): Declarations {
     [CSS_VARIABLES.glassBlur, shape.glassBlur],
     [CSS_VARIABLES.focusRingWidth, shape.focusRingWidth],
     [CSS_VARIABLES.focusRingOffset, shape.focusRingOffset],
+    [CSS_VARIABLES.ctaGradientAngle, shape.ctaGradientAngle],
+    [CSS_VARIABLES.shimmerAccentMix, shape.shimmerAccentMix],
     [CSS_VARIABLES.shadowCard, shadows.card],
     [CSS_VARIABLES.shadowCardHover, shadows.cardHover],
     [CSS_VARIABLES.shadowCta, shadows.cta],

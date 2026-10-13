@@ -65,6 +65,10 @@ export interface ThemeShape {
   readonly glassBlur: CssValue;
   readonly focusRingWidth: CssValue;
   readonly focusRingOffset: CssValue;
+  /** Direction of the call-to-action gradient. */
+  readonly ctaGradientAngle: CssValue;
+  /** Share of accent mixed into the skeleton shimmer highlight. */
+  readonly shimmerAccentMix: CssValue;
 }
 
 /** Violet-tinted shadows (never black, spec annex). */

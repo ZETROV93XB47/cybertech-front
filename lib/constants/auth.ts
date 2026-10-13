@@ -12,8 +12,8 @@
  */
 export const ACCESS_TOKEN_REFRESH_MARGIN_MS = 30_000;
 
-/** Number of milliseconds in one second, to convert OIDC `expires_in` / `exp` values. */
-export const MS_PER_SECOND = 1_000;
+/** Re-exported for OIDC `expires_in` / `exp` conversions. */
+export { MS_PER_SECOND } from "./time";
 
 /** Auth.js provider id for Keycloak; used by `signIn(KEYCLOAK_PROVIDER_ID)`. */
 export const KEYCLOAK_PROVIDER_ID = "keycloak";

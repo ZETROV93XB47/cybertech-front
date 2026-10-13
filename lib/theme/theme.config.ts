@@ -126,6 +126,8 @@ export const THEME = {
     glassBlur: "12px",
     focusRingWidth: "2px",
     focusRingOffset: "2px",
+    ctaGradientAngle: "135deg",
+    shimmerAccentMix: "12%",
   },
   shadows: {
     card: "0 8px 32px rgba(139, 124, 246, 0.10)",

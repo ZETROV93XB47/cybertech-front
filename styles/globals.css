@@ -1,1 +1,168 @@
+/*
+ * Global styles — no visual value lives here (constitution XIII).
+ *
+ * Every value comes from lib/theme/theme.config.ts, emitted as CSS variables by
+ * lib/theme/css-variables.ts in a <style> tag of the root layout. This file only:
+ * 1. maps Tailwind tokens to those variables (`@theme inline`);
+ * 2. maps the shadcn/ui token names (primary, muted, accent…) to the same variables;
+ * 3. defines base element styles, the glass surface, the shimmer and the focus ring.
+ * Spacing and type sizes use Tailwind's default scale.
+ */
 @import "tailwindcss";
+@import "tw-animate-css";
+
+@theme inline {
+  /* Brand palette (Aurora Glow). */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-gold: var(--gold);
+  --color-rose: var(--rose);
+  --color-brand: var(--accent-color);
+  --color-brand-text: var(--accent-text);
+  --color-on-brand: var(--on-accent);
+  --color-success: var(--success);
+
+  /* shadcn/ui token names, mapped onto the same palette. */
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--text);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--accent-color);
+  --color-primary-foreground: var(--on-accent);
+  --color-secondary: var(--surface-2);
+  --color-secondary-foreground: var(--text);
+  --color-muted: var(--surface-2);
+  --color-muted-foreground: var(--text-muted);
+  --color-accent: var(--surface-2);
+  --color-accent-foreground: var(--text);
+  --color-destructive: var(--rose);
+  --color-input: var(--border);
+  --color-ring: var(--accent-text);
+
+  /* Typography. */
+  --font-sans: var(--family-body);
+  --font-display: var(--family-heading);
+  --font-mono: var(--family-mono);
+
+  /* Shapes and elevation. */
+  --radius-card: var(--radius);
+  --radius-button: var(--shape-radius-button);
+  --radius-field: var(--shape-radius-field);
+  --shadow-card: var(--elevation-card);
+  --shadow-card-hover: var(--elevation-card-hover);
+  --shadow-cta: var(--elevation-cta);
+
+  /* Motion and layout. */
+  --ease-aurora: var(--easing);
+  --container-site: var(--container-max-width);
+  --spacing-header: var(--header-height);
+
+  --animate-shimmer: shimmer var(--duration-slow) linear infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+    background-color: var(--bg);
+  }
+
+  body {
+    min-height: 100dvh;
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: var(--family-body);
+    font-weight: var(--body-weight);
+    line-height: var(--body-line-height);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--family-heading);
+    font-weight: var(--heading-weight);
+    letter-spacing: var(--heading-letter-spacing);
+    text-wrap: balance;
+  }
+
+  ::selection {
+    background-color: var(--accent-color);
+    color: var(--on-accent);
+  }
+
+  /* Visible focus on every interactive element (WCAG 2.4.7), AA-checked by the theme tests. */
+  :focus-visible {
+    outline: var(--focus-ring-width) solid var(--accent-text);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  /* System request for less motion: movements disappear, fades remain (constitution VIII). */
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --reveal-offset: 0;
+      --card-hover-lift: 0;
+    }
+
+    html {
+      scroll-behavior: auto;
+    }
+  }
+}
+
+@layer components {
+  /* Subtle glass surface of cards and the header (spec annex « Composants »). */
+  .glass {
+    background-color: color-mix(
+      in srgb,
+      var(--surface) calc(var(--glass-opacity) * 100%),
+      transparent
+    );
+    backdrop-filter: blur(var(--glass-blur));
+    border: var(--border-width) solid var(--border);
+  }
+
+  /* Skeleton with a light accent shimmer; static when motion is reduced. */
+  .skeleton-shimmer {
+    background-image: linear-gradient(
+      90deg,
+      var(--surface) 0%,
+      color-mix(in srgb, var(--accent-color) var(--shimmer-accent-mix), var(--surface)) 50%,
+      var(--surface) 100%
+    );
+    background-size: 200% 100%;
+    animation: var(--animate-shimmer);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton-shimmer {
+      animation: none;
+    }
+  }
+
+  /* Primary call to action: violet → blue gradient with a soft halo (spec annex). */
+  .cta-gradient {
+    background-image: linear-gradient(
+      var(--cta-gradient-angle),
+      var(--gradient-from),
+      var(--gradient-to)
+    );
+    color: var(--on-accent);
+    box-shadow: var(--elevation-cta);
+  }
+}
