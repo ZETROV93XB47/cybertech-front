@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "jest-axe";
 import { http, HttpResponse } from "msw";
@@ -16,7 +16,7 @@ import { StorageKey } from "@/lib/enums/storage-key";
 import type { ComparisonView } from "@/lib/schemas/compare";
 
 import { fakeUuids } from "../../helpers/products";
-import { renderWithQuery } from "../../helpers/render";
+import { renderWithProviders } from "../../helpers/providers";
 import { server } from "../../msw/server";
 
 vi.mock("sonner", () => ({ toast: vi.fn() }));
@@ -93,7 +93,7 @@ afterEach(() => {
 describe("CompareToggle", () => {
   it("adds and removes the product with a checkbox named after it", async () => {
     const user = userEvent.setup();
-    const { container } = render(
+    const { container } = renderWithProviders(
       <CompareToggle
         productUuid={A}
         productName="PC A"
@@ -113,7 +113,7 @@ describe("CompareToggle", () => {
 
   it("is aria-disabled with the reason when the comparison is full", async () => {
     const user = userEvent.setup();
-    render(
+    renderWithProviders(
       <CompareToggle
         productUuid={D}
         productName="PC D"
@@ -133,7 +133,7 @@ describe("CompareToggle", () => {
 
   it("explains why a product of another category cannot be added", async () => {
     const user = userEvent.setup();
-    const { container } = render(
+    const { container } = renderWithProviders(
       <CompareToggle
         productUuid={B}
         productName="Écran B"
@@ -153,7 +153,7 @@ describe("CompareToggle", () => {
 
   it("toggles the product page button label", async () => {
     const user = userEvent.setup();
-    render(
+    renderWithProviders(
       <CompareToggle
         productUuid={A}
         productName="PC A"
@@ -170,13 +170,13 @@ describe("CompareToggle", () => {
 
 describe("CompareBar", () => {
   it("renders nothing visible when the selection is empty", () => {
-    renderWithQuery(<CompareBar />);
+    renderWithProviders(<CompareBar />);
     expect(screen.queryByRole("region")).not.toBeInTheDocument();
   });
 
   it("invites to pick another product with one product, offers « Comparer » from two", async () => {
     serveCards([A, B]);
-    const { container } = renderWithQuery(<CompareBar />);
+    const { container } = renderWithProviders(<CompareBar />);
     select([A]);
     const bar = await screen.findByRole("region", { name: "Comparaison" });
     expect(within(bar).getByText("Choisis un autre produit à comparer.")).toBeInTheDocument();
@@ -190,7 +190,7 @@ describe("CompareBar", () => {
   it("removes one product and clears everything", async () => {
     serveCards([A, B]);
     const user = userEvent.setup();
-    renderWithQuery(<CompareBar />);
+    renderWithProviders(<CompareBar />);
     select([A, B]);
     await user.click(await screen.findByRole("button", { name: "Retirer PC A de la comparaison" }));
     expect(storedUuids()).toEqual([B]);
@@ -201,7 +201,7 @@ describe("CompareBar", () => {
 
   it("drops a product the catalog no longer has, with one toast, without opening the modal", async () => {
     serveCards([A]);
-    renderWithQuery(<CompareBar />);
+    renderWithProviders(<CompareBar />);
     select([A, B]);
     await waitFor(() => {
       expect(storedUuids()).toEqual([A]);
@@ -226,7 +226,7 @@ describe("CompareBar", () => {
       ),
     );
     const user = userEvent.setup();
-    renderWithQuery(<CompareBar />);
+    renderWithProviders(<CompareBar />);
     select([A, B]);
     const open = await screen.findByRole("button", { name: /^Comparer/ });
     await user.click(open);
@@ -250,7 +250,7 @@ const VIEW: ComparisonView = {
 
 describe("CompareTable", () => {
   it("uses column headers for products and row headers for characteristics", async () => {
-    const { container } = render(<CompareTable view={VIEW} differencesOnly={false} />);
+    const { container } = renderWithProviders(<CompareTable view={VIEW} differencesOnly={false} />);
     expect(screen.getAllByRole("columnheader")).toHaveLength(3);
     expect(screen.getByRole("columnheader", { name: /PC A/ })).toBeInTheDocument();
     expect(screen.getByRole("rowheader", { name: /Processeur/ })).toBeInTheDocument();
@@ -264,14 +264,14 @@ describe("CompareTable", () => {
   });
 
   it("keeps only the differing rows when asked", () => {
-    render(<CompareTable view={VIEW} differencesOnly />);
+    renderWithProviders(<CompareTable view={VIEW} differencesOnly />);
     expect(screen.queryByRole("rowheader", { name: /Processeur/ })).not.toBeInTheDocument();
     expect(screen.getByRole("rowheader", { name: /Mémoire vive/ })).toBeInTheDocument();
   });
 
   it("says so when no row differs", () => {
     const same: ComparisonView = { ...VIEW, rows: VIEW.rows.slice(0, 1) };
-    render(<CompareTable view={same} differencesOnly />);
+    renderWithProviders(<CompareTable view={same} differencesOnly />);
     expect(screen.getByText("Aucune différence entre ces produits.")).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });

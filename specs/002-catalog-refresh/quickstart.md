@@ -175,3 +175,48 @@ barre de comparaison gardent leur petit bloc `skeleton-shimmer` (format vignette
 | # | Résultat | Commentaire |
 |---|---|---|
 | 20 | OK | Même largeur, mêmes marges et même style de titre mesurés sur l'accueil et le catalogue ; tuile « Ordinateurs » (531 produits) → `/products?category=COMPUTER` ; « Écrans » : « Aucun produit pour l'instant » (index local sans écran). Offre BLACK_FRIDAY active, affichée. |
+
+### Phase 7 — Interface vivante et cohérente (2026-10-13)
+
+**Audit (T066)** : captures dans `screenshots/audit/` (accueil, catalogue, catalogue filtré, sans
+résultat, panier, barre de comparaison à 1 et 3 produits, cadre, fiche avec le bouton), en
+visiteur seulement (l'en-tête connecté exige Keycloak sur le port 3000 ; vérifié par
+`auth.spec.ts`). État « facettes indisponibles » non capturable sans couper le backend (couvert
+en unitaire). Constats :
+
+| Constat | Correction |
+|---|---|
+| Fil d'Ariane de la fiche commençant à « Catalogue », celui du catalogue à « Accueil » | « Accueil » ajouté en tête du fil de la fiche |
+| Bouton « Ajouter à la comparaison » isolé loin du panier | Regroupé sous « Ajouter au panier » |
+| Action de l'état vide en bouton plat, CTA de l'accueil en dégradé | `PRIMARY_CTA_CLASS` + `MagneticButton` partout (`components/layout/cta.ts`) |
+| Titre « Catalogue » sur le catalogue filtré par catégorie | Titre = catégorie choisie (donnée réelle) |
+| Panier : titre plus petit et état vide centré | Laissé en l'état (hors périmètre de la feature 002, à reprendre avec la feature commande) |
+
+Rien n'a été ajouté de fictif (T067) : les blocs de l'accueil restent les meilleures ventes,
+l'offre active, les produits consultés et les tuiles avec les comptes réels.
+
+**Animations (T069–T071)** : grille de résultats, sections de l'accueil et pastilles entrent
+en CSS (`.enter-rise`, `.enter-fade`, retard `--enter-index` × `--stagger`), donc visibles sans
+JavaScript ; barre de comparaison qui glisse depuis le bas, cadre en fondu + échelle, soulignement
+de la navigation qui glisse d'un lien à l'autre (`layoutId`), coche animée sur « Comparer »,
+bouton « Comparer » en chargement (`aria-busy`). Effets réduits ou désactivés et
+`prefers-reduced-motion` : fondu seul (`useSurfaceMotion`, `data-entrance`). Inclinaison
+(`TiltCard`) sur les tuiles de catégorie et les cartes d'en-tête du cadre. Son à l'ajout : non
+ajouté (aucun son adapté dans `UiSound`, optionnel).
+
+**Contrôles** : `npm run test` 457 tests verts (54 fichiers, dont
+`compare-effects-levels.test.tsx` : barre, cadre, soulignement, coche et pastilles × 4 situations
+d'effets) ; `a11y.spec.ts` (catalogue filtré, cadre ouvert, fiche avec bouton) 0 violation
+`serious` / `critical` ; `long-tasks.spec.ts` sur build de production : aucune tâche > 50 ms
+(accueil et comparaison de 3 produits, cadre ouvert puis fermé).
+
+**Lighthouse desktop (T075)**, build de production (`.next-prod`, `next start -p 3124`) :
+
+| Page | Score | LCP | CLS | TBT |
+|---|---|---|---|---|
+| `/` | 99 | 1,04 s | 0,002 | 5 ms |
+| `/products?category=COMPUTER` | 98 | 1,15 s | 0,002 | 0 ms |
+
+**Captures après (T076)** : `screenshots/after/` (mêmes pages que `before/` plus les états de
+l'audit). Scénario 21 (effets désactivés, `prefers-reduced-motion`) : OK en unitaire (fondu
+seul, aucune transformation).

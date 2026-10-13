@@ -1,7 +1,8 @@
 /**
  * Accessibility audit of every lot 1 page (constitution, WCAG 2.1 AA): axe-core finds no serious
  * or critical violation on the home page, the list, a product page, the cart (empty and filled)
- * and the registration page, with the default accent and with the cyan one.
+ * and the registration page, with the default accent and with the cyan one. Feature 002 adds
+ * the filtered catalog, the comparison modal and the product page with its compare button.
  */
 import { test } from "@playwright/test";
 
@@ -16,6 +17,37 @@ test.describe("accessibility", () => {
       await page.waitForLoadState("networkidle");
       await expectNoBlockingViolations(page);
     }
+  });
+
+  test("filtered catalog, comparison modal and product page with the compare button", async ({
+    page,
+  }) => {
+    await page.goto("/products?category=COMPUTER&brand=LENOVO");
+    await expectNoBlockingViolations(page);
+    const cards = page.getByRole("list", { name: "Produits" }).getByRole("listitem");
+    await cards
+      .nth(0)
+      .getByRole("checkbox", { name: /^Comparer / })
+      .check();
+    await cards
+      .nth(1)
+      .getByRole("checkbox", { name: /^Comparer / })
+      .check();
+    const productPath = await cards
+      .nth(2)
+      .getByRole("heading")
+      .getByRole("link")
+      .getAttribute("href");
+    await page
+      .getByRole("region", { name: "Comparaison" })
+      .getByRole("button", { name: /^Comparer/ })
+      .click();
+    await page.getByRole("dialog").getByRole("table").waitFor();
+    await expectNoBlockingViolations(page);
+    await page.keyboard.press("Escape");
+    await page.goto(productPath ?? "/products");
+    await page.getByRole("button", { name: "Ajouter à la comparaison" }).waitFor();
+    await expectNoBlockingViolations(page);
   });
 
   test("filled cart and cyan accent", async ({ page, context }) => {

@@ -4,12 +4,15 @@
  * « Comparer » button and the large comparison modal it opens over the current page.
  *
  * Radix keeps the focus inside the modal, closes it with Escape or the close button and gives
- * the focus back to « Comparer » (FR-017). The view is loaded only while the modal is open.
+ * the focus back to « Comparer » (FR-017). The view is loaded only while the modal is open. The
+ * modal fades and scales in at full effects, and only fades otherwise (`data-entrance`, see
+ * `styles/globals.css`, R14); its duration is the base duration of the motion tokens.
  *
  * @see specs/002-catalog-refresh/research.md R11
  * @see specs/002-catalog-refresh/spec.md FR-017 to FR-019
  */
 import type { UseQueryResult } from "@tanstack/react-query";
+import { LoaderCircle } from "lucide-react";
 import { useId, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -25,6 +28,7 @@ import { Switch } from "@/components/ui/switch";
 import { COMMON_MESSAGES } from "@/features/common/messages";
 import { COMPARE_MAX_PRODUCTS } from "@/lib/constants/compare";
 import type { ComparisonView } from "@/lib/schemas/compare";
+import { useSurfaceMotion } from "@/styles/motion";
 
 import { useComparison } from "../hooks/useComparison";
 import { COMPARE_BAR_MESSAGES, COMPARE_DIALOG_MESSAGES } from "../messages";
@@ -101,14 +105,19 @@ export function CompareDialog({ uuids }: CompareDialogProps): ReactNode {
   const [differencesOnly, setDifferencesOnly] = useState(false);
   const switchId = useId();
   const query = useComparison(uuids, open);
+  const { mode } = useSurfaceMotion();
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button type="button" className="cta-gradient rounded-button">
+        <Button type="button" aria-busy={query.isFetching} className="cta-gradient rounded-button">
+          {query.isFetching && <LoaderCircle aria-hidden className="animate-spin" />}
           {COMPARE_BAR_MESSAGES.compare}
         </Button>
       </DialogTrigger>
-      <DialogContent className="glass flex max-h-11/12 flex-col gap-6 overflow-hidden rounded-card sm:max-w-site">
+      <DialogContent
+        data-entrance={mode}
+        className="glass flex max-h-11/12 flex-col gap-6 overflow-hidden rounded-card duration-(--duration-base) sm:max-w-site"
+      >
         <DialogHeader>
           <DialogTitle className="text-2xl">{COMPARE_DIALOG_MESSAGES.title}</DialogTitle>
           <DialogDescription>{COMPARE_DIALOG_MESSAGES.description}</DialogDescription>

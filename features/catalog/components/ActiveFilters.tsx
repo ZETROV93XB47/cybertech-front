@@ -9,6 +9,8 @@
  */
 import { X } from "lucide-react";
 import Link from "next/link";
+
+import { EnterAnimation, enterStyle } from "@/components/effects/Enter";
 import type { ReactNode } from "react";
 
 import { buttonVariants } from "@/components/ui/button";
@@ -42,8 +44,12 @@ export function ActiveFilters({ filters, facets }: ActiveFiltersProps): ReactNod
       className="flex flex-wrap items-center gap-2"
     >
       <ul className="flex flex-wrap gap-2">
-        {pills.map((pill) => (
-          <li key={pill.removeHref + pill.label}>
+        {pills.map((pill, index) => (
+          <li
+            key={pill.removeHref + pill.label}
+            className={EnterAnimation.FADE}
+            style={enterStyle(index)}
+          >
             <Link
               href={pill.removeHref}
               aria-label={LIST_MESSAGES.removeFilter(pill.label)}

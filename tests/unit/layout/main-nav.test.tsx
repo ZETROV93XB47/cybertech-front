@@ -1,4 +1,4 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { act, screen, within } from "@testing-library/react";
 import { axe } from "jest-axe";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -6,6 +6,8 @@ import { MainNav, StaticMainNav } from "@/components/layout/MainNav";
 import { NavSectionMarker } from "@/components/layout/NavSectionMarker";
 import { publishNavCategory } from "@/components/layout/nav-section";
 import { CategoryKey } from "@/lib/enums/category-key";
+
+import { renderWithProviders } from "../../helpers/providers";
 
 const location = vi.hoisted(() => ({ pathname: "/", search: "" }));
 
@@ -21,10 +23,10 @@ vi.mock("next/navigation", () => ({
  * @param search - Current query string.
  * @returns The render result.
  */
-function renderAt(pathname: string, search = ""): ReturnType<typeof render> {
+function renderAt(pathname: string, search = ""): ReturnType<typeof renderWithProviders> {
   location.pathname = pathname;
   location.search = search;
-  return render(<MainNav />);
+  return renderWithProviders(<MainNav />);
 }
 
 /** Links of the main navigation, in order. */
@@ -79,7 +81,7 @@ describe("MainNav", () => {
   it("follows the category published by a product page", () => {
     location.pathname = "/products/0193a2b4-1111-7222-8333-000000000001";
     location.search = "";
-    const { unmount } = render(
+    const { unmount } = renderWithProviders(
       <>
         <MainNav />
         <NavSectionMarker category={CategoryKey.COMPUTER} />
@@ -90,12 +92,12 @@ describe("MainNav", () => {
       "page",
     );
     unmount();
-    render(<MainNav />);
+    renderWithProviders(<MainNav />);
     expect(screen.getByRole("link", { name: "Catalogue" })).toHaveAttribute("aria-current", "page");
   });
 
   it("has a static version without current link", () => {
-    render(<StaticMainNav />);
+    renderWithProviders(<StaticMainNav />);
     expect(navLinks()).toHaveLength(4);
     expect(navLinks().filter((link) => link.hasAttribute("aria-current"))).toHaveLength(0);
   });

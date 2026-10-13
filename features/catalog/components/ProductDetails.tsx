@@ -114,19 +114,17 @@ export function ProductSummary({
           <Offer offer={offer} />
         </RevealItem>
       )}
-      <RevealItem>
+      <RevealItem className="flex flex-col items-start gap-3">
         <AddToCartButton productUuid={product.uuid} productName={product.name} />
-      </RevealItem>
-      {category && (
-        <RevealItem>
+        {category && (
           <CompareToggle
             productUuid={product.uuid}
             productName={product.name}
             category={category}
             variant={CompareToggleVariant.BUTTON}
           />
-        </RevealItem>
-      )}
+        )}
+      </RevealItem>
     </RevealGroup>
   );
 }

@@ -26,7 +26,7 @@ import { Pagination } from "@/features/catalog/components/Pagination";
 import { ProductGrid } from "@/features/catalog/components/ProductGrid";
 import { buildBrandFilter, buildFilterFacets } from "@/features/catalog/filter-facets";
 import { CompareBar } from "@/features/compare/components/CompareBar";
-import { LIST_MESSAGES } from "@/features/catalog/messages";
+import { CATEGORY_LABELS, LIST_MESSAGES } from "@/features/catalog/messages";
 import {
   buildSearchQuery,
   buildSearchUrl,
@@ -80,6 +80,19 @@ async function resolveFilters(
 }
 
 /**
+ * Heading of the list: the keyword, else the selected category, else « Catalogue ».
+ *
+ * @param filters - Canonical filters.
+ * @returns The title.
+ */
+function pageTitle(filters: SearchFilters): string {
+  if (filters.keyword) {
+    return LIST_MESSAGES.searchTitle(filters.keyword);
+  }
+  return filters.category ? CATEGORY_LABELS[filters.category] : LIST_MESSAGES.title;
+}
+
+/**
  * Title of the page: the keyword when there is one.
  *
  * @param props - Page props.
@@ -110,7 +123,7 @@ export default async function ProductsPage({
     redirect(buildSearchUrl({ ...filters, page: totalPages - 1 }));
   }
   const facets = buildFilterFacets(schema, facetData, filters);
-  const title = filters.keyword ? LIST_MESSAGES.searchTitle(filters.keyword) : LIST_MESSAGES.title;
+  const title = pageTitle(filters);
   return (
     <PageShell>
       <PageHeader

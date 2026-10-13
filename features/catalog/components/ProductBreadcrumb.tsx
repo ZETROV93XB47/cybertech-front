@@ -6,12 +6,18 @@ import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { CATALOG_PATH } from "@/lib/constants/routes";
+import { CATALOG_PATH, HOME_PATH } from "@/lib/constants/routes";
 import type { Brand } from "@/lib/enums/brand";
 import type { CategoryKey } from "@/lib/enums/category-key";
 import { EMPTY_SEARCH_FILTERS } from "@/lib/schemas/search";
 
-import { BRAND_LABELS, CATEGORY_LABELS, LIST_MESSAGES, PRODUCT_MESSAGES } from "../messages";
+import {
+  BRAND_LABELS,
+  CATALOG_BREADCRUMB_MESSAGES,
+  CATEGORY_LABELS,
+  LIST_MESSAGES,
+  PRODUCT_MESSAGES,
+} from "../messages";
 import { buildSearchUrl } from "../search-params";
 
 /** Props of {@link ProductBreadcrumb}. */
@@ -31,6 +37,7 @@ const CRUMB = "text-text-muted transition-colors duration-(--duration-fast) hove
  */
 export function ProductBreadcrumb({ category, brand }: ProductBreadcrumbProps): ReactNode {
   const steps: { href: string; label: string }[] = [
+    { href: HOME_PATH, label: CATALOG_BREADCRUMB_MESSAGES.home },
     { href: CATALOG_PATH, label: LIST_MESSAGES.title },
   ];
   if (category) {

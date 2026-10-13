@@ -4,7 +4,12 @@
  */
 import type { Transition, Variants } from "motion/react";
 
-import { useMotionIntensity } from "@/features/preferences/PreferencesProvider";
+import {
+  useEffectiveEffects,
+  useMotionIntensity,
+} from "@/features/preferences/PreferencesProvider";
+import { EntranceMode } from "@/lib/enums/entrance-mode";
+import { EffectsLevel } from "@/lib/enums/theme";
 import { MS_PER_SECOND } from "@/lib/constants/time";
 import { THEME } from "@/lib/theme/theme.config";
 
@@ -41,5 +46,35 @@ export function useMotionTokens(): MotionTokensInSeconds {
       visible: { opacity: 1, y: 0, transition: transition(tokens.durationSlowMs) },
     },
     staggerSeconds: tokens.staggerMs / MS_PER_SECOND,
+  };
+}
+
+/** Entrance of one animated surface, adapted to the effects actually applied. */
+export interface SurfaceMotion {
+  /** `MOVE` at full effects, `FADE` otherwise (reduced, off, or system reduced motion). */
+  readonly mode: EntranceMode;
+  /** Rise from the bottom of the screen (comparison bar); a plain fade in `FADE` mode. */
+  readonly slideUp: Variants;
+}
+
+/**
+ * Returns the entrance of the surfaces of feature 002: a movement at full effects, a plain fade
+ * otherwise (spec Edge Cases « Effets réduits ou désactivés »).
+ *
+ * @returns The entrance mode and its variants.
+ * @see specs/002-catalog-refresh/research.md R14
+ */
+export function useSurfaceMotion(): SurfaceMotion {
+  const { level } = useEffectiveEffects();
+  const intensity = THEME.motion[useMotionIntensity()];
+  const tokens = useMotionTokens();
+  const mode = level === EffectsLevel.FULL ? EntranceMode.MOVE : EntranceMode.FADE;
+  const offset = mode === EntranceMode.MOVE ? { y: intensity.slideOffsetPx } : {};
+  return {
+    mode,
+    slideUp: {
+      hidden: { opacity: 0, ...offset },
+      visible: { opacity: 1, y: 0, transition: tokens.base },
+    },
   };
 }

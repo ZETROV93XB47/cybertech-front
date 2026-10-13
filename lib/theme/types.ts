@@ -88,6 +88,8 @@ export interface MotionTokens {
   readonly durationBaseMs: number;
   readonly durationSlowMs: number;
   readonly revealOffsetPx: number;
+  /** Rise of the panels that slide in from the bottom of the screen (comparison bar). */
+  readonly slideOffsetPx: number;
   readonly staggerMs: number;
   /** Cubic-bezier control points of the shared ease-out. */
   readonly easing: readonly [number, number, number, number];

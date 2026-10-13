@@ -5,8 +5,10 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { MagneticButton } from "@/components/effects/MagneticButton";
 import { StateIllustration } from "@/components/effects/StateIllustration";
-import { buttonVariants } from "@/components/ui/button";
+
+import { PRIMARY_CTA_CLASS } from "./cta";
 
 /** Props of {@link EmptyState}. */
 export interface EmptyStateProps {
@@ -31,9 +33,11 @@ export function EmptyState({ icon, title, body, action }: EmptyStateProps): Reac
       <h2 className="text-xl">{title}</h2>
       <p className="max-w-prose text-text-muted">{body}</p>
       {action && (
-        <Link href={action.href} className={buttonVariants()}>
-          {action.label}
-        </Link>
+        <MagneticButton>
+          <Link href={action.href} className={PRIMARY_CTA_CLASS}>
+            {action.label}
+          </Link>
+        </MagneticButton>
       )}
     </div>
   );

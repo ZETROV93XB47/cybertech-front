@@ -78,6 +78,20 @@
   }
 }
 
+/* Entrance of server-rendered content (see `.enter-fade` / `.enter-rise`). */
+@keyframes enter-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes enter-rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--reveal-offset));
+  }
+}
+
 /* Gentle float of the empty and error state illustrations. */
 @keyframes illustration-float {
   from {
@@ -275,6 +289,39 @@
     .aurora-blob,
     .illustration-float {
       animation: none;
+    }
+  }
+
+  /*
+   * Entrances of server-rendered content (results grid, home sections, active-filter pills):
+   * pure CSS, so the content stays visible without JavaScript (FR-010). Each element waits
+   * `--enter-index` × `--stagger`; reduced or disabled effects and system reduced motion keep
+   * the fade and drop the movement (feature 002, R14).
+   */
+  .enter-fade,
+  .enter-rise {
+    animation: enter-fade var(--duration-slow) var(--easing) both;
+    animation-delay: calc(var(--enter-index, 0) * var(--stagger));
+  }
+
+  .enter-rise {
+    animation-name: enter-rise;
+  }
+
+  /* Comparison modal with reduced effects: fade only, no scale (it scales in at full effects). */
+  [data-slot="dialog-content"][data-entrance="fade"][data-state] {
+    --tw-enter-scale: 1;
+    --tw-exit-scale: 1;
+  }
+
+  :root[data-effects="reduced"] .enter-rise,
+  :root[data-effects="off"] .enter-rise {
+    animation-name: enter-fade;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .enter-rise {
+      animation-name: enter-fade;
     }
   }
 

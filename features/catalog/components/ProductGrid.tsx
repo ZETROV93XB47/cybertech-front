@@ -1,8 +1,11 @@
 /**
  * Grid of product cards, as a list so screen readers announce the number of products.
+ *
+ * The cards enter in a CSS cascade (feature 002, R14), visible without JavaScript.
  */
 import type { ReactNode } from "react";
 
+import { EnterAnimation, enterStyle } from "@/components/effects/Enter";
 import type { ProductCard as ProductCardData } from "@/lib/schemas/product";
 
 import { ProductCard } from "./ProductCard";
@@ -42,7 +45,7 @@ export function ProductGrid({
   return (
     <ul aria-label={label} className={PRODUCT_GRID_CLASS}>
       {products.map((product, index) => (
-        <li key={product.uuid} className="flex">
+        <li key={product.uuid} className={`flex ${EnterAnimation.RISE}`} style={enterStyle(index)}>
           <ProductCard
             product={product}
             withTransition={withTransition}

@@ -12,6 +12,8 @@ import {
   ProductGridSkeleton,
 } from "@/features/catalog/components/ProductCardSkeleton";
 
+import { renderWithProviders } from "../../helpers/providers";
+
 describe("PageHeader", () => {
   it("renders one h1, the subtitle, the actions and the live slot, without breadcrumb", async () => {
     const { container } = render(
@@ -65,7 +67,7 @@ describe("SectionHeading", () => {
 
 describe("EmptyState", () => {
   it("shows the illustration, the sentence and the action link", async () => {
-    const { container } = render(
+    const { container } = renderWithProviders(
       <EmptyState
         icon={<SearchX />}
         title="Rien ici"

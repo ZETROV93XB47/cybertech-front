@@ -11,13 +11,16 @@
  * @see specs/002-catalog-refresh/research.md R9
  * @see specs/002-catalog-refresh/spec.md FR-013, FR-014
  */
-import { GitCompareArrows } from "lucide-react";
+import { Check, GitCompareArrows } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useId, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import type { CategoryKey } from "@/lib/enums/category-key";
 import { CompareToggleVariant } from "@/lib/enums/compare-toggle-variant";
+import { EntranceMode } from "@/lib/enums/entrance-mode";
 import { cn } from "@/lib/utils";
+import { useMotionTokens, useSurfaceMotion } from "@/styles/motion";
 
 import { useCompareSelection } from "../hooks/useCompareSelection";
 import { COMPARE_REFUSAL_MESSAGES, COMPARE_TOGGLE_MESSAGES } from "../messages";
@@ -96,6 +99,40 @@ function Reason({
   );
 }
 
+/** Starting scale of the check mark when it pops in at full effects. */
+const CHECK_POP_SCALE = 0.4;
+
+/**
+ * Check mark shown next to « Comparer » once the product is selected: it pops in at full
+ * effects and only fades otherwise (T071).
+ *
+ * @param props - Whether the product is selected.
+ * @returns The animated mark.
+ */
+function SelectedMark({ isSelected }: { readonly isSelected: boolean }): ReactNode {
+  const { mode } = useSurfaceMotion();
+  const tokens = useMotionTokens();
+  const hidden =
+    mode === EntranceMode.MOVE ? { opacity: 0, scale: CHECK_POP_SCALE } : { opacity: 0 };
+  return (
+    <AnimatePresence initial={false}>
+      {isSelected && (
+        <motion.span
+          aria-hidden
+          data-entrance={mode}
+          initial={hidden}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={hidden}
+          transition={tokens.fast}
+          className="inline-flex text-brand-text"
+        >
+          <Check className="size-3.5" />
+        </motion.span>
+      )}
+    </AnimatePresence>
+  );
+}
+
 /**
  * Comparison toggle of a product.
  *
@@ -129,6 +166,7 @@ export function CompareToggle({
             {...refusedProps}
           />
           {COMPARE_TOGGLE_MESSAGES.checkbox}
+          <SelectedMark isSelected={isSelected} />
         </label>
       ) : (
         <Button

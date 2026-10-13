@@ -7,7 +7,8 @@
  * Column headers are the products and row headers the characteristics, so a screen reader reads
  * « Processeur, PC A : AMD Ryzen 7 » (FR-020). A row whose values differ carries an icon and a
  * hidden « valeurs différentes » text, never a colour alone (FR-019). Only the table scrolls
- * horizontally when it is wider than the modal.
+ * horizontally when it is wider than the modal. The product header cards keep the tilt of the
+ * catalog cards (FR-032).
  *
  * @see specs/002-catalog-refresh/spec.md FR-018 to FR-020
  */
@@ -15,6 +16,7 @@ import { Diff } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { TiltCard } from "@/components/effects/TiltCard";
 import { AddToCartButton } from "@/features/cart/components/AddToCartButton";
 import { AvailabilityBadge } from "@/features/catalog/components/AvailabilityBadge";
 import { ProductImage } from "@/features/catalog/components/ProductImage";
@@ -43,7 +45,7 @@ export interface CompareTableProps {
 function ProductHeader({ product }: { readonly product: ProductCard }): ReactNode {
   return (
     <th scope="col" className="w-64 p-3 text-left align-top font-normal">
-      <div className="flex flex-col gap-2">
+      <TiltCard className="glass relative flex flex-col gap-2 rounded-card p-3">
         <div className="aspect-4/3 overflow-hidden rounded-field bg-surface-2">
           <ProductImage
             src={product.imageUrl}
@@ -61,7 +63,7 @@ function ProductHeader({ product }: { readonly product: ProductCard }): ReactNod
           <AvailabilityBadge productUuid={product.uuid} />
           <AddToCartButton productUuid={product.uuid} productName={product.name} compact />
         </div>
-      </div>
+      </TiltCard>
     </th>
   );
 }

@@ -8,12 +8,14 @@
  * {@link COMPARE_MIN_PRODUCTS}. As soon as the cards arrive, every selected product the catalog
  * no longer has is dropped with a message, without waiting for the modal (FR-021). A spacer of
  * the bar's height keeps the pagination visible, and a status region announces every change.
- * Nothing is rendered without JavaScript or with an empty selection.
+ * Nothing is rendered without JavaScript or with an empty selection. The bar slides up from the
+ * bottom at full effects and only fades in otherwise (R14).
  *
  * @see specs/002-catalog-refresh/research.md R10
  */
 import { useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
+import { motion } from "motion/react";
 import { useEffect, type ReactNode } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -28,6 +30,7 @@ import { QueryKey } from "@/lib/enums/query-key";
 import { ProductCardSchema, type ProductCard } from "@/lib/schemas/product";
 import { UUID_LIST_SEPARATOR } from "@/lib/schemas/uuid-list";
 import { THEME } from "@/lib/theme/theme.config";
+import { useSurfaceMotion } from "@/styles/motion";
 
 import { useCompareSelection } from "../hooks/useCompareSelection";
 import { COMPARE_BAR_MESSAGES, COMPARE_DIALOG_MESSAGES } from "../messages";
@@ -130,6 +133,7 @@ export function CompareBar(): ReactNode {
   const { selection, remove, clear } = useCompareSelection();
   const uuids = selection?.uuids ?? [];
   const cards = useSelectedCards(uuids, remove);
+  const surface = useSurfaceMotion();
   const count = uuids.length;
   return (
     <>
@@ -139,8 +143,12 @@ export function CompareBar(): ReactNode {
       {count > 0 && (
         <>
           <div aria-hidden className="h-28" />
-          <section
+          <motion.section
             aria-label={COMPARE_BAR_MESSAGES.label}
+            data-entrance={surface.mode}
+            initial="hidden"
+            animate="visible"
+            variants={surface.slideUp}
             className="fixed inset-x-0 bottom-0 z-30 px-6 pb-4"
           >
             <div className="glass mx-auto flex w-full max-w-site items-center gap-4 rounded-card p-3 shadow-card">
@@ -162,7 +170,7 @@ export function CompareBar(): ReactNode {
               </Button>
               {count >= COMPARE_MIN_PRODUCTS && <CompareDialog uuids={uuids} />}
             </div>
-          </section>
+          </motion.section>
         </>
       )}
     </>

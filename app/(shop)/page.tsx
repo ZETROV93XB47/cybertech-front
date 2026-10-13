@@ -12,12 +12,13 @@ import { PackageSearch } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { Enter } from "@/components/effects/Enter";
 import { MagneticButton } from "@/components/effects/MagneticButton";
+import { PRIMARY_CTA_CLASS } from "@/components/layout/cta";
 import { EmptyState } from "@/components/layout/EmptyState";
 import { PAGE_TITLE_CLASS, PageHeader } from "@/components/layout/PageHeader";
 import { PageShell } from "@/components/layout/PageShell";
 import { SectionHeading } from "@/components/layout/SectionHeading";
-import { buttonVariants } from "@/components/ui/button";
 import { Welcome } from "@/features/auth/components/Welcome";
 import { CategoryTiles } from "@/features/catalog/components/CategoryTiles";
 import { DiscountBanner } from "@/features/catalog/components/DiscountBanner";
@@ -32,9 +33,15 @@ import { CATALOG_PATH } from "@/lib/constants/routes";
 import { createModuleLogger } from "@/lib/logger";
 import type { ActiveDiscount } from "@/lib/schemas/discount";
 import type { ProductCard } from "@/lib/schemas/product";
-import { cn } from "@/lib/utils";
 
 const log = createModuleLogger("catalog.home");
+
+/** Position of each server-rendered section in the entrance cascade of the page. */
+const HOME_SECTION_ORDER = {
+  CATEGORIES: 0,
+  OFFERS: 1,
+  BEST_SELLERS: 2,
+} as const;
 
 /**
  * Loads the offers; they are a bonus, so a failure only hides the strip.
@@ -92,22 +99,27 @@ export default async function HomePage(): Promise<ReactNode> {
         subtitle={HOME_MESSAGES.intro}
         actions={
           <MagneticButton>
-            <Link
-              href={CATALOG_PATH}
-              className={cn(buttonVariants({ size: "lg" }), "cta-gradient")}
-            >
+            <Link href={CATALOG_PATH} className={PRIMARY_CTA_CLASS}>
               {HOME_MESSAGES.searchCta}
             </Link>
           </MagneticButton>
         }
       />
-      <section aria-labelledby="categories-title" className="flex flex-col gap-6">
-        <SectionHeading id="categories-title">{HOME_MESSAGES.categoriesTitle}</SectionHeading>
-        <CategoryTiles counts={counts} />
-      </section>
-      <DiscountBanner discounts={discounts} />
+      <Enter index={HOME_SECTION_ORDER.CATEGORIES}>
+        <section aria-labelledby="categories-title" className="flex flex-col gap-6">
+          <SectionHeading id="categories-title">{HOME_MESSAGES.categoriesTitle}</SectionHeading>
+          <CategoryTiles counts={counts} />
+        </section>
+      </Enter>
+      {discounts.length > 0 && (
+        <Enter index={HOME_SECTION_ORDER.OFFERS}>
+          <DiscountBanner discounts={discounts} />
+        </Enter>
+      )}
       <RecentlyViewed />
-      <BestSellers products={bestSellers} />
+      <Enter index={HOME_SECTION_ORDER.BEST_SELLERS}>
+        <BestSellers products={bestSellers} />
+      </Enter>
     </PageShell>
   );
 }
