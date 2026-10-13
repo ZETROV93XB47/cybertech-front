@@ -231,8 +231,9 @@ sur une catégorie en un clic.
   aucune évolution backend n'est demandée pour l'instant.
 - **Catégorie sans produit** (MONITOR aujourd'hui) : le filtre catégorie reste proposé, l'état
   vide l'explique, aucune valeur de caractéristique n'est inventée.
-- **Plage numérique incohérente** saisie (minimum > maximum) : refusée sur le champ avec un
-  message, comme au lot 1 ; une plage hors des bornes observées est ramenée aux bornes.
+- **Plage numérique incohérente** saisie (minimum > maximum, ou valeur hors des bornes
+  observées) : refusée sur le champ avec un message, comme au lot 1 ; la saisie n'est jamais
+  modifiée silencieusement.
 - **Clé de caractéristique inconnue** dans le schéma (ajout futur côté backend) : libellé
   lisible déduit de la clé, valeurs affichées telles quelles.
 - **Comparaison** :
