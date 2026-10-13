@@ -1,6 +1,6 @@
 # Cartographie de l'API backend cybertech
 
-> Source : repo backend `cybertech-dev-develop_cybertech`, branche `develop_back`, commit `7623204` (lu en lecture seule le 2026-10-13).
+> Source : repo backend `cybertech-dev-develop_cybertech`, branche `develop_back`, commit `7623204` (lu en lecture seule le 2026-10-13), mis à jour après les commits backend `0b4a600` (client Keycloak front) et `d50e661` (`GET /user/me`, `GET /product/availability`, codes d'erreur machine).
 > Abréviation des chemins : `{pkg}` = `src/main/java/com/novatech/cybertech`, `{ctrl}` = `{pkg}/api/controllers/implementation`, `{res}` = `src/main/resources`.
 > Contrat OpenAPI de référence : `docs/openapi/openapi.yaml` du backend (généré par springdoc, 64 opérations) et `/v3/api-docs` à l'exécution.
 
@@ -27,19 +27,25 @@
 
 ### 0.1 Format des erreurs
 
-Toutes les erreurs gérées par `@ControllerAdvice` renvoient `ErrorResponseDto` (`{pkg}/api/error/model/ErrorResponseDto.java:13-17`) :
+Toutes les erreurs (controllers, 401, 403, **et 429**) renvoient `ErrorResponseDto` (`{pkg}/api/error/model/ErrorResponseDto.java`) :
 
 ```json
-{ "message": "string", "httpStatusCode": 409, "errorCodeType": "FUNCTIONAL" }
+{
+  "message": "Validation failed: email (Email should be valid)",
+  "httpStatusCode": 400,
+  "errorCodeType": "TECHNICAL",
+  "errorCode": "INVALID_REQUEST",
+  "fieldErrors": [ { "field": "email", "message": "Email should be valid" } ]
+}
 ```
 
-- `errorCodeType` ∈ `TECHNICAL | FUNCTIONAL` (`ErrorCodeType.java`).
-- **Aucun code d'erreur machine** (le nom de l'enum `ErrorCode` n'est pas sérialisé) : le front doit discriminer sur le **statut HTTP** + éventuellement le **message**.
-- Erreurs de validation Bean Validation : `400`, `message = "Validation failed: champ (message), champ2 (message)"` — **une seule chaîne**, pas de tableau par champ (`ErrorManagementController.java:37-46`). `FieldErrorDto` existe mais n'est pas utilisé.
-- `401` (non authentifié) : `{"message":"Authentication required","httpStatusCode":401,"errorCodeType":"TECHNICAL"}` (`CustomAuthenticationEntryPoint.java:28-36`).
-- `403` (rôle insuffisant) : `CustomAccessDeniedHandler` + `ErrorCode.ACCESS_DENIED`.
-- `429` (rate limit) : **format différent** `{"error":"too_many_requests","retryAfterSeconds":N}` + en-tête `Retry-After` (`{pkg}/security/RateLimitFilter.java:363-366`).
-- `500` générique : message assaini `"An unexpected error occurred. Please contact support if the issue persists."` (`ErrorManagementController.java:335-346`).
+- **`errorCode`** = nom de l'enum `ErrorCode` (liste complète dans l'OpenAPI, schéma `ErrorResponseDto`) : **c'est sur lui que le front doit brancher sa logique**, jamais sur `message` (texte anglais susceptible de changer).
+- `errorCodeType` ∈ `TECHNICAL | FUNCTIONAL`.
+- `fieldErrors` : présent **uniquement** sur les erreurs de validation Bean Validation (`INVALID_REQUEST` issu de `@Valid`), un élément par champ, **sans la valeur rejetée** (pas de mot de passe renvoyé). Champs imbriqués au format `cartItemAddRequestDtos[0].quantity`.
+- `401` : `errorCode = AUTHENTICATION_REQUIRED` (`CustomAuthenticationEntryPoint.java`).
+- `403` (rôle insuffisant) : `errorCode = ACCESS_DENIED` (`CustomAccessDeniedHandler.java`).
+- `429` : `errorCode = TOO_MANY_REQUESTS`, délai dans l'en-tête **`Retry-After`** (secondes) (`RateLimitFilter.java`).
+- `500` générique : `APPLICATION_ERROR`, message assaini.
 
 ### 0.2 Table des erreurs métier (exception → statut)
 
@@ -49,10 +55,12 @@ Source : `{pkg}/api/error/enumpackage/ErrorCode.java:11-69` + `ErrorManagementCo
 |---|---|
 | 400 | `INVALID_REQUEST` (validation, `IllegalArgumentException`, `NegativeQuantityException`, `ProductConstraintsViolationException`, propriété JSON inconnue), `MALFORMED_JSON`, `METHOD_ARGUMENT_TYPE_MISMATCH`, `BANK_CARD_EXPIRED`, `DISCOUNT_TYPE_NOT_ACTIVE`, `UNKNOWN_PRODUCT_CATEGORY`, `INVALID_PRODUCT_CATEGORY_SCHEMA`, `DISCOUNT_CAMPAIGN_MISSING_REQUIRED_FIELD` |
 | 402 | `PAYMENT_FAILED` |
-| 403 | `ACCESS_DENIED`, `ORDER_DOESNT_BELONGS_TO_USER`, `UNAUTHORIZED_CART_ACCESS`, `USER_NOT_ACTIVE`, `USER_NOT_AUTHOR_OF_REVIEW`, `COMMENT_POST_NOT_ALLOWED` (modération), **`CART_IS_EMPTY`**, **`CANNOT_REMOVE_ITEM_FROM_EMPTY_CART`** |
+| 401 | `AUTHENTICATION_REQUIRED` |
+| 403 | `ACCESS_DENIED`, `ORDER_DOESNT_BELONGS_TO_USER`, `UNAUTHORIZED_CART_ACCESS`, `USER_NOT_ACTIVE`, `USER_NOT_AUTHOR_OF_REVIEW`, `COMMENT_POST_NOT_ALLOWED` (modération) |
 | 404 | `RESOURCE_NOT_FOUND`, `ACCOUNT_NOT_FOUND`, `PRODUCT_NOT_FOUND`, `CART_NOT_FOUND`, `CART_ITEM_NOT_FOUND`, `ORDER_NOT_FOUND`, `NO_PREVIOUS_PAYMENT_ATTEMPT_FOUND`, `REVIEW_NOT_FOUND`, `USER_NOT_FOUND`, `WISHLIST_NOT_FOUND`, `BANK_CARD_NOT_FOUND`, `PAYMENT_NOT_FOUND`, `DISCOUNT_CAMPAIGN_NOT_FOUND` |
-| 409 | `CANNOT_CANCEL_ORDER`, `ORDER_ALREADY_SHIPPED`, `ORDER_NOT_FUNDED`, `ORDER_REFUND_FAILED`, `PRODUCT_ALREADY_IN_WISHLIST`, **`NOT_ENOUGH_STOCK`**, `CONCURRENT_MODIFICATION` (optimistic lock, rejouable), `PAYMENT_ALREADY_COMPLETED`, `ORDER_NOT_REVIEWABLE`, `DISCOUNT_CAMPAIGN_ALREADY_EXISTS`, `USER_ALREADY_EXISTS` |
+| 409 | `CANNOT_CANCEL_ORDER`, `ORDER_ALREADY_SHIPPED`, `ORDER_NOT_FUNDED`, `ORDER_REFUND_FAILED`, `PRODUCT_ALREADY_IN_WISHLIST`, **`NOT_ENOUGH_STOCK`**, `CONCURRENT_MODIFICATION` (optimistic lock **ou verrou panier occupé**, rejouable), **`CART_IS_EMPTY`**, **`CANNOT_REMOVE_ITEM_FROM_EMPTY_CART`** (403 → 409 depuis `d50e661`), `PAYMENT_ALREADY_COMPLETED`, `ORDER_NOT_REVIEWABLE`, `DISCOUNT_CAMPAIGN_ALREADY_EXISTS`, `USER_ALREADY_EXISTS` |
 | 422 | `FAILED_UPDATING_ORDER` (échec de `retryPayment`) |
+| 429 | `TOO_MANY_REQUESTS` (+ `Retry-After`) |
 | 500 | `APPLICATION_ERROR`, `ACCESS_TOKEN_RETRIEVAL_FAILED`, `IDEMPOTENCY_KEY_GENERATION_FAILED`, `NO_STRATEGY_FOUND`, `PAYMENT_PROCESSING_ERROR`, `ORDER_SUMMARY_REPORT_JOB_FAILED` |
 
 ---
@@ -63,7 +71,7 @@ Source : `{pkg}/api/error/enumpackage/ErrorCode.java:11-69` + `ErrorManagementCo
 
 | Méthode | Chemin | Fournisseur | Auth | Notes |
 |---|---|---|---|---|
-| GET | `{KC}/realms/cybertech/protocol/openid-connect/auth` | Keycloak | — | Authorization Code (+PKCE). **Aucun client front n'existe dans le realm exporté** (voir §12). |
+| GET | `{KC}/realms/cybertech/protocol/openid-connect/auth` | Keycloak | — | Authorization Code + PKCE S256 avec le client confidentiel **`cybertech-front-client`** (secret dev `dev-keycloak-front-secret-change-me`, redirect `http://localhost:3000/api/auth/callback/keycloak`, post-logout `http://localhost:3000/*`) — importé avec le realm depuis `0b4a600` ; sur une base Keycloak existante : `src/main/resources/bash/createKeycloakFrontClient.ps1`. |
 | POST | `{KC}/realms/cybertech/protocol/openid-connect/token` | Keycloak | client | `grant_type=authorization_code` / `refresh_token`. |
 | GET/POST | `{KC}/realms/cybertech/protocol/openid-connect/logout` | Keycloak | — | RP-initiated logout (`id_token_hint`). |
 | GET | `{KC}/realms/cybertech/protocol/openid-connect/certs` | Keycloak | — | JWKS utilisé par le backend. |
@@ -84,6 +92,7 @@ Controller : `{ctrl}/UserManagementController.java` (base `/api/v1/services/user
 |---|---|---|---|---|---|---|---|---|---|
 | POST | `/api/v1/services/user/register` | `UserManagementController#register` (:111) | **Public** | — | `UserCreateRequestDto` (§D.1) | `201` `{ "id": uuid, "email": string, "username": string }` (`Map`) | 201, 400, 409 `USER_ALREADY_EXISTS`, 429 (5 req/min/IP), 500 (échec Keycloak) | — | Saga Keycloak + DB. `bankCardCreationRequestDto` optionnel. |
 | GET | `/api/v1/services/user/get/{userUuid}` | `#getUserByUuid` (:81) | USER ou ADMIN ; USER limité à **son propre** profil | path `userUuid` (UUID) | — | `UserResponseDto` (§D.20) | 200, 401, 403, 404 | — | Le front ne connaît pas l'UUID local après un login Keycloak (voir §11 « GET /me manquant »). |
+| GET | `/api/v1/services/user/me` | `UserManagementController#getMe` | USER ou ADMIN | — | — | `UserResponseDto` (§D.20) | 200, 401 `AUTHENTICATION_REQUIRED`, 404 `USER_NOT_FOUND` | — | Profil de l'appelant résolu par le `sub` du JWT. **À utiliser pour obtenir l'UUID local et le profil.** |
 | PATCH | `/api/v1/services/user/me` | `#updateMe` (:147) | USER ou ADMIN | — | `UserSelfUpdateRequestDto` (§D.3) | `UserResponseDto` | 200, 400, 401, 404 | — | Utilisateur résolu par le `sub` du JWT (pas d'IDOR). Pas d'email ni mot de passe modifiables. |
 | GET | `/api/v1/services/user/ok` | `#healthCheck` (:135) | Authentifié | — | — | `200` chaîne `"Hello Guys !!! 😁🔥🔥🔥"` | 200, 401 | — | Ping de debug JWT. |
 
@@ -97,6 +106,7 @@ Controller : `{ctrl}/ProductSearchController.java` (base `/api/v1/services/produ
 |---|---|---|---|---|---|---|---|---|---|
 | GET | `/api/v1/services/product/get/{productUuid}` | `ProductSearchController#getProductByUuid` (:30) | Public | path `productUuid` (UUID) | — | `ProductResponseDto` (§D.12) | 200, 400 (UUID invalide), 404 | — | Lu depuis MySQL. |
 | POST | `/api/v1/services/product/search` | `#searchProducts` (:39) | Public | — | `ProductSearchRequestDto` (§D.10) | `PagedModel<ProductResponseDto>` | 200, 400 | **Dans le body** (`page` défaut 0, `size` défaut 20) | Elasticsearch : `multiMatch` fuzzy (`AUTO`) sur le mot-clé, filtres catégorie / marques / attributs / plages. **Pas de tri** paramétrable (pertinence). `ProductSearchServiceImp.java:42-161`. |
+| GET | `/api/v1/services/product/availability` | `#getAvailability` | Public | query `uuids` (1 à 50 UUID, séparés par des virgules ou répétés) | — | `ProductAvailabilityDto[]` (§D.12b) | 200, 400 `INVALID_REQUEST` (vide / > 50) ou `METHOD_ARGUMENT_TYPE_MISMATCH` (UUID invalide) | — | **Stock en direct** (`max(0, stock - reservedStock)`, lu en base), réponse `Cache-Control: no-store`. UUID inconnus absents du résultat. À ne **jamais** mettre en cache côté front. |
 | GET | `/api/v1/services/product/best-sellers` | `#getBestSellers` (:45) | Public | query `page`, `size` (défaut 15), `sort` | — | `PagedModel<ProductResponseDto>` | 200 | Query | — |
 
 Recherche vide (tous champs `null`) = liste de tout le catalogue ⚠️ À CONFIRMER (comportement ES avec `musts` vide non vérifié à l'exécution).
@@ -124,10 +134,10 @@ Controller : `{ctrl}/CartManagementController.java` (base `/api/v1/services/cart
 | Méthode | Chemin | Controller#méthode | Auth | Params | Body | Réponse | Codes HTTP | Notes |
 |---|---|---|---|---|---|---|---|---|
 | GET | `/api/v1/services/cart/get` | `CartManagementController#getCart` (:47) | USER/ADMIN | — | — | `CartResponseDto` (§D.16) | 200, 401, 404 `USER_NOT_FOUND` | Cache Redis puis MySQL. **Panier inexistant → objet avec tous les champs `null`** (`CartServiceImp.java:180,197-199`). |
-| POST | `/api/v1/services/cart/add` | `#addToCart` (:63) | USER/ADMIN | — | `CartCreateRequestDto` (§D.5) | `201` `CartResponseDto` | 201, 400, 404 `PRODUCT_NOT_FOUND`, 409 `NOT_ENOUGH_STOCK`, **500** si verrou Redis non obtenu | **Additif** : quantité ajoutée à la ligne existante. Crée le panier au premier ajout. Même produit 2× dans la requête → quantités sommées. |
+| POST | `/api/v1/services/cart/add` | `#addToCart` (:63) | USER/ADMIN | — | `CartCreateRequestDto` (§D.5) | `201` `CartResponseDto` | 201, 400, 404 `PRODUCT_NOT_FOUND`, 409 `NOT_ENOUGH_STOCK`, 409 `CONCURRENT_MODIFICATION` si verrou Redis occupé (rejouable) | **Additif** : quantité ajoutée à la ligne existante. Crée le panier au premier ajout. Même produit 2× dans la requête → quantités sommées. |
 | PATCH | `/api/v1/services/cart/update/{cartUuid}` | `#updateCart` (:40) | USER/ADMIN, propriétaire | path `cartUuid` | `CartUpdateRequestDto` (§D.6) | `CartResponseDto` | 200, 400, 403 `UNAUTHORIZED_CART_ACCESS`, 404 `CART_NOT_FOUND`/`PRODUCT_NOT_FOUND`, 409 `NOT_ENOUGH_STOCK` | **Remplace** toutes les lignes (quantités absolues). Idéal pour « modifier la quantité ». |
-| PATCH | `/api/v1/services/cart/remove/{productUuid}` | `#removeFromCart` (:70) | USER/ADMIN | path `productUuid` | — | `CartResponseDto` | 200, 403 `CANNOT_REMOVE_ITEM_FROM_EMPTY_CART`, 404 | Supprime la ligne entière. |
-| DELETE | `/api/v1/services/cart/decreaseQuantity` | `#decreaseQuantity` (:77) | USER/ADMIN | — | `CartItemRemoveRequestDto` (§D.7) | `CartResponseDto` | 200, 400, 403 `CART_IS_EMPTY`, 404 `CART_ITEM_NOT_FOUND` | **DELETE avec body JSON**. |
+| PATCH | `/api/v1/services/cart/remove/{productUuid}` | `#removeFromCart` (:70) | USER/ADMIN | path `productUuid` | — | `CartResponseDto` | 200, 409 `CANNOT_REMOVE_ITEM_FROM_EMPTY_CART`, 404 | Supprime la ligne entière. |
+| DELETE | `/api/v1/services/cart/decreaseQuantity` | `#decreaseQuantity` (:77) | USER/ADMIN | — | `CartItemRemoveRequestDto` (§D.7) | `CartResponseDto` | 200, 400, 409 `CART_IS_EMPTY`, 404 `CART_ITEM_NOT_FOUND` | **DELETE avec body JSON**. |
 | DELETE | `/api/v1/services/cart/clear` | `#clearCart` (:55) | USER/ADMIN | — | — | `204` | 204, 401 | — |
 
 ## 7. Commandes
@@ -136,7 +146,7 @@ Controller : `{ctrl}/OrderManagementController.java` (base `/api/v1/services/man
 
 | Méthode | Chemin | Controller#méthode | Auth | Params | Body | Réponse | Codes HTTP | Pagination | Notes |
 |---|---|---|---|---|---|---|---|---|---|
-| POST | `/api/v1/services/management/order/place` | `#placeOrder` (:44) | USER/ADMIN | — | `OrderPlacingRequestDto` (§D.8) | `201` `OrderResponseDto` (§D.17) | 201, 400, 402 `PAYMENT_FAILED`, 403 `CART_IS_EMPTY`/`USER_NOT_ACTIVE`, 409 `NOT_ENOUGH_STOCK`, 500 | — | Convertit le **panier serveur** en commande et **déclenche le paiement Stripe côté serveur** (PaymentIntent confirmé avec le moyen de paiement configuré, voir analysis §6). Statut initial souvent `AWAITING_PAYMENT`, puis `PAID` via webhook. |
+| POST | `/api/v1/services/management/order/place` | `#placeOrder` (:44) | USER/ADMIN | — | `OrderPlacingRequestDto` (§D.8) | `201` `OrderResponseDto` (§D.17) | 201, 400, 402 `PAYMENT_FAILED`, 403 `USER_NOT_ACTIVE`, 409 `CART_IS_EMPTY`/`NOT_ENOUGH_STOCK`, 500 | — | Convertit le **panier serveur** en commande et **déclenche le paiement Stripe côté serveur** (PaymentIntent confirmé avec le moyen de paiement configuré, voir analysis §6). Statut initial souvent `AWAITING_PAYMENT`, puis `PAID` via webhook. |
 | GET | `/api/v1/services/management/order/status/{uuid}` | `#getOrderStatusByUuid` (:96) | USER/ADMIN, propriétaire | path `uuid` | — | `OrderStatusDto` (§D.18) | 200, 403, 404 | — | Prévu pour le **polling** de la page de confirmation. |
 | GET | `/api/v1/services/management/order/get/{uuid}` | `#getOrderByUuid` (:84) | USER/ADMIN, propriétaire | path `uuid` | — | `OrderResponseDto` | 200, 403, 404 | — | — |
 | GET | `/api/v1/services/management/order/mine` | `#getMyOrders` (:119) | USER/ADMIN | query `status` (multi, `OrderStatus`), `page`, `size` (20), `sort` (`createdAt,desc`) | — | `PagedModel<OrderResponseDto>` | 200, 400 | Query | — |
@@ -318,7 +328,10 @@ Même forme que D.5 (`cartItemAddRequestDtos`), sémantique **remplacement compl
 | `description` | string | — |
 | `attributes` | `Record<string, unknown>` | conforme au `jsonSchema` de la catégorie |
 
-**Absents** : stock / disponibilité, note moyenne, nombre d'avis, prix barré / remise.
+**Absents** : note moyenne, nombre d'avis, prix barré / remise. Le stock est servi à part par `GET /product/availability` (§D.12b), volontairement : le payload produit est mis en cache, la disponibilité jamais.
+
+### D.12b `ProductAvailabilityDto` — `response/product/ProductAvailabilityDto.java`
+`productUuid` (UUID), `availableStock` (int ≥ 0), `inStock` (boolean).
 
 ### D.13 `ProductCategorySchemaResponseDto`
 `uuid`, `categoryKey`, `label`, `jsonSchema` (**string** JSON), `active` (boolean).
@@ -391,12 +404,12 @@ Absents : devise, frais de port, montant de remise, `discountKey`, statut de pai
 | # | Constat | Source | Impact front |
 |---|---|---|---|
 | 1 | Entrées mortes dans `PUBLIC_URLS` : `/api/public/**`, `/auth/register`, `/auth/login`, `/products/list`, `/test/upload-image/**` (aucun controller). | `SecurityConfig.java:74-104` | Aucun ; ne pas s'y fier. |
-| 2 | Verrou panier non obtenu → `IllegalStateException` → **500** (au lieu de 409/503 rejouable). | `CartServiceImp.java:131-136` + handler `RuntimeException` | Traiter un 500 sur `/cart/add` comme rejouable une fois. |
-| 3 | Panier vide / ligne absente → **403** (`CART_IS_EMPTY`, `CANNOT_REMOVE_ITEM_FROM_EMPTY_CART`), sémantiquement 409/422. | `ErrorCode.java:16,21` | Ne pas interpréter tout 403 comme « déconnecté / interdit ». |
-| 4 | Pas de code d'erreur machine dans le corps ; erreurs de validation concaténées dans `message`. | `ErrorResponseDto.java`, `ErrorManagementController.java:37-46` | Validation **côté front (Zod)** obligatoire pour des erreurs par champ. |
-| 5 | 429 au format différent des autres erreurs. | `RateLimitFilter.java:366` | Le parseur d'erreurs du BFF doit gérer les deux formes. |
+| 2 | ~~Verrou panier non obtenu → 500~~ **Corrigé (`d50e661`)** : `CartLockedException` → 409 `CONCURRENT_MODIFICATION`. | `CartServiceImp.java` | Rejouer une fois. |
+| 3 | ~~Panier vide / ligne absente → 403~~ **Corrigé (`d50e661`)** : 409. | `ErrorCode.java` | — |
+| 4 | ~~Pas de code d'erreur machine~~ **Corrigé (`d50e661`)** : `errorCode` + `fieldErrors`. | `ErrorResponseDto.java` | Brancher sur `errorCode` ; Zod reste la première ligne de validation. |
+| 5 | ~~429 au format différent~~ **Corrigé (`d50e661`)** : `ErrorResponseDto` `TOO_MANY_REQUESTS` + `Retry-After`. | `RateLimitFilter.java` | Un seul parseur. |
 | 6 | `priceMin @Min(100)` et message de `priceMax` incohérent. | `ProductSearchRequestDto.java` | Slider prix : minimum 100 ou omettre `priceMin`. |
-| 7 | `ProductResponseDto.uuid` typé `String` alors que les autres UUID sont `UUID` ; pas de stock exposé. | `ProductResponseDto.java` | Impossible d'afficher « en stock / rupture » avant l'ajout au panier (409). |
+| 7 | `ProductResponseDto.uuid` typé `String` alors que les autres UUID sont `UUID` ; stock exposé à part via `GET /product/availability` (`d50e661`). | `ProductResponseDto.java` | Typer `uuid` en `z.string().uuid()`. |
 | 8 | Avis : lecture unitaire réservée à `USER`, aucune liste par produit. | `ReviewCrudController.java:37-41` | Pas d'avis sur la fiche produit dans le lot 1. |
 | 9 | `ReviewCrudController` en `hasRole('USER')` seul, alors que le reste accepte `USER or ADMIN`. | `ReviewCrudController.java:37-72` | Un admin pur ne peut pas tester les avis. |
 | 10 | Wishlist en `isAuthenticated()`, le reste en `hasRole(...)`. | `WishlistManagementController.java:37-53` | Aucun. |
@@ -408,7 +421,7 @@ Absents : devise, frais de port, montant de remise, `discountKey`, statut de pai
 | 16 | `DiscountController` expose le record interne `DiscountContext`. | `DiscountController.java:44-46` | Acceptable ; schéma à figer. |
 | 17 | Versioning double (`/v1` + en-tête `X-API-VERSION`). | `application.properties` | Envoyer `X-API-VERSION: 1.0` explicitement depuis le BFF. |
 | 18 | `application.frontend.url=http://localhost:4200` (port Angular) utilisé dans les liens d'emails. | `application.properties` | Liens d'email cassés avec Next.js (port 3000) → à corriger côté backend. |
-| 19 | Le chart Helm `front-app-chart` attend un client Keycloak `cybertech-front-client` (Auth.js), **absent du realm exporté**. | `{res}/k8s/helm/charts/front-app-chart/values.yaml` vs `cybertech-realm.json` | Le client doit être créé (voir questions). |
+| 19 | Le chart Helm `front-app-chart` attend un client Keycloak `cybertech-front-client` (Auth.js), ~~absent du realm exporté~~ **Corrigé (`0b4a600`)**. | `cybertech-realm.json` | — |
 | 20 | `GET /user/ok` renvoie une chaîne avec emojis et n'est pas public. | `UserManagementController.java:135-138` | Ne pas l'utiliser comme health check public ; préférer `/actuator/health`. |
 | 21 | Paiement confirmé **côté serveur** avec un `payment_method` fixé par configuration (`stripe.payment-method=pm_card_visa`), `allow_redirects=never`. `paymentType` n'influence pas le moyen réellement débité. | `StripePaymentAttemptProcessor.java:42,179-195`, `application.properties` | Aucun formulaire de paiement réel possible dans le lot actuel (pas de Stripe Elements, pas de 3DS). |
 | 22 | Le prompt initial décrit PostgreSQL et un JWT maison : le code utilise **MySQL** et **Keycloak**. | `pom.xml`, `application.properties`, `SecurityConfig.java` | La doc et le docker-compose du front suivent le code. |
@@ -419,14 +432,14 @@ Absents : devise, frais de port, montant de remise, `discountKey`, statut de pai
 
 | Besoin front | Endpoint proposé (backend) | Contournement possible aujourd'hui |
 |---|---|---|
-| Profil de l'utilisateur connecté | `GET /api/v1/services/user/me` | Claims de l'ID token Keycloak (`email`, `given_name`, `family_name`) ; `userUuid` via `GET /cart/get` (fragile). |
+| ~~Profil de l'utilisateur connecté~~ | **Fait** : `GET /api/v1/services/user/me` | — |
 | Liste publique des catégories | `GET /api/v1/services/product-category-schemas` | Liste codée en dur (`COMPUTER`, `MONITOR`). |
-| Disponibilité / stock produit | champ `availableStock` ou `inStock` sur `ProductResponseDto` | Découverte à l'ajout (409). |
+| ~~Disponibilité / stock produit~~ | **Fait** : `GET /api/v1/services/product/availability` | — |
 | Tri du catalogue (prix, nouveautés) | param `sort` sur `/product/search` | Aucun (pertinence ES uniquement). |
 | Facettes (marques, plages de prix, attributs avec compteurs) | agrégations ES sur `/product/search` | `jsonSchema` de la catégorie + enum `Brand` statique. |
 | Suggestions / autocomplétion (palette ⌘K) | `GET /product/suggest?q=` | `POST /product/search` avec `size` réduit + debounce. |
 | Avis publics d'un produit + note moyenne | `GET /api/v1/services/review/product/{uuid}` (public, paginé) | Aucun. |
-| Panier invité + fusion à la connexion | `POST /cart/merge` (ou panier anonyme par cookie) | Panier invité **géré par le BFF** (cookie) puis rejoué via `/cart/add` après login. |
+| Panier invité + fusion à la connexion | `POST /cart/merge` idempotent (optionnel) | **Retenu** : panier invité géré par le BFF (cookie) puis rejoué via `/cart/add` — voir [`../guest-cart.md`](../guest-cart.md). |
 | Récapitulatif de prix avant commande (remise, port) | `POST /order/quote` (le DTO `PriceCalculationRequestDto` existe déjà, sans controller) | Total panier uniquement ; montant final connu après `/order/place`. |
 | Paiement côté client (Stripe Payment Element, 3DS) | `POST /order/{uuid}/payment-intent` → `client_secret` | Paiement serveur simulé. |
 | Derniers produits consultés (« Content de te revoir ») | `GET /api/v1/events/recently-viewed` | Historique local (cookie / localStorage non sensible) côté front. |

@@ -77,7 +77,7 @@ cybertech vend du matériel informatique (ordinateurs, écrans ; catégories COM
 En tant que visiteur, je veux parcourir et rechercher les produits pour trouver celui qui me convient.
 - Page d'accueil : message d'accueil contextuel selon l'heure, sélection « meilleures ventes », remises actives mises en avant.
 - Liste/recherche : mot-clé (tolérant aux fautes de frappe), filtres catégorie, marques (multi), fourchette de prix (minimum 100 €, maximum 1 000 000 €), caractéristiques techniques propres à la catégorie (ex. CPU, RAM, type d'écran) dérivées du schéma de la catégorie ; pagination ; l'état des filtres est reflété dans l'URL (partageable, bouton retour fonctionnel).
-- Fiche produit : nom, marque, prix, galerie de photos, description, caractéristiques techniques lisibles.
+- Fiche produit : nom, marque, prix, galerie de photos, description, caractéristiques techniques lisibles, disponibilité en temps réel (« en stock », « plus que N », « rupture » ; bouton d'ajout désactivé en rupture).
 - Recherche instantanée accessible au clavier (⌘K / Ctrl+K) avec résultats en direct.
 Critères d'acceptation :
 1. Étant donné le catalogue, quand je saisis « lenvo » dans la recherche, alors des produits LENOVO apparaissent.
@@ -129,7 +129,7 @@ Critères :
 - Messages en français, ton chaleureux et tutoyant de façon cohérente (à confirmer), jamais culpabilisant.
 
 ## Hors périmètre du lot 1
-Commande et paiement, historique de commandes, wishlist, avis, recommandations personnalisées, carte bancaire, profil, mot de passe oublié, administration, stock affiché sur la fiche (non exposé par l'API), tri du catalogue (non supporté par l'API), avis/notes sur la fiche (non exposés publiquement), sons d'interface (prévus mais désactivés), internationalisation (français uniquement).
+Commande et paiement, historique de commandes, wishlist, avis, recommandations personnalisées, carte bancaire, profil, mot de passe oublié, administration, tri du catalogue (non supporté par l'API), avis/notes sur la fiche (non exposés publiquement), sons d'interface (prévus mais désactivés), internationalisation (français uniquement).
 
 ## Direction artistique
 
@@ -252,6 +252,8 @@ tests/        unit/, e2e/
 | Filtres caractéristiques | Server Component → categories.getSchema(key) | GET /api/v1/services/product-category-schemas/{categoryKey} | public |
 | Palette ⌘K | GET app/api/search?q= (debounce 200 ms, size 6) | POST /api/v1/services/product/search | public |
 | Fiche produit | Server Component → products.getByUuid | GET /api/v1/services/product/get/{uuid} | public |
+| Disponibilité (fiche, cartes, panier) | GET app/api/availability?uuids= (Client Component, refetch au focus, jamais en cache) | GET /api/v1/services/product/availability?uuids= (1–50, no-store) | public |
+| Profil courant (« Content de te revoir », en-tête) | Server Component → users.getMe | GET /api/v1/services/user/me | USER |
 | Inscription | Server Action registerUser | POST /api/v1/services/user/register | public (transmettre X-Forwarded-For) |
 | Connexion / déconnexion | Auth.js signIn / signOut + end_session Keycloak | Keycloak OIDC | — |
 | Panier – lecture | GET app/api/cart | GET /api/v1/services/cart/get | USER |
@@ -259,8 +261,8 @@ tests/        unit/, e2e/
 | Panier – quantité | PATCH app/api/cart/items/[productUuid] | PATCH /api/v1/services/cart/update/{cartUuid} (remplacement complet, construit à partir du panier courant) | USER |
 | Panier – supprimer ligne | DELETE app/api/cart/items/[productUuid] | PATCH /api/v1/services/cart/remove/{productUuid} | USER |
 | Panier – vider | DELETE app/api/cart | DELETE /api/v1/services/cart/clear | USER |
-| Panier invité | cookie signé httpOnly géré par le BFF (lignes productUuid + quantity, max 50) ; affichage enrichi via GET product/get/{uuid} | — | visiteur |
-| Fusion à la connexion | POST app/api/cart/merge (déclenché après callback signIn) | POST /api/v1/services/cart/add (toutes les lignes) ; en cas de 409, ligne par ligne pour isoler les échecs | USER |
+| Panier invité | cookie signé httpOnly `ct_guest_cart` géré par le BFF (lignes productUuid + quantity, max 50) ; affichage enrichi via GET product/get/{uuid} + GET product/availability ; conception complète dans docs/guest-cart.md | — | visiteur |
+| Fusion à la connexion | GET app/api/cart/merge?next= (cible du redirectTo de signIn) | POST /api/v1/services/cart/add (toutes les lignes) ; en cas de 409 NOT_ENOUGH_STOCK, ligne par ligne avec quantités plafonnées via GET product/availability ; cookie réécrit avec les seules lignes non fusionnées | USER |
 | Accueil « Content de te revoir » | prénom depuis la session ; derniers produits consultés depuis un cookie non sensible côté client | — (aucune API) | — |
 
 ## Normalisation et contrats
@@ -275,8 +277,8 @@ tests/        unit/, e2e/
 - Session : lue côté serveur à chaque requête privée.
 
 ## Gestion centralisée des erreurs backend
-- `lib/api/errors.ts` : classe `ApiError { status, kind, message, retryAfterSeconds? }`, parse les deux formats (ErrorResponseDto `{message, httpStatusCode, errorCodeType}` et 429 `{error, retryAfterSeconds}`).
-- Mapping `kind` : 400 validation → `invalid` (message serveur affiché en dernier recours, Zod en premier) ; 401 → `unauthenticated` (refresh puis rejeu unique, sinon redirection login) ; 403 → `forbidden` SAUF messages panier vide → `empty-cart` ; 404 → `not-found` ; 409 → `conflict` (stock : extraire la quantité disponible du message ; optimistic lock : rejeu unique) ; 429 → `rate-limited` ; 500 sur `/cart/add` → rejeu unique (verrou Redis) ; 5xx / timeout (8 s via AbortSignal.timeout) → `unavailable`.
+- `lib/api/errors.ts` : classe `ApiError { status, errorCode, message, fieldErrors?, retryAfterSeconds? }` construite à partir de `ErrorResponseDto` `{message, httpStatusCode, errorCodeType, errorCode, fieldErrors?}` (format unique, 429 compris ; `retryAfterSeconds` lu dans l'en-tête Retry-After). Le type `ErrorCode` est généré depuis l'OpenAPI.
+- Aiguillage sur `errorCode` (jamais sur le message) : `INVALID_REQUEST` → erreurs par champ depuis `fieldErrors` (Zod reste la première ligne) ; `AUTHENTICATION_REQUIRED` → refresh puis rejeu unique, sinon redirection login ; `ACCESS_DENIED` → page interdite ; `*_NOT_FOUND` → not-found ; `NOT_ENOUGH_STOCK` → relire `GET /product/availability` pour afficher la quantité disponible ; `CONCURRENT_MODIFICATION` → rejeu automatique unique ; `CART_IS_EMPTY` → état panier vide ; `USER_ALREADY_EXISTS` → message sur le champ email ; `TOO_MANY_REQUESTS` → attente Retry-After ; `COMMENT_POST_NOT_ALLOWED` → message neutre ; 5xx / timeout (8 s via AbortSignal.timeout) → `unavailable`.
 - Messages utilisateur centralisés en français dans `features/*/messages.ts` ; logs serveur avec l'en-tête `X-Request-Id` du backend.
 - `app/error.tsx` et `not-found.tsx` illustrés et animés (sobre si reduced-motion).
 
@@ -297,7 +299,7 @@ API_BASE_URL (ex. http://localhost:8081), API_VERSION=1.0, AUTH_SECRET, AUTH_URL
 - docker-compose.yml du front : service `front` (build Dockerfile, port 3000) + inclusion du docker-compose du backend (MySQL, Redis, MongoDB, Elasticsearch, Keycloak, LocalStack, Mailpit, moderation-api) ; le backend Spring tourne soit sur l'hôte (`./mvnw spring-boot:run`, joint via host.docker.internal:8081), soit via son Dockerfile (`src/main/resources/docker/dockerfile`).
 - Le stack réel utilise MySQL (pas PostgreSQL) : le compose suit le code.
 - Script `npm run gen:api` (openapi-typescript sur http://localhost:8081/v3/api-docs).
-- Prérequis : créer le client Keycloak `cybertech-front-client` (redirect http://localhost:3000/api/auth/callback/keycloak, post-logout http://localhost:3000/*, web origin http://localhost:3000) et l'ajouter au realm exporté du backend.
+- Keycloak : le client `cybertech-front-client` (secret dev `dev-keycloak-front-secret-change-me`) est importé avec le realm du backend ; sur une base Keycloak existante, lancer `src/main/resources/bash/createKeycloakFrontClient.ps1` du repo backend.
 
 ## Tests
 - Unitaires : schémas Zod (cas valides/invalides miroir de Bean Validation), errors.ts (chaque statut), normalisation panier, fusion panier invité, hooks TanStack Query (optimistic + rollback), composants a11y.
@@ -313,16 +315,16 @@ Dockerfile multi-stage (node:24-alpine, utilisateur non-root, `HOSTNAME=0.0.0.0`
 
 | # | Question / ⚠️ À CONFIRMER | Recommandation |
 |---|---|---|
-| 1 | **Client Keycloak du front** : absent du realm exporté alors que le chart Helm attend `cybertech-front-client`. | Le créer (confidentiel, standard flow + PKCE S256, direct access grants désactivé, redirects `http://localhost:3000/*` et `https://cybertech.local/*`) et l'ajouter à `src/main/resources/keycloak/import/cybertech-realm.json` côté backend. **Bloquant.** |
-| 2 | **Panier invité** : non supporté par le backend. Le porter dans le BFF ou l'exclure du lot 1 ? | BFF (cookie signé + fusion via `/cart/add`), comme décrit dans le plan. Alternative backend plus propre à moyen terme : `POST /cart/merge`. |
-| 3 | **Pas de `GET /user/me`**. | Ajouter l'endpoint côté backend (5 lignes, réutilise `getByKeycloakId`). En attendant : claims de l'ID token. |
-| 4 | **Stock non exposé** sur `ProductResponseDto`. | Ajouter `availableStock` (= `stock - reservedStock`) côté backend ; le lot 1 gère le 409. |
+| 1 | ~~Client Keycloak du front~~ | **Fait** (backend `0b4a600`). |
+| 2 | ~~Panier invité~~ | **Décidé** : BFF, cookie signé + fusion via `/cart/add` — [`guest-cart.md`](./guest-cart.md). Option ultérieure : `POST /cart/merge` idempotent côté backend. |
+| 3 | ~~`GET /user/me`~~ | **Fait** (backend `d50e661`). |
+| 4 | ~~Stock non exposé~~ | **Fait** (backend `d50e661`) : `GET /product/availability`, endpoint dédié non mis en cache plutôt qu'un champ du produit (voir api-map §D.12). |
 | 5 | **Avis publics / note moyenne** non disponibles. | Hors lot 1 ; prévoir `GET /review/product/{uuid}` public pour le lot 2. |
 | 6 | **Paiement simulé côté serveur** (`pm_card_visa`). Lot 2 avec vrai paiement ? | Garder la simulation pour un projet pédagogique, ou ajouter un endpoint renvoyant le `client_secret` pour Stripe Payment Element. À décider avant le lot 2. |
 | 7 | **Liste publique des catégories** absente. | Exposer `GET /product-category-schemas` public ; en attendant, liste statique `COMPUTER`, `MONITOR`. |
 | 8 | **Tri et facettes** absents de la recherche. | Ajouter `sort` + agrégations ES côté backend ; lot 1 sans tri. |
 | 9 | **Rate limit d'inscription** global derrière le BFF en dev. | Transmettre `X-Forwarded-For` depuis le BFF et activer `server.forward-headers-strategy=framework` aussi en dev. |
-| 10 | **Erreurs sans code machine** ; panier vide en 403 ; verrou panier en 500. | Ajouter `errorCode` (nom de l'enum) à `ErrorResponseDto` et passer le verrou en 409 ; le BFF contourne en attendant. |
+| 10 | ~~Erreurs sans code machine~~ | **Fait** (backend `d50e661`) : `errorCode`, `fieldErrors`, panier vide et verrou en 409, 429 au même format. |
 | 11 | **`application.frontend.url=http://localhost:4200`** (liens d'email). | Passer à `http://localhost:3000`. |
 | 12 | **Format JSON de `UserResponseDto.birthDate`** (`java.util.Date` avec Jackson 3) non vérifié. | Vérifier sur une réponse réelle ; idéalement migrer en `LocalDate`. |
 | 13 | **Fuseau des `LocalDateTime`** (remises, wishlist) non précisé. | Considérer UTC (JDBC `serverTimezone=UTC`) ; à confirmer. |

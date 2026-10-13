@@ -182,7 +182,7 @@ Stores hors MySQL : `ProductDocument` (index ES `products`, `entities/document/P
 ### 3.1 Ce que fait réellement le backend
 
 1. **Inscription** — `POST /api/v1/services/user/register` (public, 5 req/min/IP). `UserPersistenceService` orchestre une saga : création de l'utilisateur Keycloak (`enabled=true`, `emailVerified=true`, rôle realm `USER`) puis de `UserEntity` en MySQL ; un outbox Keycloak rattrape les crashs (`KeycloakUserManagementServiceImp.java:84-85`, `UserManagementServiceImp.java:68`, job `cybertech.keycloak.outbox.*`). Réponse `201 { id, email, username }`. **L'inscription ne connecte pas l'utilisateur** : aucun token n'est renvoyé.
-2. **Connexion** — **pas d'endpoint backend**. Elle se fait auprès de Keycloak (OIDC). Le realm exporté n'a **aucun client destiné au front** : seuls `cybertech-postman-client-id` et `cybertech-user-management-client` (confidentiels, *direct access grants* activés) existent. Le chart Helm du front attend `cybertech-front-client`.
+2. **Connexion** — **pas d'endpoint backend**. Elle se fait auprès de Keycloak (OIDC). Le client du front **`cybertech-front-client`** (confidentiel, Authorization Code + PKCE S256, direct grants désactivé) est importé avec le realm depuis le commit backend `0b4a600` ; même id/secret que le chart Helm `front-app-chart`.
 3. **Token** — access token JWT signé par Keycloak, durée **300 s**. Rôles dans `realm_access.roles` (`USER`, `ADMIN`, plus `ROLE_USER`, `offline_access`, …), convertis en `ROLE_USER` / `ROLE_ADMIN` (`KeycloakRoleConverter.java:20-31`). `sub` = identifiant Keycloak, utilisé par tous les services comme clé utilisateur.
 4. **Expiration** — le backend rejette un token expiré en **401** `{"message":"Authentication required",...}`.
 5. **Refresh** — fourni par Keycloak (refresh token standard), valable tant que la session SSO est active : inactivité max **30 min**, durée max **10 h** ; `revokeRefreshToken=false` (le refresh token n'est pas à usage unique).
@@ -230,11 +230,11 @@ Sources : `CartServiceImp.java`, `CartWriteTransactionalDelegateImp.java`, `Cart
 |---|---|
 | **Création** | Implicite au premier `POST /cart/add` (`CartWriteTransactionalDelegateImp.java:74-81`). Un panier par utilisateur (`UserEntity.cartEntity`, 1-1). Pas d'endpoint de création. |
 | **Persistance** | **MySQL est la source de vérité** ; Redis n'est qu'un cache (`cart::<keycloakId>`, TTL 7200 s ± 3600 s de jitter, glissant à chaque lecture). → le panier est **naturellement multi-appareil** pour un utilisateur connecté. |
-| **Concurrence** | Verrou distribué Redisson `cart:lock:<keycloakId>` autour de chaque écriture ; commit avant libération du verrou ; échec d'acquisition → 500 (voir api-map §E.2). |
+| **Concurrence** | Verrou distribué Redisson `cart:lock:<keycloakId>` autour de chaque écriture ; commit avant libération du verrou ; verrou occupé → **409 `CONCURRENT_MODIFICATION`** rejouable (500 avant `d50e661`). |
 | **Ajout** | Additif. Contrôle de stock *advisory* : `quantité demandée + reservedStock ≤ stock`, sinon **409 `NOT_ENOUGH_STOCK`** avec le stock disponible dans le message (`CartStockValidator.java:45`). Le stock **n'est pas réservé** à l'ajout au panier. |
 | **Mise à jour** | `PATCH /cart/update/{cartUuid}` remplace toutes les lignes (quantités absolues), validation de toutes les lignes avant mutation. `DELETE /cart/decreaseQuantity` décrémente. `PATCH /cart/remove/{productUuid}` supprime la ligne. |
 | **Vidage** | `DELETE /cart/clear` → 204. |
-| **Panier anonyme / fusion** | **Inexistants.** Tous les endpoints exigent un JWT `USER`/`ADMIN`. Aucune fusion anonyme → connecté côté backend. |
+| **Panier anonyme / fusion** | **Inexistants côté backend** (tous les endpoints exigent un JWT). Porté par le BFF : cookie signé + fusion via `POST /cart/add` à la connexion — voir [`../guest-cart.md`](../guest-cart.md). |
 | **Expiration** | Seul le cache Redis expire ; le panier MySQL n'expire pas. Aucune purge des paniers abandonnés ⚠️ À CONFIRMER (aucun job identifié). |
 | **Conversion en commande** | `POST /order/place` lit le panier serveur, crée la commande `AWAITING_PAYMENT`, **réserve le stock** (Redis avec TTL, libéré par `RedisExpirationListener` ou le job de nettoyage), vide le panier dans la même transaction puis invalide le cache (`OrderCreationTransactionalDelegateImp.java:128-141`, `OrderManagementServiceImp.java:525-528`). Le paiement Stripe est tenté immédiatement. |
 
@@ -253,11 +253,10 @@ Sources : `CartServiceImp.java`, `CartWriteTransactionalDelegateImp.java`, `Cart
 - Administration complète (produits avec images, catégories, remises, commandes, utilisateurs).
 
 ### Pas encore possibles (côté backend)
-- Panier invité et fusion à la connexion.
-- Afficher stock / disponibilité, note moyenne et avis publics sur une fiche produit.
+- Panier invité côté backend (porté par le BFF, cf. guest-cart.md).
+- Afficher note moyenne et avis publics sur une fiche produit (le stock, lui, est disponible via `GET /product/availability`).
 - Trier le catalogue, obtenir des facettes, autocomplétion.
 - Lister les catégories publiquement.
-- Obtenir son propre profil (`GET /me`).
 - Voir un récapitulatif chiffré (remise, frais de port) **avant** de commander.
 - Payer avec une vraie carte côté client (Stripe Elements / 3DS) : le paiement est simulé côté serveur.
 - Mot de passe oublié / changement de mot de passe dans l'app (Keycloak seulement).
@@ -280,12 +279,12 @@ Sources : `CartServiceImp.java`, `CartWriteTransactionalDelegateImp.java`, `Cart
 
 ## 7. Risques et points d'attention pour l'intégration
 
-1. **Client Keycloak front manquant** — à créer (confidentiel, Authorization Code + PKCE, redirect `http://localhost:3000/api/auth/callback/keycloak`, post-logout `http://localhost:3000/`) et à ajouter à `cybertech-realm.json` côté backend. Bloquant pour l'auth.
-2. **Pas de `GET /me`** — l'UUID local de l'utilisateur n'est pas obtenable proprement ; les claims de l'ID token suffisent pour l'affichage (prénom, email).
-3. **Panier invité** — exigé par le parcours « utilisateur non connecté qui ajoute au panier » mais absent du backend : à implémenter dans le BFF (cookie signé) avec rejeu `POST /cart/add` à la connexion, en gérant les 409 de stock pendant la fusion.
-4. **Erreurs non typées** — mapping statut HTTP → message utilisateur à centraliser ; ne pas confondre les 403 métier (panier vide, modération) avec un refus d'accès.
+1. ~~Client Keycloak front manquant~~ — **résolu** (`0b4a600`). Sur une base Keycloak déjà initialisée, lancer `createKeycloakFrontClient.ps1`.
+2. ~~Pas de `GET /me`~~ — **résolu** (`d50e661`) : `GET /api/v1/services/user/me`.
+3. **Panier invité** — porté par le BFF (cookie signé httpOnly) et fusionné une fois à la connexion ; conception détaillée dans [`../guest-cart.md`](../guest-cart.md).
+4. ~~Erreurs non typées~~ — **résolu** (`d50e661`) : brancher sur `errorCode` ; `fieldErrors` pour les formulaires. Seul 403 métier restant : `COMMENT_POST_NOT_ALLOWED` (modération).
 5. **Rate limit d'inscription global** derrière le BFF (cf. §6) — le filtre utilise `request.getRemoteAddr()`. En **prod**, `server.forward-headers-strategy=framework` (`application-prod.properties:24`) lui fait lire `X-Forwarded-For` : le BFF doit donc **transmettre l'IP du client**. En **dev**, la stratégie n'est pas configurée → quota global de 5/min.
-6. **Stock invisible** — l'UI ne peut pas désactiver « Ajouter au panier » en rupture ; l'erreur 409 doit être gérée avec élégance (message incluant le stock disponible).
+6. **Stock** — exposé par `GET /product/availability` (live, `no-store`). Le stock n'est réservé qu'à la commande : un 409 `NOT_ENOUGH_STOCK` reste possible entre l'affichage et l'ajout, il doit être géré avec élégance.
 7. **Paiement simulé** — le choix `paymentType` est cosmétique ; ne pas présenter de champ carte au lot 1, ou le marquer clairement comme démo.
 8. **Montants** — `BigDecimal` → `number` JS : formater avec `Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' })`, ne jamais recalculer de totaux côté front (les totaux serveur font foi).
 9. **Dates sans fuseau** (`LocalDateTime`) — interpréter comme heure serveur (UTC dans le JDBC `serverTimezone=UTC`) ⚠️ À CONFIRMER.
