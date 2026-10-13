@@ -41,7 +41,10 @@ describe("usePreferences", () => {
   it("ignores values outside the predefined options", () => {
     const { result } = renderHook(() => usePreferences(), { wrapper });
     act(() => {
-      result.current.update({ accent: "pink" as AccentVariant });
+      // A value from a tampered call: not part of the enum.
+      result.current.update(
+        JSON.parse('{"accent":"pink"}') as Parameters<typeof result.current.update>[0],
+      );
     });
     expect(result.current.accent).toBe(AccentVariant.VIOLET);
     expect(document.documentElement.getAttribute("data-accent")).toBeNull();
