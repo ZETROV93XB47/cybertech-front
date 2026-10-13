@@ -62,10 +62,19 @@ la gestion des erreurs reste en un seul endroit.
   utilisateur MUST être validée par Zod avec les mêmes contraintes que Bean Validation
   (tailles, regex, min/max).
 - Le front ne recalcule jamais un montant faisant foi (totaux, remises) : il affiche ceux du
-  backend. Seule exception : le total « estimé » du panier invité, signalé comme tel.
+  backend. Exception encadrée : un montant **estimé** (total du panier invité, économie, frais
+  de port et total avant commande) MAY être calculé côté front tant que le backend n'expose pas
+  de devis, à quatre conditions : il est affiché comme « estimé » ; il applique les règles du
+  backend telles que documentées dans `docs/backend/api-map.md`, avec un test unitaire par
+  règle ; il n'est jamais envoyé au backend ; il cède la place au montant renvoyé par le
+  backend dès que celui-ci est connu.
+- Aucun numéro de carte bancaire complet (PAN) ne transite par le front ni n'y est saisi : le
+  front n'affiche que la carte masquée renvoyée par le backend.
 
 **Pourquoi** : le backend est la source de vérité ; une divergence de contrat doit échouer
-bruyamment à la frontière, pas silencieusement dans l'UI.
+bruyamment à la frontière, pas silencieusement dans l'UI. Une estimation honnête et testée
+vaut mieux qu'un total découvert après la commande ; un PAN qui ne passe jamais par le front ne
+peut pas y fuiter (PCI-DSS).
 
 ### VI. Configuration
 
@@ -257,4 +266,4 @@ pouvoir casser l'esthétique ni l'accessibilité.
   MINOR pour un principe ou une section ajouté ou nettement étendu, PATCH pour une
   clarification ou une correction de forme.
 
-**Version**: 2.1.0 | **Ratified**: 2026-10-13 | **Last Amended**: 2026-10-13
+**Version**: 2.2.0 | **Ratified**: 2026-10-13 | **Last Amended**: 2026-10-13
