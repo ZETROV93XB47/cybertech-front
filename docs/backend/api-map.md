@@ -109,7 +109,7 @@ Controller : `{ctrl}/ProductSearchController.java` (base `/api/v1/services/produ
 | GET | `/api/v1/services/product/availability` | `#getAvailability` | Public | query `uuids` (1 à 50 UUID, séparés par des virgules ou répétés) | — | `ProductAvailabilityDto[]` (§D.12b) | 200, 400 `INVALID_REQUEST` (vide / > 50) ou `METHOD_ARGUMENT_TYPE_MISMATCH` (UUID invalide) | — | **Stock en direct** (`max(0, stock - reservedStock)`, lu en base), réponse `Cache-Control: no-store`. UUID inconnus absents du résultat. À ne **jamais** mettre en cache côté front. |
 | GET | `/api/v1/services/product/best-sellers` | `#getBestSellers` (:45) | Public | query `page`, `size` (défaut 15), `sort` | — | `PagedModel<ProductResponseDto>` | 200 | Query | — |
 
-Recherche vide (tous champs `null`) = liste de tout le catalogue ⚠️ À CONFIRMER (comportement ES avec `musts` vide non vérifié à l'exécution).
+Recherche vide (tous champs `null`) = liste de tout le catalogue : **confirmé à l'exécution** le 2026-10-13 (531 produits renvoyés).
 
 ## 4. Catégories (schémas d'attributs)
 

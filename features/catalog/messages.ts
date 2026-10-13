@@ -1,0 +1,160 @@
+/**
+ * User-facing text of the catalog (French, tutoiement) — constitution XI.
+ *
+ * @see specs/001-catalog-auth-cart/spec.md US1
+ */
+import { Brand } from "@/lib/enums/brand";
+import { CategoryKey } from "@/lib/enums/category-key";
+import { UI_LOCALE } from "@/lib/format";
+
+/** Greetings of the home page, chosen from the visitor's local time (FR-001). */
+export const GREETING_MESSAGES = {
+  /** Neutral text rendered on the server, before the browser knows the local time. */
+  neutral: "Bienvenue",
+  morning: "Bonjour",
+  evening: "Bonsoir",
+  /** Shown instead of the greeting to a visitor with recently viewed products. */
+  returning: "Content de te revoir",
+} as const;
+
+/** Home page. */
+export const HOME_MESSAGES = {
+  intro: "Ordinateurs et écrans choisis pour durer. Cherche un modèle, compare, ajoute au panier.",
+  searchCta: "Parcourir le catalogue",
+  bestSellersTitle: "Les plus demandés",
+  bestSellersEmpty: "Les meilleures ventes s'afficheront ici dès les premières commandes.",
+  recentlyViewedTitle: "Tu regardais",
+  discountsLabel: "Offres en cours",
+  discountPercentage: (key: string, percentage: number): string =>
+    `${key} : ${percentage} % de remise sur ta commande`,
+  discountFixed: (key: string, amount: string): string =>
+    `${key} : ${amount} de remise sur ta commande`,
+  discountBuyOneGetOne: (key: string): string => `${key} : un article acheté, le second offert`,
+  discountMinOrder: (amount: string): string => `dès ${amount} d'achat`,
+  discountUntil: (date: string): string => `jusqu'au ${date}`,
+  discountHint: "La remise s'applique au moment de la commande.",
+} as const;
+
+/** Category names shown in filters and on cards. */
+export const CATEGORY_LABELS: Readonly<Record<CategoryKey, string>> = {
+  [CategoryKey.COMPUTER]: "Ordinateurs",
+  [CategoryKey.MONITOR]: "Écrans",
+};
+
+/** Brand names as the brands write them (the backend enum is upper case). */
+export const BRAND_LABELS: Readonly<Record<Brand, string>> = {
+  [Brand.ASUS]: "ASUS",
+  [Brand.HP]: "HP",
+  [Brand.LENOVO]: "Lenovo",
+  [Brand.DELL]: "Dell",
+  [Brand.AORUS]: "Aorus",
+  [Brand.MSI]: "MSI",
+  [Brand.ACER]: "Acer",
+  [Brand.TOSHIBA]: "Toshiba",
+  [Brand.ALIENWARE]: "Alienware",
+  [Brand.MICROSOFT]: "Microsoft",
+  [Brand.ALTYK]: "Altyk",
+  [Brand.GIGABYTE]: "Gigabyte",
+  [Brand.SAMSUNG]: "Samsung",
+};
+
+/**
+ * French labels of the known category attributes. An attribute missing here falls back to the
+ * `title` of the category JSON Schema, then to its humanised key.
+ */
+export const ATTRIBUTE_LABELS: Readonly<Record<string, string>> = {
+  cpu: "Processeur",
+  gpu: "Carte graphique",
+  ram: "Mémoire vive",
+  os: "Système",
+  connectivity: "Connectique",
+  displayType: "Type d'écran",
+  memory: "Stockage",
+  resolution: "Résolution",
+  refreshRate: "Fréquence de rafraîchissement",
+};
+
+/** Units of the known numeric attributes, shown after the value and in range filters. */
+export const ATTRIBUTE_UNITS: Readonly<Record<string, string>> = {
+  ram: "Go",
+  memory: "Go",
+  refreshRate: "Hz",
+};
+
+/** Product list and filters. */
+export const LIST_MESSAGES = {
+  title: "Catalogue",
+  searchTitle: (keyword: string): string => `Résultats pour « ${keyword} »`,
+  resultCount: (count: number): string =>
+    count === 1 ? "1 produit" : `${count.toLocaleString(UI_LOCALE)} produits`,
+  filtersTitle: "Filtres",
+  keywordLabel: "Mot-clé",
+  keywordPlaceholder: "Modèle, marque, processeur…",
+  categoryLegend: "Catégorie",
+  allCategories: "Toutes",
+  brandLegend: "Marques",
+  priceLegend: "Prix",
+  priceMinLabel: "Prix minimum en euros",
+  priceMaxLabel: "Prix maximum en euros",
+  priceHint: (min: string): string => `Le filtre de prix commence à ${min}.`,
+  rangeMinLabel: (label: string): string => `${label} minimum`,
+  rangeMaxLabel: (label: string): string => `${label} maximum`,
+  rangeShortMin: "min",
+  rangeShortMax: "max",
+  booleanYes: "Oui",
+  apply: "Appliquer les filtres",
+  reset: "Réinitialiser les filtres",
+  emptyTitle: "Aucun produit ne correspond à ces filtres",
+  emptyBody:
+    "Élargis la fourchette de prix, retire une marque ou réinitialise les filtres pour tout revoir.",
+  gridLabel: "Produits",
+} as const;
+
+/** Pagination of the product list. */
+export const PAGINATION_MESSAGES = {
+  label: "Pagination",
+  previous: "Page précédente",
+  next: "Page suivante",
+  page: (page: number): string => `Page ${page}`,
+  status: (page: number, total: number): string => `Page ${page} sur ${total}`,
+} as const;
+
+/** Live availability (FR-007): text always accompanies the colour (FR-039). */
+export const AVAILABILITY_MESSAGES = {
+  inStock: "En stock",
+  lowStock: (count: number): string => `Plus que ${count}`,
+  outOfStock: "Rupture",
+  checking: "Vérification du stock…",
+  unknown: "Stock non vérifié",
+} as const;
+
+/** Product page. */
+export const PRODUCT_MESSAGES = {
+  brandLabel: "Marque",
+  specsTitle: "Caractéristiques",
+  descriptionTitle: "Description",
+  galleryLabel: "Photos du produit",
+  photoAlt: (name: string, index: number): string => `${name}, photo ${index}`,
+  showPhoto: (index: number): string => `Afficher la photo ${index}`,
+  noPhoto: "Pas encore de photo pour ce produit",
+  backToCatalog: "Retour au catalogue",
+  notFoundTitle: "Produit introuvable",
+  notFoundBody: "Ce produit n'existe pas ou n'est plus vendu. Le reste du catalogue t'attend.",
+  booleanTrue: "Oui",
+  booleanFalse: "Non",
+} as const;
+
+/** ⌘K / Ctrl+K command palette (FR-009). */
+export const PALETTE_MESSAGES = {
+  trigger: "Rechercher",
+  shortcutHint: "Ctrl K",
+  title: "Recherche instantanée",
+  description: "Tape le nom d'un produit, une marque ou un composant.",
+  placeholder: "Rechercher un produit…",
+  idle: "Commence à taper pour voir les produits.",
+  loading: "Recherche…",
+  empty: "Aucun produit ne correspond. Essaie un autre mot.",
+  error: "La recherche ne répond pas. Réessaie dans un instant.",
+  resultsHeading: "Produits",
+  seeAll: (keyword: string): string => `Voir tous les résultats pour « ${keyword} »`,
+} as const;

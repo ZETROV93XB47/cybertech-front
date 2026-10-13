@@ -43,6 +43,10 @@ const nextConfig: NextConfig = {
   // pino relies on worker threads and dynamic requires; bundling it breaks its transports.
   serverExternalPackages: ["pino", "pino-pretty"],
   images: {
+    // Product photos come from LocalStack on localhost; Next.js 16 refuses to optimise images
+    // that resolve to a local IP unless told otherwise. Safe here: the front only runs locally
+    // (constitution X) and `remotePatterns` still restricts the host and path.
+    dangerouslyAllowLocalIP: true,
     remotePatterns: [
       {
         protocol: IMAGES_PROTOCOL,

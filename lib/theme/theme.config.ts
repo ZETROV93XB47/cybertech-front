@@ -224,9 +224,10 @@ export const THEME = {
     },
   },
   media: {
-    card: { width: 480, height: 360 },
-    gallery: { width: 800, height: 600 },
-    thumbnail: { width: 120, height: 90 },
+    // Grid of 3 columns inside the 1200px container, 2 columns below the `lg` breakpoint.
+    card: { width: 480, height: 360, sizes: "(min-width: 1024px) 384px, 50vw" },
+    gallery: { width: 800, height: 600, sizes: "(min-width: 1024px) 680px, 100vw" },
+    thumbnail: { width: 120, height: 90, sizes: "96px" },
   },
   layout: {
     containerMaxWidth: "1200px",

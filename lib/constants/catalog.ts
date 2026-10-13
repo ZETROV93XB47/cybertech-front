@@ -57,3 +57,27 @@ export const PRODUCTS_CACHE_TAG = "products";
 
 /** First page number shown in the URL (the backend is zero-based). */
 export const FIRST_PAGE_NUMBER = 1;
+
+/** Number of attribute values kept per filter key from the URL (defensive bound). */
+export const SEARCH_ATTRIBUTE_MAX_VALUES = 20;
+
+/**
+ * Accepted shape of a category attribute key in the URL: a JSON-schema property name made of
+ * letters, digits and underscores. Anything else is ignored.
+ */
+export const ATTRIBUTE_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9_]{0,63}$/;
+
+/** Separator between the bounds of a range in the URL (`r.ram=8-32`). */
+export const RANGE_SEPARATOR = "-";
+
+/** First hour (inclusive, local time) greeted with « Bonjour ». */
+export const MORNING_START_HOUR = 5;
+
+/** First hour (inclusive, local time) greeted with « Bonsoir ». */
+export const EVENING_START_HOUR = 18;
+
+/** Number of page links shown on each side of the current page in the pagination. */
+export const PAGINATION_SIBLING_COUNT = 2;
+
+/** Maximum length of a product page meta description (search engines cut longer ones). */
+export const META_DESCRIPTION_MAX_LENGTH = 160;

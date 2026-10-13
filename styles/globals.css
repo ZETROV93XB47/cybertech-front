@@ -155,6 +155,40 @@
     }
   }
 
+  /*
+   * Product card: glass surface whose border turns into an accent → gold gradient on hover or
+   * keyboard focus (spec annex « Composants »). The lift comes from the effects level.
+   */
+  .product-card {
+    box-shadow: var(--elevation-card);
+    transition:
+      transform var(--duration-base) var(--easing),
+      box-shadow var(--duration-base) var(--easing);
+  }
+
+  .product-card:hover,
+  .product-card:focus-within {
+    transform: translateY(var(--card-hover-lift));
+    box-shadow: var(--elevation-card-hover);
+    border-color: transparent;
+    background:
+      linear-gradient(var(--surface), var(--surface)) padding-box,
+      linear-gradient(var(--cta-gradient-angle), var(--accent-color), var(--gold)) border-box;
+  }
+
+  /* The stretched title link takes the focus; the ring is drawn around the whole card. */
+  .product-card:has(:focus-visible) {
+    outline: var(--focus-ring-width) solid var(--accent-text);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  /* Prices: monospace, gold, aligned figures (spec annex « Typographie »). */
+  .price {
+    font-family: var(--family-mono);
+    color: var(--gold);
+    font-variant-numeric: tabular-nums;
+  }
+
   /* Primary call to action: violet → blue gradient with a soft halo (spec annex). */
   .cta-gradient {
     background-image: linear-gradient(

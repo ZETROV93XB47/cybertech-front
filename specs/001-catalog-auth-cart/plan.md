@@ -96,7 +96,7 @@ specs/001-catalog-auth-cart/
 app/
 ├── layout.tsx                         # polices, Providers, GuestCartMerger, effets différés
 ├── providers.tsx                      # "use client" : QueryClient, SessionProvider, MotionConfig, Lenis
-├── error.tsx · not-found.tsx · loading.tsx
+├── error.tsx · not-found.tsx (pas de loading.tsx : statuts réels et lecture sans JS)
 ├── (shop)/
 │   ├── page.tsx                       # accueil : best-sellers, remises, accueil contextuel
 │   ├── products/page.tsx              # liste + recherche (searchParams → SearchFilters)

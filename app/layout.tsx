@@ -13,6 +13,7 @@ import type { ReactNode } from "react";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
 import { MAIN_CONTENT_ID, SkipLink } from "@/components/layout/SkipLink";
+import { CommandPalette } from "@/features/catalog/components/CommandPalette";
 import { SITE_MESSAGES } from "@/features/common/messages";
 import { NONCE_HEADER } from "@/lib/constants/security";
 import { getEnv } from "@/lib/env";
@@ -76,7 +77,7 @@ export default async function RootLayout({
       <body className="flex min-h-dvh flex-col">
         <Providers preferences={preferences}>
           <SkipLink />
-          <Header />
+          <Header search={<CommandPalette />} />
           <main id={MAIN_CONTENT_ID} className="flex-1">
             {children}
           </main>

@@ -4,9 +4,9 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { CATALOG_PATH } from "@/components/layout/Header";
 import { buttonVariants } from "@/components/ui/button";
 import { COMMON_MESSAGES } from "@/features/common/messages";
+import { CATALOG_PATH } from "@/lib/constants/routes";
 
 /**
  * Not-found page.

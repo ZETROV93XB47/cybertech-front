@@ -158,6 +158,8 @@ export interface ThemeSound {
 export interface MediaSize {
   readonly width: number;
   readonly height: number;
+  /** `sizes` attribute: rendered width per viewport, so the browser picks the right file. */
+  readonly sizes: string;
 }
 
 /** Image sizes of the catalog. */

@@ -9,9 +9,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { SITE_MESSAGES } from "@/features/common/messages";
-
-/** Path of the product list. */
-export const CATALOG_PATH = "/products";
+import { CATALOG_PATH, HOME_PATH } from "@/lib/constants/routes";
 
 /** Action slots of the header, right-hand side, in reading order. */
 export interface HeaderProps {
@@ -32,7 +30,7 @@ export function Header({ search, preferences, account, cart }: HeaderProps): Rea
     <header className="glass sticky top-0 z-40 border-x-0 border-t-0">
       <div className="mx-auto flex h-header w-full max-w-site items-center gap-6 px-6">
         <Link
-          href="/"
+          href={HOME_PATH}
           aria-label={SITE_MESSAGES.homeLink}
           className="font-display text-xl font-semibold tracking-tight text-text"
         >
