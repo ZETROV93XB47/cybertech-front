@@ -182,6 +182,8 @@ export default tseslint.config(
       "@typescript-eslint/no-magic-numbers": "off",
       "max-lines-per-function": "off",
       "jsdoc/require-jsdoc": "off",
+      "jsdoc/require-param": "off",
+      "jsdoc/require-returns": "off",
       "@typescript-eslint/no-non-null-assertion": "off",
     },
   },
