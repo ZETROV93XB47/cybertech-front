@@ -46,10 +46,19 @@ describe("parseCategoryFacets", () => {
     ]);
   });
 
-  it("ignores free-text strings and unknown types", () => {
+  it("turns a free-text string into a TEXT facet whose values come from the catalog", () => {
     expect(parseCategoryFacets(MONITOR_SCHEMA)).toEqual([
+      { kind: FacetKind.TEXT, key: "resolution", label: "Resolution" },
       { kind: FacetKind.RANGE, key: "refreshRate", label: "Refresh rate", minimum: 60 },
     ]);
+  });
+
+  it("ignores unknown types", () => {
+    const schema = JSON.stringify({
+      type: "object",
+      properties: { ports: { type: "array" }, misc: { type: "object" } },
+    });
+    expect(parseCategoryFacets(schema)).toEqual([]);
   });
 
   it("returns no facet for an unreadable schema", () => {

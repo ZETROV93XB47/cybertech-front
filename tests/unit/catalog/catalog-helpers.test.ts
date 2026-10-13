@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createAvailabilityLoader } from "@/features/catalog/availability-batcher";
 import { visiblePages } from "@/features/catalog/components/Pagination";
 import { greetingFor } from "@/features/catalog/greeting";
-import { buildProductSpecs } from "@/features/catalog/product-specs";
+import { buildProductSpecs, formatSpecValue } from "@/features/catalog/product-specs";
 import { readRecentlyViewed, recordRecentlyViewed } from "@/features/catalog/recently-viewed";
 import { parseSearchParams, restrictToFacets } from "@/features/catalog/search-params";
 import { DiscountCalculationType } from "@/lib/enums/discount-calculation-type";
@@ -59,6 +59,27 @@ describe("buildProductSpecs", () => {
       { key: "touch", label: "Touch", value: "Oui" },
       { key: "extraKey", label: "Extra key", value: "x" },
     ]);
+  });
+});
+
+describe("formatSpecValue", () => {
+  it("formats numbers in French with the unit of known attributes", () => {
+    expect(formatSpecValue("ram", 16)).toBe("16 Go");
+    expect(formatSpecValue("refreshRate", 144)).toBe("144 Hz");
+    expect(formatSpecValue("memory", 1024)).toBe("1 024 Go");
+    expect(formatSpecValue("weight", 1.5)).toBe("1,5");
+  });
+
+  it("writes booleans as Oui / Non", () => {
+    expect(formatSpecValue("touch", true)).toBe("Oui");
+    expect(formatSpecValue("touch", false)).toBe("Non");
+  });
+
+  it("trims strings and refuses empty strings, objects and missing values", () => {
+    expect(formatSpecValue("cpu", "  AMD Ryzen 7 ")).toBe("AMD Ryzen 7");
+    expect(formatSpecValue("cpu", "   ")).toBeNull();
+    expect(formatSpecValue("cpu", { a: 1 })).toBeNull();
+    expect(formatSpecValue("cpu", undefined)).toBeNull();
   });
 });
 

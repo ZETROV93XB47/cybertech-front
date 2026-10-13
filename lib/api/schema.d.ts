@@ -127,6 +127,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/services/product/search/facets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Catalog facets: filter values and their product counts (public)
+         * @description Takes the same body as /search (`page` and `size` are ignored) and returns, in one call, the
+         *     values actually present among the matching products with their counts: brands, price bounds
+         *     and, when `category` is given, the values of each text attribute and the bounds of each
+         *     integer / number attribute of that category's JSON Schema (keys come from the schema).
+         *
+         *     Disjunctive counting: each facet is counted under every active filter except its own, so
+         *     ticking a brand keeps the other brands listed with their counts while the attribute counts
+         *     narrow to that brand. Keyword and category always apply. `totalHits` matches every filter,
+         *     like /search's `page.totalElements`. Values are sorted by count descending then
+         *     alphabetically, capped at 50 per facet; blank values are skipped. As on /search,
+         *     `attributes` and `numericRanges` are ignored when `category` is absent.
+         *
+         *     Public endpoint, no JWT required. Sent with a short `Cache-Control: public`.
+         */
+        post: operations["getSearchFacets"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/services/management/order/update": {
         parameters: {
             query?: never;
@@ -161,6 +193,32 @@ export interface paths {
          * @description Retries the payment process for an order that is in PAYMENT_FAILED status. Checks stock availability before proceeding.
          */
         post: operations["retryPayment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/management/order/quote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Quote the order the caller's cart would make (authenticated users only)
+         * @description Prices the caller's server-side cart (lines and current product prices come from
+         *     the cart, never from the body) with the given shipping options and campaign,
+         *     exactly like placing the order would: `totalAmount` equals the total of the order
+         *     placed right after with the same options. No side effect: no order, no stock
+         *     reservation, no payment. `discountApplied` is false when there is no campaign or
+         *     when the subtotal is below the campaign's `minOrderAmount`.
+         *     Same rate limit as the cart endpoints.
+         */
+        post: operations["quote"];
         delete?: never;
         options?: never;
         head?: never;
@@ -350,26 +408,6 @@ export interface paths {
          * @description Creates a new product and uploads 1 or more photos (unbounded, typically 1-5), stored in upload order. Requires multipart/form-data.
          */
         post: operations["createProductWithImage"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/services/admin/management/order/place/auto": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Place an auto-generated order (admin debug helper)
-         * @description Admin-only debug / load-test utility that forges an order from synthetic cart data via the data generator. Restricted to ADMIN to avoid letting any authenticated user spam orders against another's cart state.
-         */
-        post: operations["placeOrder2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -690,6 +728,31 @@ export interface paths {
          * @description Fetches a user's details based on their unique UUID. Non-admin callers may only read their own profile.
          */
         get: operations["getUserByUuid"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/shipping/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List shipping options and their fees (public)
+         * @description Returns one entry per available (provider, type) pair, sorted by provider then
+         *     by cost. `cost` is exactly the `shippingCost` an order placed with that pair is
+         *     charged (same computation, rounded to 2 decimals), so a client can show shipping
+         *     fees before checkout without copying the tariffs.
+         *
+         *     Public endpoint — no JWT required. Cacheable for a short time (`Cache-Control: public`).
+         */
+        get: operations["getShippingOptions"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1426,6 +1489,53 @@ export interface components {
             /** Format: double */
             max?: number;
         };
+        FacetValueDto: {
+            /**
+             * @description Facet value, as sent back in the search filters.
+             * @example LENOVO
+             */
+            value?: string;
+            /**
+             * Format: int64
+             * @description Number of products with this value, under every active filter except this facet's own.
+             * @example 12
+             */
+            count?: number;
+        };
+        ProductFacetsResponseDto: {
+            /**
+             * Format: int64
+             * @description Number of products matching every filter, the same as /search's page.totalElements.
+             * @example 42
+             */
+            totalHits?: number;
+            /** @description Brands, by count descending then alphabetically. */
+            brands?: components["schemas"]["FacetValueDto"][];
+            /** @description Price bounds. */
+            price?: components["schemas"]["RangeFacetDto"];
+            /** @description Values of each text attribute of the category's JSON Schema, by count descending then alphabetically. Present only when a category is given; every text attribute of the schema is a key, possibly with an empty list. */
+            attributes?: {
+                [key: string]: components["schemas"]["FacetValueDto"][];
+            };
+            /** @description Bounds of each integer / number attribute of the category's JSON Schema. Present only when a category is given. */
+            numericAttributes?: {
+                [key: string]: components["schemas"]["RangeFacetDto"];
+            };
+        };
+        RangeFacetDto: {
+            /**
+             * Format: double
+             * @description Smallest value among the matching products; null when none matches.
+             * @example 8
+             */
+            min?: number;
+            /**
+             * Format: double
+             * @description Largest value among the matching products; null when none matches.
+             * @example 64
+             */
+            max?: number;
+        };
         OrderItemCreateRequestDto: {
             /** Format: uuid */
             productUuid: string;
@@ -1466,12 +1576,83 @@ export interface components {
             userUuid?: string;
             /** Format: date */
             orderDate?: string;
+            /**
+             * Format: date-time
+             * @description When the order was placed (date and time of orderDate).
+             */
+            createdAt?: string;
             /** @enum {string} */
             status?: "CREATED" | "AWAITING_PAYMENT" | "PAYMENT_FAILED" | "PAID" | "AWAITING_SHIPPING" | "SHIPPED" | "DELIVERED" | "RETURNED" | "CANCELED" | "REFUNDED";
+            /** @description Amount charged: max(0, subtotalAmount - discountAmount) + shippingCost. */
             totalAmount?: number;
             refundedAmount?: number;
+            /**
+             * @description ISO 4217 code of every amount of this order.
+             * @example EUR
+             */
+            currency?: string;
+            /** @description Sum of the order lines before discount and shipping. Null on orders placed before this field existed. */
+            subtotalAmount?: number | null;
+            /**
+             * @description Campaign the order was placed with, NO_DISCOUNT if none.
+             * @example BLACK_FRIDAY
+             */
+            discountKey?: string;
+            /**
+             * @description Calculation type of the campaign at purchase time (NONE for NO_DISCOUNT). Null on orders placed before this field existed.
+             * @enum {string|null}
+             */
+            discountCalculationType?: "NONE" | "PERCENTAGE" | "FIXED_AMOUNT" | "BUY_ONE_GET_ONE_FREE" | null;
+            /** @description Discount granted on subtotalAmount; 0 when the campaign minimum was not reached. Null on orders placed before this field existed. */
+            discountAmount?: number | null;
+            /** @enum {string} */
+            shippingType?: "STANDARD" | "EXPRESS";
+            /** @enum {string} */
+            shippingProvider?: "DHL" | "FEDEX";
+            /** @description Shipping fee for shippingProvider / shippingType. Null on orders placed before this field existed. */
+            shippingCost?: number | null;
             shippingAddress?: string;
             orderItems?: components["schemas"]["OrderItemResponseDto"][];
+        };
+        /** @description OrderQuoteRequestDto with the shipping options and campaign */
+        OrderQuoteRequestDto: {
+            /** @enum {string} */
+            shippingType: "STANDARD" | "EXPRESS";
+            /** @enum {string} */
+            shippingProvider: "DHL" | "FEDEX";
+            /**
+             * @description Campaign to apply; NO_DISCOUNT when omitted.
+             * @default NO_DISCOUNT
+             */
+            discountKey: string;
+        };
+        OrderQuoteResponseDto: {
+            /** @description Sum of the cart lines at the products' current prices, before discount and shipping. */
+            subtotalAmount?: number;
+            /**
+             * @description Campaign the quote was computed with, NO_DISCOUNT if none.
+             * @example BLACK_FRIDAY
+             */
+            discountKey?: string;
+            /**
+             * @description Calculation type of the campaign (NONE for NO_DISCOUNT).
+             * @enum {string}
+             */
+            discountCalculationType?: "NONE" | "PERCENTAGE" | "FIXED_AMOUNT" | "BUY_ONE_GET_ONE_FREE";
+            /** @description Discount granted on subtotalAmount; 0 when discountApplied is false. */
+            discountAmount?: number;
+            /** @description False when there is no campaign or when subtotalAmount is below minOrderAmount. */
+            discountApplied?: boolean;
+            /** @description Minimum subtotal the campaign requires; null when it has none. */
+            minOrderAmount?: number | null;
+            shippingCost?: number;
+            /** @description max(0, subtotalAmount - discountAmount) + shippingCost — what placing the order now would charge. */
+            totalAmount?: number;
+            /**
+             * @description ISO 4217 code of every amount.
+             * @example EUR
+             */
+            currency?: string;
         };
         /** @description OrderPlacingRequestDto for placing order */
         OrderPlacingRequestDto: {
@@ -1695,6 +1876,22 @@ export interface components {
             endsAt?: string;
             /** Format: int32 */
             priority?: number;
+        };
+        ShippingOptionResponseDto: {
+            /** @enum {string} */
+            provider?: "DHL" | "FEDEX";
+            /** @enum {string} */
+            type?: "STANDARD" | "EXPRESS";
+            /**
+             * @description Shipping fee, exactly the shippingCost an order placed with this provider and type is charged.
+             * @example 15
+             */
+            cost?: number;
+            /**
+             * @description ISO 4217 code of cost.
+             * @example EUR
+             */
+            currency?: string;
         };
         ReviewableProductDto: {
             /** Format: uuid */
@@ -2066,6 +2263,42 @@ export interface operations {
             };
         };
     };
+    getSearchFacets: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-VERSION"?: "1.0";
+            };
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Search criteria, as for /search */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductSearchRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Facets of the matching products */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductFacetsResponseDto"];
+                };
+            };
+            /** @description Invalid criteria (INVALID_REQUEST) or category without a schema (UNKNOWN_PRODUCT_CATEGORY) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
     updateOrder: {
         parameters: {
             query?: never;
@@ -2199,6 +2432,69 @@ export interface operations {
             };
             /** @description Internal server error */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    quote: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-VERSION"?: "1.0";
+            };
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Shipping options and campaign (discountKey defaults to NO_DISCOUNT). */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderQuoteRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Quote computed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderQuoteResponseDto"];
+                };
+            };
+            /** @description Validation error, or unknown / inactive campaign (DISCOUNT_TYPE_NOT_ACTIVE) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Unauthorized - JWT token missing or invalid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description The cart is empty (CART_IS_EMPTY) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Too many requests (TOO_MANY_REQUESTS), see Retry-After */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2763,55 +3059,6 @@ export interface operations {
             };
             /** @description Internal server error */
             500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-        };
-    };
-    placeOrder2: {
-        parameters: {
-            query?: never;
-            header?: {
-                "X-API-VERSION"?: "1.0";
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Auto-generated order placed successfully */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OrderResponseDto"];
-                };
-            };
-            /** @description Unauthorized - JWT token missing or invalid */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-            /** @description Forbidden - ADMIN role required */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponseDto"];
-                };
-            };
-            /** @description Underlying resource (e.g., generated user/product) not found */
-            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3927,6 +4174,40 @@ export interface operations {
             };
             /** @description User not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    getShippingOptions: {
+        parameters: {
+            query?: {
+                /** @description Restrict the list to one carrier; all carriers when omitted. */
+                provider?: "DHL" | "FEDEX";
+            };
+            header?: {
+                "X-API-VERSION"?: "1.0";
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Shipping options (empty when the requested provider is not available). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShippingOptionResponseDto"][];
+                };
+            };
+            /** @description Unknown `provider` value (METHOD_ARGUMENT_TYPE_MISMATCH) */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };

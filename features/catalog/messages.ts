@@ -108,6 +108,26 @@ export const LIST_MESSAGES = {
   emptyBody:
     "Élargis la fourchette de prix, retire une marque ou réinitialise les filtres pour tout revoir.",
   gridLabel: "Produits",
+  valueCount: (count: number): string => `(${count.toLocaleString(UI_LOCALE)})`,
+  showAllValues: (count: number): string => `Voir tout (${count.toLocaleString(UI_LOCALE)})`,
+  showFewerValues: "Voir moins",
+  rangeBoundsHint: (lower: string, upper: string): string => `De ${lower} à ${upper}.`,
+  rangeOutOfBounds: (lower: string, upper: string): string =>
+    `Choisis une valeur entre ${lower} et ${upper}.`,
+  rangeReversed: "Le maximum doit être supérieur ou égal au minimum.",
+  facetsUnavailable:
+    "Certains filtres sont momentanément indisponibles. Tu peux continuer avec les autres.",
+  activeFiltersLabel: "Filtres actifs",
+  removeFilter: (label: string): string => `Retirer le filtre ${label}`,
+  clearAllFilters: "Tout effacer",
+  keywordPill: (keyword: string): string => `Recherche : « ${keyword} »`,
+  categoryPill: (category: string): string => `Catégorie : ${category}`,
+  brandPill: (brand: string): string => `Marque : ${brand}`,
+  pricePill: (range: string): string => `Prix : ${range}`,
+  attributePill: (label: string, value: string): string => `${label} : ${value}`,
+  rangeBetween: (min: string, max: string): string => `${min} – ${max}`,
+  rangeFrom: (min: string): string => `à partir de ${min}`,
+  rangeUpTo: (max: string): string => `jusqu'à ${max}`,
 } as const;
 
 /** Pagination of the product list. */

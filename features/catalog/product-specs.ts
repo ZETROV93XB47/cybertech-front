@@ -14,13 +14,16 @@ export interface ProductSpec {
 }
 
 /**
- * Formats an attribute value for display.
+ * Formats an attribute value for display, the same way on the product page and in the
+ * comparator: numbers in French format with their unit, booleans as « Oui » / « Non »,
+ * trimmed strings.
  *
  * @param key - Attribute key (to find its unit).
  * @param value - Raw value from the backend.
  * @returns The text, or `null` for values that cannot be shown (objects, empty strings).
+ * @see specs/002-catalog-refresh/data-model.md §6
  */
-function formatValue(key: string, value: unknown): string | null {
+export function formatSpecValue(key: string, value: unknown): string | null {
   if (typeof value === "number") {
     const unit = ATTRIBUTE_UNITS[key];
     const number = value.toLocaleString(UI_LOCALE);
@@ -49,7 +52,7 @@ export function buildProductSpecs(
 ): ProductSpec[] {
   const keys = [...new Set([...Object.keys(schemaLabels), ...Object.keys(attributes)])];
   return keys.flatMap((key) => {
-    const value = formatValue(key, attributes[key]);
+    const value = formatSpecValue(key, attributes[key]);
     if (value === null) {
       return [];
     }

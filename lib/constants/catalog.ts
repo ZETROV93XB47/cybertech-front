@@ -93,3 +93,46 @@ export const SIMILAR_PRODUCTS_COUNT = 3;
  * duplicated models are skipped.
  */
 export const SIMILAR_PRODUCTS_FETCH_SIZE = 8;
+
+/**
+ * Category attributes never offered as filters, though still shown on the product page and in
+ * the comparator.
+ *
+ * `connectivity` holds 90 distinct composite sentences on the 531 computers of 2026-10-13
+ * (« Wi-Fi 6E, Bluetooth 5.3, 1 X HDMI 2.1 Femelle, Oui, Non »); the backend can only match a
+ * whole sentence, which is useless as a filter. Decision of 2026-10-13, no backend change.
+ *
+ * @see specs/002-catalog-refresh/spec.md Edge Cases, FR-001
+ * @see specs/002-catalog-refresh/research.md R2
+ */
+export const FILTER_EXCLUDED_ATTRIBUTES: readonly string[] = ["connectivity"];
+
+/**
+ * Values of a text filter shown before the « Voir tout » disclosure.
+ *
+ * @see specs/002-catalog-refresh/research.md R4
+ */
+export const FACET_VISIBLE_VALUES = 6;
+
+/**
+ * Most values one facet lists, aligned with the backend `FACET_MAX_VALUES`
+ * (`CyberTechAppConstants`, `POST /product/search/facets`). The fallback scan applies the same cap.
+ *
+ * @see specs/002-catalog-refresh/data-model.md §1
+ */
+export const FACET_MAX_VALUES = 50;
+
+/**
+ * Products read by the facets fallback (`POST /product/search` on the category) when the facets
+ * endpoint is missing or failing. Above the 531 computers of 2026-10-13; a larger catalog is
+ * logged as a warning.
+ *
+ * @see specs/002-catalog-refresh/research.md R1
+ */
+export const FACET_FALLBACK_SCAN_SIZE = 1_000;
+
+/**
+ * Data-cache lifetime of the facets fallback scan: longer than the regular catalog cache since
+ * the scan is heavy and the values it derives change rarely.
+ */
+export const FACETS_FALLBACK_REVALIDATE_SECONDS = 300;

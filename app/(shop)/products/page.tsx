@@ -3,7 +3,10 @@
  *
  * The URL is parsed into filters, restricted to the facets of the selected category, and
  * redirected to its canonical form when it differs (invalid parameters, no-JavaScript form
- * submission), so every result page has exactly one URL.
+ * submission), so every result page has exactly one URL. Facet values and counts are loaded
+ * with the results and shown as filters and active-filter pills (feature 002, US1).
+ *
+ * @see specs/002-catalog-refresh/spec.md US1
  */
 import type { Metadata } from "next";
 import { SearchX } from "lucide-react";
@@ -13,9 +16,11 @@ import type { ReactNode } from "react";
 
 import { StateIllustration } from "@/components/effects/StateIllustration";
 import { buttonVariants } from "@/components/ui/button";
+import { ActiveFilters } from "@/features/catalog/components/ActiveFilters";
 import { Filters } from "@/features/catalog/components/Filters";
 import { Pagination } from "@/features/catalog/components/Pagination";
 import { ProductGrid } from "@/features/catalog/components/ProductGrid";
+import { buildBrandFilter, buildFilterFacets } from "@/features/catalog/filter-facets";
 import { LIST_MESSAGES } from "@/features/catalog/messages";
 import {
   buildSearchQuery,
@@ -25,6 +30,7 @@ import {
   type SearchParamsInput,
 } from "@/features/catalog/search-params";
 import { getCategorySchema } from "@/lib/api/endpoints/categories";
+import { getFacets } from "@/lib/api/endpoints/facets";
 import { searchProducts } from "@/lib/api/endpoints/products";
 import { CATALOG_PATH } from "@/lib/constants/routes";
 import type { ParsedCategorySchema } from "@/lib/schemas/category";
@@ -114,15 +120,21 @@ export default async function ProductsPage({
   if (buildSearchQuery(filters) !== receivedQuery(input)) {
     redirect(buildSearchUrl(filters));
   }
-  const results = await searchProducts(filters);
+  const [results, facetData] = await Promise.all([searchProducts(filters), getFacets(filters)]);
   const { totalPages, totalElements } = results.page;
   if (totalPages > 0 && filters.page >= totalPages) {
     redirect(buildSearchUrl({ ...filters, page: totalPages - 1 }));
   }
+  const facets = buildFilterFacets(schema, facetData, filters);
   return (
     <div className="mx-auto grid w-full max-w-site gap-10 px-6 py-10 lg:grid-cols-4">
       <aside className="lg:col-span-1">
-        <Filters filters={filters} facets={schema.facets} />
+        <Filters
+          filters={filters}
+          facets={facets}
+          brandFilter={buildBrandFilter(facetData, filters)}
+          facetSource={facetData.source}
+        />
       </aside>
       <section aria-labelledby="results-title" className="flex flex-col gap-8 lg:col-span-3">
         <header className="flex items-baseline justify-between gap-4">
@@ -133,6 +145,7 @@ export default async function ProductsPage({
             {LIST_MESSAGES.resultCount(totalElements)}
           </p>
         </header>
+        <ActiveFilters filters={filters} facets={facets} />
         {results.content.length === 0 ? (
           <EmptyResults canReset={hasActiveFilters(filters)} />
         ) : (

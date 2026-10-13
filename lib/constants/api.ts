@@ -61,6 +61,13 @@ export const BACKEND_PATHS = {
   productByUuid: `${API_BASE_PATH}/product/get`,
   /** `POST` — public Elasticsearch search, pagination in the body. */
   productSearch: `${API_BASE_PATH}/product/search`,
+  /**
+   * `POST` — public catalog facets: values and disjunctive counts per brand and text attribute,
+   * bounds per numeric attribute. Same body as `productSearch` (`page` and `size` ignored).
+   *
+   * @see specs/002-catalog-refresh/contracts/bff-routes.md §3
+   */
+  productFacets: `${API_BASE_PATH}/product/search/facets`,
   /** `GET` — public best sellers, paginated with query params. */
   bestSellers: `${API_BASE_PATH}/product/best-sellers`,
   /** `GET` — public live stock, `uuids` query param (1 to 50), never cached. */

@@ -35,6 +35,12 @@ export const BFF_ROUTES = {
   cartPreview: "/api/cart/preview",
   /** `POST` — merge of the guest cart at sign-in (USER). */
   cartMerge: "/api/cart/merge",
+  /**
+   * `GET ?uuids=` — comparison view of 1 to 3 products (public).
+   *
+   * @see specs/002-catalog-refresh/contracts/bff-routes.md §1
+   */
+  compare: "/api/compare",
 } as const;
 
 /**

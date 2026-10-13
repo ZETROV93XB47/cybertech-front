@@ -48,7 +48,7 @@ Règles :
 ## 4. Adresse du catalogue (inchangée, rappel)
 
 Paramètres existants de `lib/enums/search-param.ts` : `q`, `category`, `brand` (répété), `min`,
-`max`, `page`, `a.<clé>` (répété, valeurs texte), `r.<clé>.min` / `r.<clé>.max`. Les nouvelles
+`max`, `page`, `a.<clé>` (répété, valeurs texte), `r.<clé>=min-max` (forme canonique, `8-32`, `8-` ou `-32` ; le formulaire sans JavaScript envoie `r.<clé>.min` / `r.<clé>.max`, réécrits par la redirection canonique). Les nouvelles
 valeurs texte utilisent `a.<clé>` comme les `enum` du lot 1 : aucune nouvelle forme d'adresse,
 les liens du lot 1 restent valides. La sélection de comparaison n'apparaît jamais dans
 l'adresse.

@@ -69,6 +69,11 @@ type JsonSchemaProperty = z.infer<typeof JsonSchemaPropertySchema>;
 /** Filter on one category attribute. */
 export type CategoryFacet =
   | {
+      readonly kind: FacetKind.TEXT;
+      readonly key: string;
+      readonly label: string;
+    }
+  | {
       readonly kind: FacetKind.ENUM;
       readonly key: string;
       readonly label: string;
@@ -119,9 +124,11 @@ function toFacet(key: string, property: JsonSchemaProperty): CategoryFacet | nul
   const label = property.title ?? humanizeKey(key);
   switch (property.type) {
     case JsonSchemaType.STRING:
+      // A free-text string becomes a TEXT facet whose values come from the catalog facets
+      // (specs/002-catalog-refresh research R3); an enum keeps its schema options.
       return property.enum && property.enum.length > 0
         ? { kind: FacetKind.ENUM, key, label, options: property.enum.map(String) }
-        : null;
+        : { kind: FacetKind.TEXT, key, label };
     case JsonSchemaType.NUMBER:
     case JsonSchemaType.INTEGER:
       return {

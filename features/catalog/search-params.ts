@@ -342,7 +342,10 @@ export function buildSearchUrl(filters: SearchFilters): string {
 /**
  * Keeps only the attribute filters that the category schema defines.
  *
- * Values of an enum facet must be one of its options; ranges must target a numeric facet. This
+ * Values of an enum facet must be one of its options; values of a text facet are kept as they
+ * are (their possible values come from the catalog, not from the schema, and a value no longer
+ * present simply matches nothing, its pill staying removable); ranges must target a numeric
+ * facet. This
  * drops the attributes of a previous category left in a no-JavaScript form, and hand-written
  * URLs that would silently match nothing.
  *
@@ -362,7 +365,7 @@ export function restrictToFacets(
     if (facet.kind === FacetKind.ENUM && values) {
       const kept = values.filter((value) => facet.options.includes(value));
       if (kept.length > 0) attributes[facet.key] = kept;
-    } else if (facet.kind === FacetKind.BOOLEAN && values) {
+    } else if ((facet.kind === FacetKind.BOOLEAN || facet.kind === FacetKind.TEXT) && values) {
       attributes[facet.key] = values;
     } else if (facet.kind === FacetKind.RANGE && range) {
       numericRanges[facet.key] = range;

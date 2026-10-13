@@ -16,3 +16,6 @@ export const RECENTLY_VIEWED_STORAGE_KEY = StorageKey.RECENTLY_VIEWED;
 
 /** `sessionStorage` key of the cart action to replay after a forced sign-in. */
 export const PENDING_ACTION_STORAGE_KEY = StorageKey.PENDING_ACTION;
+
+/** `sessionStorage` key of the product comparison selection. */
+export const COMPARE_STORAGE_KEY = StorageKey.COMPARE;

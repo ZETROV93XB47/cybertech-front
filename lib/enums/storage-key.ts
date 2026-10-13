@@ -15,4 +15,11 @@ export enum StorageKey {
   RECENTLY_VIEWED = "ct_recent_v1",
   /** `sessionStorage`: cart action to replay after a forced sign-in. */
   PENDING_ACTION = "ct_pending_action_v1",
+  /**
+   * `sessionStorage`: product comparison selection (category and 1 to 3 product UUIDs), kept
+   * for the tab only.
+   *
+   * @see specs/002-catalog-refresh/data-model.md §5
+   */
+  COMPARE = "ct_compare_v1",
 }

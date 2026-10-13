@@ -63,3 +63,38 @@ de la feature un par un (`--workers=1`) : `catalog-filters.spec.ts`, `compare.sp
 
 À compléter à la fin de chaque user story (date, contrôles, captures avant / après, scénarios
 OK / KO / non testables).
+
+### US1 — Filtres par caractéristique (2026-10-13)
+
+**Environnement** : backend `develop_back` au commit `3a3a62c` (facettes livrées), front sur
+`next dev -p 3123` (`playwright.capture.config.ts`). `npm run gen:api` depuis le backend en
+direct : identique au fichier produit depuis `docs/openapi/openapi.yaml`.
+
+**Contrôles automatiques** : `npm run typecheck` 0 erreur, `npm run lint` 0 erreur et 0 warning,
+`npm run test` 369 tests verts (45 fichiers, dont 2 tests de type sur le contrat des facettes),
+`catalog-filters.spec.ts` 9/9, `catalog.spec.ts` (lot 1) 8/8.
+
+**Source des facettes observée** : endpoint backend (compteurs disjonctifs). Le repli sans
+compteurs est couvert en unitaire (`facets-endpoint.test.ts`).
+
+**Captures** : avant dans `screenshots/before/` (seules Mémoire vive et Stockage étaient
+filtrables) ; catalogue filtré relu (pastilles, compteurs, « Voir moins », bornes).
+
+| # | Résultat | Commentaire |
+|---|---|---|
+| 1 | OK | Processeur, Carte graphique, Système, Type d'écran, Mémoire vive (Go), Stockage (Go) ; pas de Connectique. |
+| 2 | OK | Deux processeurs → deux pastilles, résultats filtrés, rechargement identique. |
+| 3 | OK | Avec LENOVO : compteurs restreints, toutes les marques restent listées (comptage disjonctif vérifié aussi en direct sur l'API). |
+| 4 | OK (unitaire) | Repli sans compteurs testé avec MSW ; non rejoué en réel (le backend expose l'endpoint). |
+| 5 | OK | 35 cartes graphiques : 6 visibles, le reste sous « Voir tout ». |
+| 6 | OK | Pastille retirée seule ; « Tout effacer » garde le mot-clé. |
+| 7 | OK | Adresse rechargée et partagée : mêmes filtres. |
+| 8 | OK | Sans JavaScript : formulaire, pastilles et « Voir tout » par rechargement. |
+| 9 | OK | Mémoire vive 9999 refusée sur le champ (« Choisis une valeur entre… »). |
+
+**Correctif trouvé pendant la vérification** : une plage déjà choisie pouvait sortir des
+bornes observées sous d'autres filtres (ex. ≥ 8 Go puis un processeur dont les machines
+commencent à 16 Go) ; le champ devenait invalide et bloquait toute soumission du formulaire.
+Les bornes acceptées s'élargissent désormais à la plage choisie (test unitaire et e2e ajoutés).
+
+**Points restants** : scénarios MONITOR non testables (aucun écran dans l'index local).
