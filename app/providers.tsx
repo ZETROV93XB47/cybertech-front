@@ -9,6 +9,7 @@ import { MotionConfig } from "motion/react";
 import { SessionProvider } from "next-auth/react";
 import { useState, type ReactNode } from "react";
 
+import { ClientEffects } from "@/components/effects/ClientEffects";
 import { Toaster } from "@/components/ui/sonner";
 import { PreferencesProvider } from "@/features/preferences/PreferencesProvider";
 import { createQueryClient } from "@/lib/query/query-client";
@@ -37,6 +38,7 @@ export function Providers({ preferences, children }: ProvidersProps): ReactNode 
       <QueryClientProvider client={queryClient}>
         <PreferencesProvider initialPreferences={preferences}>
           <MotionConfig reducedMotion="user">
+            <ClientEffects />
             {children}
             <Toaster />
           </MotionConfig>

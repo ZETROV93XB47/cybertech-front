@@ -8,6 +8,7 @@ import { ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { StateIllustration } from "@/components/effects/StateIllustration";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CATALOG_PATH } from "@/lib/constants/routes";
 
@@ -26,7 +27,7 @@ import { CartSummary } from "./CartSummary";
 function EmptyCart(): ReactNode {
   return (
     <div className="glass flex flex-col items-center gap-4 rounded-card p-12 text-center">
-      <ShoppingBag aria-hidden className="size-10 text-text-muted" />
+      <StateIllustration icon={<ShoppingBag className="size-10" />} />
       <h2 className="text-xl">{CART_MESSAGES.emptyTitle}</h2>
       <p className="max-w-prose text-text-muted">{CART_MESSAGES.emptyBody}</p>
       <Link

@@ -126,7 +126,12 @@ export interface AuroraSettings {
 export interface EffectsSettings {
   readonly dotGrid: DotGridSettings;
   readonly aurora: AuroraSettings;
-  readonly tilt: { readonly enabled: boolean; readonly maxDeg: number };
+  /** 3D tilt of product cards; `perspectivePx` is the viewer distance of the 3D effect. */
+  readonly tilt: {
+    readonly enabled: boolean;
+    readonly maxDeg: number;
+    readonly perspectivePx: number;
+  };
   readonly magnetic: {
     readonly enabled: boolean;
     readonly strength: number;

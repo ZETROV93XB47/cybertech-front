@@ -52,3 +52,4 @@ Thumbs.db
 
 # Claude Code local settings (may hold credentials)
 .claude/settings.local.json
+.next-prod/

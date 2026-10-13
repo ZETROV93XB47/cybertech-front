@@ -36,6 +36,9 @@ function readImagesHost(): { hostname: string; port: string } {
 const imagesHost = readImagesHost();
 
 const nextConfig: NextConfig = {
+  // Overridable so a production build (Lighthouse, backend-down journey) can live next to a
+  // running `next dev` without touching its `.next` folder.
+  distDir: process.env.NEXT_DIST_DIR ?? ".next",
   reactStrictMode: true,
   poweredByHeader: false,
   // The project guidance for coding agents lives in CLAUDE.md; no generated AGENTS.md.

@@ -15,6 +15,7 @@ import { motion } from "motion/react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { CART_TARGET_ATTRIBUTE } from "@/components/effects/useFlyToCart";
 import { useCart } from "@/features/cart/hooks/useCart";
 import { CART_MESSAGES } from "@/features/cart/messages";
 import { CART_PATH } from "@/lib/constants/routes";
@@ -51,6 +52,7 @@ export function CartBadge(): ReactNode {
   return (
     <Link
       href={CART_PATH}
+      {...{ [CART_TARGET_ATTRIBUTE]: "" }}
       aria-label={count === undefined ? CART_MESSAGES.pageTitle : CART_MESSAGES.badgeLabel(count)}
       className="relative inline-flex size-10 items-center justify-center rounded-button text-text-muted transition-colors duration-(--duration-fast) hover:text-text"
     >

@@ -6,9 +6,10 @@
  *
  * @see specs/001-catalog-auth-cart/spec.md annex « Composants »
  */
-import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { TiltCard } from "@/components/effects/TiltCard";
+import { TransitionLink } from "@/components/effects/TransitionLink";
 import { AddToCartButton } from "@/features/cart/components/AddToCartButton";
 import { productPath } from "@/lib/constants/routes";
 import { formatPrice } from "@/lib/format";
@@ -71,17 +72,17 @@ function CardImage({
 export function ProductCard(props: ProductCardProps): ReactNode {
   const { product } = props;
   return (
-    <article className="glass product-card relative flex w-full flex-col overflow-hidden rounded-card">
+    <TiltCard className="glass product-card relative flex w-full flex-col overflow-hidden rounded-card">
       <CardImage {...props} />
       <div className="flex flex-1 flex-col gap-2 p-5">
         <p className="text-xs text-text-muted">{BRAND_LABELS[product.brand]}</p>
         <h3 className="line-clamp-2 text-base leading-snug">
-          <Link
+          <TransitionLink
             href={productPath(product.uuid)}
             className="after:absolute after:inset-0 focus-visible:outline-none"
           >
             {product.name}
-          </Link>
+          </TransitionLink>
         </h3>
         <div className="mt-auto flex items-end justify-between gap-3 pt-2">
           <div className="flex flex-col gap-1">
@@ -91,6 +92,6 @@ export function ProductCard(props: ProductCardProps): ReactNode {
           <AddToCartButton productUuid={product.uuid} productName={product.name} compact />
         </div>
       </div>
-    </article>
+    </TiltCard>
   );
 }

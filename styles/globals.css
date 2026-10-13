@@ -68,6 +68,26 @@
   --animate-shimmer: shimmer var(--duration-slow) linear infinite;
 }
 
+/* Slow drift of the aurora blobs; the cycle length is set per blob from THEME.effects. */
+@keyframes aurora-drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(8%, -6%, 0) scale(1.15);
+  }
+}
+
+/* Gentle float of the empty and error state illustrations. */
+@keyframes illustration-float {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(var(--reveal-offset));
+  }
+}
+
 @keyframes shimmer {
   from {
     background-position: 100% 0;
@@ -83,9 +103,13 @@
     background-color: var(--bg);
   }
 
+  /*
+   * The page background is painted by <html> only: a body background would hide the
+   * background effects (aurora, dot grid), which sit below the content with a negative z-index.
+   */
   body {
     min-height: 100dvh;
-    background-color: var(--bg);
+    background-color: transparent;
     color: var(--text);
     font-family: var(--family-body);
     font-weight: var(--body-weight);
@@ -233,5 +257,33 @@
   .quantity-input::-webkit-outer-spin-button {
     appearance: none;
     margin: 0;
+  }
+
+  .aurora-blob {
+    animation-name: aurora-drift;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+  }
+
+  .illustration-float {
+    animation: illustration-float var(--duration-slow) var(--easing) infinite alternate;
+    animation-duration: calc(var(--duration-slow) * 8);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .aurora-blob,
+    .illustration-float {
+      animation: none;
+    }
+  }
+
+  /* Inner spotlight of a tilted product card, following the cursor (TiltCard). */
+  .tilt-spotlight {
+    background-image: radial-gradient(
+      circle at var(--spot-x, 50%) var(--spot-y, 50%),
+      color-mix(in srgb, var(--accent-color) var(--shimmer-accent-mix), transparent),
+      transparent 60%
+    );
   }
 }

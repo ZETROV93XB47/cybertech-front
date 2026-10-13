@@ -55,6 +55,7 @@ export default tseslint.config(
     ignores: [
       "node_modules/**",
       ".next/**",
+      ".next-prod/**",
       "coverage/**",
       "playwright-report/**",
       "test-results/**",

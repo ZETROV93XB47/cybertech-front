@@ -5,6 +5,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { MagneticButton } from "@/components/effects/MagneticButton";
 import { buttonVariants } from "@/components/ui/button";
 import { Welcome } from "@/features/auth/components/Welcome";
 import { DiscountBanner } from "@/features/catalog/components/DiscountBanner";
@@ -46,9 +47,11 @@ export default async function HomePage(): Promise<ReactNode> {
       <section className="flex flex-col items-start gap-6">
         <Welcome className="text-5xl lg:text-6xl" />
         <p className="max-w-xl text-lg text-text-muted">{HOME_MESSAGES.intro}</p>
-        <Link href={CATALOG_PATH} className={cn(buttonVariants({ size: "lg" }), "cta-gradient")}>
-          {HOME_MESSAGES.searchCta}
-        </Link>
+        <MagneticButton>
+          <Link href={CATALOG_PATH} className={cn(buttonVariants({ size: "lg" }), "cta-gradient")}>
+            {HOME_MESSAGES.searchCta}
+          </Link>
+        </MagneticButton>
       </section>
       <DiscountBanner discounts={discounts} />
       <RecentlyViewed />

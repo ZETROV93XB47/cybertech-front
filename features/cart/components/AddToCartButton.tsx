@@ -13,6 +13,8 @@ import { Check, ShoppingBag } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
 
+import { MagneticButton } from "@/components/effects/MagneticButton";
+import { useFlyToCart } from "@/components/effects/useFlyToCart";
 import { useAvailability } from "@/features/catalog/hooks/useAvailability";
 import { useUiSound } from "@/features/preferences/hooks/useUiSound";
 import { CART_LINE_MIN_QUANTITY } from "@/lib/constants/cart";
@@ -69,11 +71,13 @@ function CompactAddButton({
 }: AddToCartButtonProps): ReactNode {
   const { add, isMutating, isReady } = useCart();
   const play = useUiSound();
+  const fly = useFlyToCart();
   const outOfStock = useIsOutOfStock(productUuid);
-  const onAdd = async (): Promise<void> => {
+  const onAdd = async (source: HTMLElement): Promise<void> => {
     const result = await add(productUuid, CART_LINE_MIN_QUANTITY);
     play(result.ok ? UiSound.ADD_TO_CART : UiSound.ERROR);
     if (result.ok) {
+      fly(source);
       toast.success(result.message);
     } else {
       toast.error(result.message);
@@ -86,7 +90,7 @@ function CompactAddButton({
         outOfStock ? CART_MESSAGES.outOfStockButton : CART_MESSAGES.addProductToCart(productName)
       }
       disabled={!isReady || outOfStock || isMutating}
-      onClick={() => void onAdd()}
+      onClick={(event) => void onAdd(event.currentTarget)}
       className={cn(CTA, "relative z-10 size-9", className)}
     >
       <ShoppingBag aria-hidden className="size-4" />
@@ -117,13 +121,17 @@ function Feedback({ result }: { readonly result: CartChangeResult | null }): Rea
 function FullAddToCart({ productUuid, className }: AddToCartButtonProps): ReactNode {
   const { add, cart, isMutating, isReady } = useCart();
   const play = useUiSound();
+  const fly = useFlyToCart();
   const outOfStock = useIsOutOfStock(productUuid);
   const [quantity, setQuantity] = useState(CART_LINE_MIN_QUANTITY);
   const [result, setResult] = useState<CartChangeResult | null>(null);
   const inCart = cart?.lines.find((line) => line.productUuid === productUuid)?.quantity ?? 0;
-  const onAdd = async (): Promise<void> => {
+  const onAdd = async (source: HTMLElement): Promise<void> => {
     const outcome = await add(productUuid, quantity);
     play(outcome.ok ? UiSound.ADD_TO_CART : UiSound.ERROR);
+    if (outcome.ok) {
+      fly(source);
+    }
     setResult(outcome);
   };
   return (
@@ -136,15 +144,17 @@ function FullAddToCart({ productUuid, className }: AddToCartButtonProps): ReactN
           disabled={outOfStock}
           active={inCart > 0}
         />
-        <button
-          type="button"
-          disabled={!isReady || outOfStock || isMutating}
-          onClick={() => void onAdd()}
-          className={cn(CTA, "h-11 px-6")}
-        >
-          <ShoppingBag aria-hidden className="size-4" />
-          {outOfStock ? CART_MESSAGES.outOfStockButton : CART_MESSAGES.addToCart}
-        </button>
+        <MagneticButton>
+          <button
+            type="button"
+            disabled={!isReady || outOfStock || isMutating}
+            onClick={(event) => void onAdd(event.currentTarget)}
+            className={cn(CTA, "h-11 px-6")}
+          >
+            <ShoppingBag aria-hidden className="size-4" />
+            {outOfStock ? CART_MESSAGES.outOfStockButton : CART_MESSAGES.addToCart}
+          </button>
+        </MagneticButton>
       </div>
       {inCart > 0 && (
         <p className="inline-flex items-center gap-1.5 text-sm text-success">

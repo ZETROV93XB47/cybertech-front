@@ -6,6 +6,8 @@
  */
 import { useSyncExternalStore, type ReactNode } from "react";
 
+import { LiveTitle } from "@/components/effects/LiveTitle";
+
 import { greetingFor } from "../greeting";
 import { useRecentlyViewed } from "../hooks/useRecentlyViewed";
 import { GREETING_MESSAGES } from "../messages";
@@ -53,8 +55,6 @@ export interface GreetingProps {
 export function Greeting({ className, personalTitle }: GreetingProps): ReactNode {
   const greeting = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const isReturning = useRecentlyViewed().length > 0;
-  if (personalTitle) {
-    return <h1 className={className}>{personalTitle}</h1>;
-  }
-  return <h1 className={className}>{isReturning ? GREETING_MESSAGES.returning : greeting}</h1>;
+  const text = personalTitle ?? (isReturning ? GREETING_MESSAGES.returning : greeting);
+  return <LiveTitle text={text} className={className} />;
 }

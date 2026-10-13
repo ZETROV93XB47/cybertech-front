@@ -10,6 +10,7 @@ import { Inter, JetBrains_Mono, Sora } from "next/font/google";
 import { cookies, headers } from "next/headers";
 import type { ReactNode } from "react";
 
+import { BackgroundEffects } from "@/components/effects/BackgroundEffects";
 import { CartBadge } from "@/components/layout/CartBadge";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
@@ -81,6 +82,7 @@ export default async function RootLayout({
       <body className="flex min-h-dvh flex-col">
         <Providers preferences={preferences}>
           <SkipLink />
+          <BackgroundEffects />
           <GuestCartMerger />
           <Header
             search={<CommandPalette />}

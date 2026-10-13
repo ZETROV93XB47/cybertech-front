@@ -27,4 +27,6 @@ export const COMMON_MESSAGES = {
   notFoundTitle: "Cette page n'existe pas",
   notFoundBody: "Le lien est peut-être ancien. Le catalogue, lui, est toujours là.",
   goToCatalog: "Voir le catalogue",
+  /** Accessible name of the close buttons of dialogs and panels. */
+  close: "Fermer",
 } as const;

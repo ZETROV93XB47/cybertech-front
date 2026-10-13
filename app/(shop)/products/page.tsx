@@ -6,10 +6,12 @@
  * submission), so every result page has exactly one URL.
  */
 import type { Metadata } from "next";
+import { SearchX } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { StateIllustration } from "@/components/effects/StateIllustration";
 import { buttonVariants } from "@/components/ui/button";
 import { Filters } from "@/features/catalog/components/Filters";
 import { Pagination } from "@/features/catalog/components/Pagination";
@@ -86,6 +88,7 @@ export async function generateMetadata({ searchParams }: ProductsPageProps): Pro
 function EmptyResults({ canReset }: { readonly canReset: boolean }): ReactNode {
   return (
     <div className="glass flex flex-col items-start gap-4 rounded-card p-8">
+      <StateIllustration icon={<SearchX className="size-10" />} />
       <h2 className="text-xl">{LIST_MESSAGES.emptyTitle}</h2>
       <p className="max-w-prose text-text-muted">{LIST_MESSAGES.emptyBody}</p>
       {canReset && (
