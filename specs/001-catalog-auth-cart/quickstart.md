@@ -92,7 +92,7 @@ curseur sur l'accueil) ne relève aucune tâche longue, ni en développement ni 
 front du port 3000 : 58 parcours verts, 0 échec. Parcours ignorés volontairement : projet
 `reduced-motion` pour les parcours qui créent des comptes, expiration de session hors
 `E2E=true` (validée le même jour sur un front lancé avec `E2E=true` : 6/6), courriel déjà
-utilisé (`test.fixme`, voir n° 7).
+utilisé (activé après le correctif backend, vert).
 
 **Performances** : voir §3, tous les budgets tenus.
 
@@ -106,8 +106,8 @@ utilisé (`test.fixme`, voir n° 7).
 | 4 | OK | `catalog.spec.ts` (404 « produit introuvable »). |
 | 5 | OK (simulé) | Aucun produit en rupture dans le jeu de données : stock simulé à 0 dans `catalog.spec.ts` et `cart.spec.ts` (badge « Rupture », bouton « Indisponible » sur carte et fiche). À refaire à la main avec un stock réel à 0. |
 | 6 | OK | `register.spec.ts` (erreur sur le champ, aucune requête). |
-| 7 | **Bloqué backend** | Le backend répond 500 `APPLICATION_ERROR` au lieu de 409 `USER_ALREADY_EXISTS` (exception jamais levée). Front prêt et testé en unitaire ; parcours en `test.fixme`. |
-| 8 | OK (unitaire) | 429 + `Retry-After` → « Doucement ! Réessaie dans N s. » (`register-action.test.ts`). Non rejoué en réel pour ne pas bloquer les autres parcours. |
+| 7 | OK | Après le correctif backend (409 `USER_ALREADY_EXISTS`) : `register.spec.ts`, message sur le champ email. |
+| 8 | OK | Unitaire (`register-action.test.ts`) et constaté en réel : après 5 inscriptions en une minute, le formulaire affiche « Doucement ! Réessaie dans 35 s. ». |
 | 9 | OK | `cart.spec.ts` (fusion + toast, `localStorage` vidé). |
 | 10 | OK | `cart.spec.ts` (deux onglets, une seule fusion). |
 | 11 | OK (simulé) | Stock réel de 10 000 : refus simulé dans `cart.spec.ts` (« Il n'en reste que 2. », panier inchangé) ; logique BFF couverte en unitaire. |

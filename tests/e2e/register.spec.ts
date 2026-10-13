@@ -7,7 +7,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
-import { fillKeycloakForm } from "./support/account";
+import { fillKeycloakForm, registerUser } from "./support/account";
 
 const PASSWORD = "Passw0rd!";
 
@@ -124,11 +124,26 @@ test.describe("account creation", () => {
     );
   });
 
-  // The backend answers 500 APPLICATION_ERROR instead of 409 USER_ALREADY_EXISTS for a known
-  // email (UserAlreadyExistsException is never thrown). The front maps 409 correctly
-  // (tests/unit/auth/register-action.test.ts); enable this journey once the backend is fixed.
-  test.fixme("an email already in use is reported on the email field", async ({ page }) => {
+  test("an email already in use is reported on the email field", async ({ page, context }) => {
+    const email = await registerUser(context);
     await page.goto("/register");
+    for (const [label, value] of [
+      ["Prénom", "Camille"],
+      ["Nom", `Doublon${uniqueSuffix()}`],
+      ["Email", email],
+      ["Téléphone", "+33600000000"],
+      ["Rue", "1 rue du Test"],
+      ["Code postal", "75001"],
+      ["Ville", "Paris"],
+      ["Pays", "France"],
+      ["Mot de passe", PASSWORD],
+    ] as const) {
+      await page.getByLabel(label, { exact: true }).fill(value);
+    }
+    await page.getByRole("radio", { name: "Femme" }).check();
+    await page.getByLabel("Comment préfères-tu qu'on te contacte ?").selectOption("EMAIL");
+    await page.getByRole("button", { name: "Créer mon compte" }).click();
     await expect(page.getByText("Un compte existe déjà avec cet email.")).toBeVisible();
+    await expect(page.getByLabel("Email", { exact: true })).toHaveAttribute("aria-invalid", "true");
   });
 });
