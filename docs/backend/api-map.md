@@ -439,7 +439,7 @@ Absents : devise, frais de port, montant de remise, `discountKey`, statut de pai
 | Facettes (marques, plages de prix, attributs avec compteurs) | agrégations ES sur `/product/search` | `jsonSchema` de la catégorie + enum `Brand` statique. |
 | Suggestions / autocomplétion (palette ⌘K) | `GET /product/suggest?q=` | `POST /product/search` avec `size` réduit + debounce. |
 | Avis publics d'un produit + note moyenne | `GET /api/v1/services/review/product/{uuid}` (public, paginé) | Aucun. |
-| Panier invité + fusion à la connexion | `POST /cart/merge` idempotent (optionnel) | **Retenu** : panier invité géré par le BFF (cookie) puis rejoué via `/cart/add` — voir [`../guest-cart.md`](../guest-cart.md). |
+| Panier invité + fusion à la connexion | `POST /cart/merge` idempotent (optionnel) | **Retenu** : panier invité en `localStorage` puis rejoué via le BFF → `/cart/add` à la connexion — voir [`../guest-cart.md`](../guest-cart.md). |
 | Récapitulatif de prix avant commande (remise, port) | `POST /order/quote` (le DTO `PriceCalculationRequestDto` existe déjà, sans controller) | Total panier uniquement ; montant final connu après `/order/place`. |
 | Paiement côté client (Stripe Payment Element, 3DS) | `POST /order/{uuid}/payment-intent` → `client_secret` | Paiement serveur simulé. |
 | Derniers produits consultés (« Content de te revoir ») | `GET /api/v1/events/recently-viewed` | Historique local (cookie / localStorage non sensible) côté front. |

@@ -234,7 +234,7 @@ Sources : `CartServiceImp.java`, `CartWriteTransactionalDelegateImp.java`, `Cart
 | **Ajout** | Additif. Contrôle de stock *advisory* : `quantité demandée + reservedStock ≤ stock`, sinon **409 `NOT_ENOUGH_STOCK`** avec le stock disponible dans le message (`CartStockValidator.java:45`). Le stock **n'est pas réservé** à l'ajout au panier. |
 | **Mise à jour** | `PATCH /cart/update/{cartUuid}` remplace toutes les lignes (quantités absolues), validation de toutes les lignes avant mutation. `DELETE /cart/decreaseQuantity` décrémente. `PATCH /cart/remove/{productUuid}` supprime la ligne. |
 | **Vidage** | `DELETE /cart/clear` → 204. |
-| **Panier anonyme / fusion** | **Inexistants côté backend** (tous les endpoints exigent un JWT). Porté par le BFF : cookie signé + fusion via `POST /cart/add` à la connexion — voir [`../guest-cart.md`](../guest-cart.md). |
+| **Panier anonyme / fusion** | **Inexistants côté backend** (tous les endpoints exigent un JWT). Porté par le front : `localStorage` + fusion via le BFF → `POST /cart/add` à la connexion — voir [`../guest-cart.md`](../guest-cart.md). |
 | **Expiration** | Seul le cache Redis expire ; le panier MySQL n'expire pas. Aucune purge des paniers abandonnés ⚠️ À CONFIRMER (aucun job identifié). |
 | **Conversion en commande** | `POST /order/place` lit le panier serveur, crée la commande `AWAITING_PAYMENT`, **réserve le stock** (Redis avec TTL, libéré par `RedisExpirationListener` ou le job de nettoyage), vide le panier dans la même transaction puis invalide le cache (`OrderCreationTransactionalDelegateImp.java:128-141`, `OrderManagementServiceImp.java:525-528`). Le paiement Stripe est tenté immédiatement. |
 
@@ -253,7 +253,7 @@ Sources : `CartServiceImp.java`, `CartWriteTransactionalDelegateImp.java`, `Cart
 - Administration complète (produits avec images, catégories, remises, commandes, utilisateurs).
 
 ### Pas encore possibles (côté backend)
-- Panier invité côté backend (porté par le BFF, cf. guest-cart.md).
+- Panier invité côté backend (porté par le front en `localStorage`, cf. guest-cart.md).
 - Afficher note moyenne et avis publics sur une fiche produit (le stock, lui, est disponible via `GET /product/availability`).
 - Trier le catalogue, obtenir des facettes, autocomplétion.
 - Lister les catégories publiquement.
@@ -281,7 +281,7 @@ Sources : `CartServiceImp.java`, `CartWriteTransactionalDelegateImp.java`, `Cart
 
 1. ~~Client Keycloak front manquant~~ — **résolu** (`0b4a600`). Sur une base Keycloak déjà initialisée, lancer `createKeycloakFrontClient.ps1`.
 2. ~~Pas de `GET /me`~~ — **résolu** (`d50e661`) : `GET /api/v1/services/user/me`.
-3. **Panier invité** — porté par le BFF (cookie signé httpOnly) et fusionné une fois à la connexion ; conception détaillée dans [`../guest-cart.md`](../guest-cart.md).
+3. **Panier invité** — `localStorage` (identifiants + quantités uniquement) fusionné une fois à la connexion via le BFF ; conception détaillée dans [`../guest-cart.md`](../guest-cart.md).
 4. ~~Erreurs non typées~~ — **résolu** (`d50e661`) : brancher sur `errorCode` ; `fieldErrors` pour les formulaires. Seul 403 métier restant : `COMMENT_POST_NOT_ALLOWED` (modération).
 5. **Rate limit d'inscription global** derrière le BFF (cf. §6) — le filtre utilise `request.getRemoteAddr()`. En **prod**, `server.forward-headers-strategy=framework` (`application-prod.properties:24`) lui fait lire `X-Forwarded-For` : le BFF doit donc **transmettre l'IP du client**. En **dev**, la stratégie n'est pas configurée → quota global de 5/min.
 6. **Stock** — exposé par `GET /product/availability` (live, `no-store`). Le stock n'est réservé qu'à la commande : un 409 `NOT_ENOUGH_STOCK` reste possible entre l'affichage et l'ajout, il doit être géré avec élégance.

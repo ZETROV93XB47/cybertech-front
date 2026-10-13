@@ -231,6 +231,7 @@ app/
   api/auth/[...nextauth]/route.ts       Auth.js
   api/cart/route.ts                     GET panier, POST ajout, DELETE vidage
   api/cart/items/[productUuid]/route.ts PATCH quantité, DELETE ligne
+  api/cart/preview/route.ts             enrichit le panier invité (fiches + stock)
   api/cart/merge/route.ts               fusion panier invité → compte
   api/search/route.ts                   recherche instantanée ⌘K
   error.tsx, not-found.tsx, loading.tsx
@@ -261,8 +262,8 @@ tests/        unit/, e2e/
 | Panier – quantité | PATCH app/api/cart/items/[productUuid] | PATCH /api/v1/services/cart/update/{cartUuid} (remplacement complet, construit à partir du panier courant) | USER |
 | Panier – supprimer ligne | DELETE app/api/cart/items/[productUuid] | PATCH /api/v1/services/cart/remove/{productUuid} | USER |
 | Panier – vider | DELETE app/api/cart | DELETE /api/v1/services/cart/clear | USER |
-| Panier invité | cookie signé httpOnly `ct_guest_cart` géré par le BFF (lignes productUuid + quantity, max 50) ; affichage enrichi via GET product/get/{uuid} + GET product/availability ; conception complète dans docs/guest-cart.md | — | visiteur |
-| Fusion à la connexion | GET app/api/cart/merge?next= (cible du redirectTo de signIn) | POST /api/v1/services/cart/add (toutes les lignes) ; en cas de 409 NOT_ENOUGH_STOCK, ligne par ligne avec quantités plafonnées via GET product/availability ; cookie réécrit avec les seules lignes non fusionnées | USER |
+| Panier invité | localStorage `ct_guest_cart_v1` (lignes productUuid + quantity, max 50, validé par Zod) ; affichage enrichi via POST app/api/cart/preview ; conception complète dans docs/guest-cart.md | GET /api/v1/services/product/get/{uuid} + GET /api/v1/services/product/availability | visiteur |
+| Fusion à la connexion | composant client GuestCartMerger (layout racine, Web Locks API pour un seul onglet) → POST app/api/cart/merge | POST /api/v1/services/cart/add (toutes les lignes) ; en cas de 409 NOT_ENOUGH_STOCK, ligne par ligne avec quantités plafonnées via GET product/availability ; le client ne garde dans le localStorage que les lignes en échec technique | USER |
 | Accueil « Content de te revoir » | prénom depuis la session ; derniers produits consultés depuis un cookie non sensible côté client | — (aucune API) | — |
 
 ## Normalisation et contrats
@@ -293,7 +294,7 @@ tests/        unit/, e2e/
 - Aucune donnée privée dans les pages statiques/ISR.
 
 ## Variables d'environnement (validées par Zod)
-API_BASE_URL (ex. http://localhost:8081), API_VERSION=1.0, AUTH_SECRET, AUTH_URL, AUTH_KEYCLOAK_ID, AUTH_KEYCLOAK_SECRET, AUTH_KEYCLOAK_ISSUER (http://localhost:8080/realms/cybertech), GUEST_CART_SECRET, NEXT_PUBLIC_SITE_URL. Aligner les noms avec src/main/resources/k8s/helm/charts/front-app-chart/values.yaml du backend (renommer NEXT_PUBLIC_API_BASE en API_BASE_URL côté chart : l'URL backend ne doit pas être exposée au client).
+API_BASE_URL (ex. http://localhost:8081), API_VERSION=1.0, AUTH_SECRET, AUTH_URL, AUTH_KEYCLOAK_ID, AUTH_KEYCLOAK_SECRET, AUTH_KEYCLOAK_ISSUER (http://localhost:8080/realms/cybertech), NEXT_PUBLIC_SITE_URL. Aligner les noms avec src/main/resources/k8s/helm/charts/front-app-chart/values.yaml du backend (renommer NEXT_PUBLIC_API_BASE en API_BASE_URL côté chart : l'URL backend ne doit pas être exposée au client).
 
 ## Dev local
 - docker-compose.yml du front : service `front` (build Dockerfile, port 3000) + inclusion du docker-compose du backend (MySQL, Redis, MongoDB, Elasticsearch, Keycloak, LocalStack, Mailpit, moderation-api) ; le backend Spring tourne soit sur l'hôte (`./mvnw spring-boot:run`, joint via host.docker.internal:8081), soit via son Dockerfile (`src/main/resources/docker/dockerfile`).
@@ -316,7 +317,7 @@ Dockerfile multi-stage (node:24-alpine, utilisateur non-root, `HOSTNAME=0.0.0.0`
 | # | Question / ⚠️ À CONFIRMER | Recommandation |
 |---|---|---|
 | 1 | ~~Client Keycloak du front~~ | **Fait** (backend `0b4a600`). |
-| 2 | ~~Panier invité~~ | **Décidé** : BFF, cookie signé + fusion via `/cart/add` — [`guest-cart.md`](./guest-cart.md). Option ultérieure : `POST /cart/merge` idempotent côté backend. |
+| 2 | ~~Panier invité~~ | **Décidé (option B)** : `localStorage` + fusion via le BFF → `/cart/add` à la connexion — [`guest-cart.md`](./guest-cart.md). Option ultérieure : `POST /cart/merge` idempotent côté backend. |
 | 3 | ~~`GET /user/me`~~ | **Fait** (backend `d50e661`). |
 | 4 | ~~Stock non exposé~~ | **Fait** (backend `d50e661`) : `GET /product/availability`, endpoint dédié non mis en cache plutôt qu'un champ du produit (voir api-map §D.12). |
 | 5 | **Avis publics / note moyenne** non disponibles. | Hors lot 1 ; prévoir `GET /review/product/{uuid}` public pour le lot 2. |
@@ -331,7 +332,7 @@ Dockerfile multi-stage (node:24-alpine, utilisateur non-root, `HOSTNAME=0.0.0.0`
 | 14 | **Recherche vide** (aucun filtre) renvoie-t-elle tout le catalogue ? | Tester `POST /product/search {}` ; sinon le front envoie `keyword` vide → à ajuster. |
 | 15 | **Politique de mot de passe Keycloak** éventuellement plus stricte que `@Size(min=8)`. | Vérifier dans la console Keycloak ; aligner le schéma Zod. |
 | 16 | **Purge des paniers abandonnés** : aucun job identifié. | Accepter pour le lot 1. |
-| 17 | **Ton des messages** (tutoiement ou vouvoiement). La direction artistique utilise « Content de te revoir ». | Tutoiement cohérent partout. |
+| 17 | **Ton des messages** (tutoiement ou vouvoiement). La direction artistique utilise « Content de te revoir ». | Tutoiement cohérent partout (à confirmer par le propriétaire). |
 | 18 | **Auth.js v5 encore en bêta** (`5.0.0-beta.32`). | L'utiliser (le chart Helm est déjà câblé dessus) ; alternative : `openid-client` + session maison si la bêta pose problème. |
 | 19 | **Skill `frontend-design`** : non installé dans ce Claude Code. | Installer le plugin officiel `frontend-design` (marketplace Anthropic) avant `/speckit-implement`. |
 | 20 | **Domaine S3 de production** pour `next/image`. | À fournir avec la config Helm de prod. |
