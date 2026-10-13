@@ -91,11 +91,11 @@ description: "Task list for lot 1 — catalog, authentication and cart"
 
 ### Auth core — research R2–R4
 
-- [ ] T036 Create `lib/auth/refresh.ts`: `refreshAccessToken(token)` calling the Keycloak token endpoint with `grant_type=refresh_token`, deduplicating concurrent refreshes with a `Map<refreshToken, Promise>`, returning `error: SessionError.REFRESH_TOKEN_ERROR` on failure (`warn` log, masked subject)
-- [ ] T037 Create `lib/auth/config.ts`: Auth.js v5 with Keycloak provider (`AUTH_KEYCLOAK_*`, PKCE S256), session strategy `jwt`, callback `jwt` storing `accessToken`, `refreshToken`, `idToken`, `expiresAt` and refreshing when `expiresAt - ACCESS_TOKEN_REFRESH_MARGIN_MS < now`, callback `session` exposing only `user.name`, `user.email`, `roles`, `error` (typed `SessionError | undefined` via module augmentation of `next-auth` types); export `{ handlers, auth, signIn, signOut }`
-- [ ] T038 Create `app/api/auth/[...nextauth]/route.ts` exporting `GET`/`POST` from `lib/auth/config.ts`
-- [ ] T039 Create `lib/auth/guards.ts`: `getAccessTokenOrThrow()` (server-only; throws `ApiError` UNAUTHENTICATED when no session or `session.error === SessionError.REFRESH_TOKEN_ERROR`) and `requireSession(callbackPath)` for layouts (redirects to `/login?callbackUrl=`)
-- [ ] T040 [P] Unit tests `tests/unit/auth/refresh.test.ts` (refresh before margin, dedup of concurrent calls, failure → RefreshTokenError) and `tests/unit/auth/session-callback.test.ts` (no token leaked to the session object)
+- [X] T036 Create `lib/auth/refresh.ts`: `refreshAccessToken(token)` calling the Keycloak token endpoint with `grant_type=refresh_token`, deduplicating concurrent refreshes with a `Map<refreshToken, Promise>`, returning `error: SessionError.REFRESH_TOKEN_ERROR` on failure (`warn` log, masked subject)
+- [X] T037 Create `lib/auth/config.ts`: Auth.js v5 with Keycloak provider (`AUTH_KEYCLOAK_*`, PKCE S256), session strategy `jwt`, callback `jwt` storing `accessToken`, `refreshToken`, `idToken`, `expiresAt` and refreshing when `expiresAt - ACCESS_TOKEN_REFRESH_MARGIN_MS < now`, callback `session` exposing only `user.name`, `user.email`, `roles`, `error` (typed `SessionError | undefined` via module augmentation of `next-auth` types); export `{ handlers, auth, signIn, signOut }`
+- [X] T038 Create `app/api/auth/[...nextauth]/route.ts` exporting `GET`/`POST` from `lib/auth/config.ts`
+- [X] T039 Create `lib/auth/guards.ts`: `getAccessTokenOrThrow()` (server-only; throws `ApiError` UNAUTHENTICATED when no session or `session.error === SessionError.REFRESH_TOKEN_ERROR`) and `requireSession(callbackPath)` for layouts (redirects to `/login?callbackUrl=`)
+- [X] T040 [P] Unit tests `tests/unit/auth/refresh.test.ts` (refresh before margin, dedup of concurrent calls, failure → RefreshTokenError) and `tests/unit/auth/session-callback.test.ts` (no token leaked to the session object)
 
 ### Theme configuration — constitution XIII, research R18
 
