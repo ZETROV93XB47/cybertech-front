@@ -42,14 +42,21 @@ récents, notamment 409 USER_ALREADY_EXISTS à l'inscription) :
   résume-moi les écarts avant de lancer la première feature.
 
 Découpage proposé, une feature Spec Kit par ligne, dans cet ordre :
-- 002-account-orders : profil, commande (checkout), suivi et historique des commandes, carte
-  bancaire enregistrée ;
+- 002-account-orders : profil, bouton « Passer commande » et réduction sur le panier, tunnel
+  de commande, suivi et historique des commandes, carte bancaire enregistrée ;
 - 003-engagement : wishlist, avis, recommandations personnalisées, événements comportementaux ;
 - 004-admin : espace d'administration (utilisateurs, produits et images, commandes, remises,
-  schémas de catégories, cartes bancaires, wishlists).
+  schémas de catégories, cartes bancaires, wishlists) ;
+- 005-experience : harmonisation finale de toutes les pages, interface remplie et animée (§5).
 Pour chaque feature : /speckit-specify (prompts ci-dessous, docs/speckit-prompts-lot2.md),
 /speckit-clarify, /speckit-plan, /speckit-tasks, /speckit-analyze, puis /speckit-implement
 UNE user story par conversation.
+
+Chaque tasks.md DOIT se terminer par une phase « Interface vivante et cohérente » (voir §5 de
+docs/speckit-prompts-lot2.md) : on ne livre pas une page fonctionnelle mais vide. Les effets de
+la fiche produit (apparition en cascade RevealGroup, fondu enchaîné, loupe pilotée par le thème)
+et du fond (grille de points, halos aurora) servent de référence de qualité. Après la feature
+004, une feature 005-experience reprend toutes les pages (§5) pour l'harmonisation finale.
 
 Méthode de vérification (identique au lot 1, voir aussi la mémoire « local-env-quirks ») :
 - npm run typecheck, npm run lint (0 warning), npm run test avant de déclarer une story finie ;
@@ -87,15 +94,28 @@ User stories (à prioriser) :
    UserSelfUpdateRequestDto ; email et mot de passe non modifiables ici). Le changement de mot
    de passe passe par la console de compte Keycloak (lien). La suppression de compte n'existe
    pas côté backend (§F) : à signaler, pas à simuler.
-2. Commande (checkout) depuis le panier du compte : choix du moyen de paiement (MASTERCARD,
-   VISA, APPLE_PAY, GOOGLE_PAY), du type et du transporteur de livraison (STANDARD/EXPRESS,
-   DHL/FEDEX), adresse, POST /management/order/place ; le paiement est déclenché côté serveur
-   (Stripe, moyen de paiement configuré) : la page de confirmation interroge
-   GET /order/status/{uuid} (polling borné) jusqu'à PAID ou PAYMENT_FAILED. Gérer 402
-   PAYMENT_FAILED (POST /order/retry-payment/{uuid}), 409 CART_IS_EMPTY / NOT_ENOUGH_STOCK,
-   403 USER_NOT_ACTIVE. Le récapitulatif de prix avant commande (remise, frais de port) n'a pas
-   d'endpoint (§F, PriceCalculationRequestDto sans controller) : montrer le total panier et la
-   remise active comme « estimés ».
+2. Commande (checkout) depuis la page panier, qui aujourd'hui n'a ni bouton « Passer
+   commande » ni réduction :
+   - ajouter sur /cart un bouton « Passer commande » (visiteur : connexion puis retour, avec la
+     fusion du panier invité déjà en place) menant à un tunnel /checkout : adresse de livraison
+     (préremplie depuis le profil), type et transporteur (STANDARD/EXPRESS, DHL/FEDEX), moyen de
+     paiement (MASTERCARD, VISA, APPLE_PAY, GOOGLE_PAY), récapitulatif, confirmation ;
+   - réduction : le backend l'applique à la commande via le champ `discountKey` de
+     OrderPlacingRequestDto (défaut « aucune remise »), choisi parmi les campagnes actives
+     (GET /discounts/active, DiscountContext : PERCENTAGE, FIXED_AMOUNT, BUY_ONE_GET_ONE_FREE,
+     minOrderAmount, maxDiscountAmount, dates). Proposer sur le panier et le récapitulatif un
+     bloc « Appliquer une réduction » : choix d'une campagne active ou saisie de sa clé, refus
+     clair si la clé est inconnue, inactive ou si le minimum de commande n'est pas atteint ;
+   - aucun endpoint ne calcule le prix avant la commande (OrderPriceCalculationService n'est
+     appelé qu'à la création, PriceCalculationRequestDto n'a pas de controller) : afficher
+     l'économie et le total comme « estimés » (calcul front à partir du DiscountContext, même
+     règles que le backend, testées) puis les montants définitifs renvoyés par OrderResponseDto ;
+     lister « POST /order/quote » comme dépendance backend recommandée ;
+   - POST /management/order/place, puis page de confirmation qui interroge
+     GET /order/status/{uuid} (polling borné) jusqu'à PAID ou PAYMENT_FAILED ; gérer 402
+     PAYMENT_FAILED (POST /order/retry-payment/{uuid}), 409 CART_IS_EMPTY / NOT_ENOUGH_STOCK
+     (retour au panier avec les lignes concernées), 403 USER_NOT_ACTIVE ; vider le cache du
+     panier après une commande réussie.
 3. Mes commandes : liste paginée (GET /order/mine, filtre par statut, tri createdAt desc),
    détail (GET /order/get/{uuid}), frise du cycle de vie (CREATED → AWAITING_PAYMENT →
    PAID → AWAITING_SHIPPING → SHIPPED → DELIVERED, plus CANCELED, REFUNDED, RETURNED,
@@ -178,7 +198,67 @@ d'utilisateurs, export) comme dépendances, sans les simuler.
 
 ---
 
-## 5. Rappels utiles
+## 5. Phase « Interface vivante et cohérente » (à la fin de chaque feature, puis 005-experience)
+
+À ajouter telle quelle en dernière phase de chaque `tasks.md` (002, 003, 004), puis comme
+feature complète `005-experience` qui repasse sur TOUTES les pages (lot 1 compris). Utiliser le
+skill frontend-design et l'annexe « Aurora Glow » de specs/001-catalog-auth-cart/spec.md.
+Toutes les valeurs (durées, amplitudes, couleurs, flous, échelles) passent par
+`lib/theme/theme.config.ts` et `useEffectiveEffects()` / `useMotionTokens()` ; tout effet a une
+version statique (effets « désactivés » ou `prefers-reduced-motion`) et un test par niveau,
+comme `tests/unit/effects/effects-levels.test.tsx`.
+
+````text
+Tâches de la phase « Interface vivante et cohérente » :
+
+- [ ] Audit visuel : captures de chaque page de la feature (vide, remplie, erreur, chargement,
+      visiteur, connecté, admin le cas échéant), relues et commentées ; lister ce qui « fait
+      vide » (grandes zones sans contenu, pages réduites à un formulaire, listes sans état vide
+      illustré) et ce qui est incohérent (espacements, rayons, titres, boutons, largeurs).
+- [ ] Remplir sans inventer : chaque page affiche des données réelles utiles autour de sa tâche
+      principale (récapitulatif, statut, prochaines étapes, produits liés, derniers produits
+      consultés, offre active, aide contextuelle) ; aucun chiffre ou avis fictif.
+- [ ] Cohérence : mêmes en-têtes de page (fil d'Ariane, titre vivant LiveTitle, sous-titre),
+      mêmes cartes en verre, mêmes boutons (CTA dégradé + MagneticButton pour l'action
+      principale), mêmes états vides (StateIllustration + phrase qui invite à agir), mêmes
+      squelettes de chargement (skeleton-shimmer), même largeur de contenu, mêmes tableaux.
+- [ ] Une animation orchestrée par page, qui répond à l'utilisateur : apparition en cascade du
+      bloc principal (RevealGroup), transitions entre étapes du tunnel de commande, frise de
+      statut de commande qui se remplit, compteur doré qui rebondit, cœur de wishlist qui
+      s'anime, toasts cohérents, transitions partagées (View Transitions) entre liste et
+      détail ; pas d'animations décoratives en cascade sur chaque élément.
+- [ ] Effets signature étendus là où ils ont du sens : TiltCard sur toutes les cartes produit
+      (wishlist, recommandations, commandes), loupe sur les visuels produits, halos et grille de
+      points visibles sur toutes les pages publiques, version allégée en zone admin.
+- [ ] Micro-interactions de formulaire : validation qui apparaît en douceur, état de succès
+      animé (case cochée, confirmation), boutons avec état de chargement, sons d'interface
+      optionnels (useUiSound) sur les confirmations importantes.
+- [ ] Tests : un test par niveau d'effet pour chaque nouvel effet, parcours axe sur chaque page
+      (le helper attend la fin des fondus), long-tasks.spec.ts étendu aux nouvelles pages
+      animées, Lighthouse sur un build de production (budgets du lot 1 : LCP ≤ 2,5 s,
+      CLS ≤ 0,1, TBT ≤ 200 ms) consigné dans le quickstart de la feature.
+- [ ] Point avec l'utilisateur, captures avant / après à l'appui.
+````
+
+### Prompt `/speckit-specify` — 005-experience
+
+````text
+/speckit-specify Feature 005 « Expérience » du front cybertech : après les features 001 à 004,
+repasser sur TOUTES les pages (boutique, compte, commande, wishlist, avis, admin) pour qu'elles
+forment un ensemble cohérent, rempli et vivant, dans la direction artistique « Aurora Glow »
+(annexe de specs/001-catalog-auth-cart/spec.md). Les effets existants servent de référence :
+fond à grille de points et halos aurora, cartes inclinables, titre vivant, apparition en
+cascade, fondu enchaîné et loupe de la fiche produit, pastille « vole vers le panier ».
+User stories : (1) audit visuel complet avec captures et liste des écarts ; (2) harmonisation
+des gabarits de page, en-têtes, cartes, boutons, tableaux, états vides et de chargement ;
+(3) une animation orchestrée et utile par page, plus les micro-interactions de formulaire et de
+confirmation ; (4) contenus réels utiles là où une page « fait vide » ; (5) contrôle de
+performance et d'accessibilité de l'ensemble (axe, tâches longues, Lighthouse, reduced-motion).
+Aucune donnée fictive ; toute valeur visuelle passe par le thème ; tout effet a une version
+statique.
+````
+
+## 6. Rappels utiles
 
 - Les endpoints manquants côté backend sont tenus à jour dans `docs/backend/api-map.md` §F :
   avis publics et note moyenne, devis de commande, paiement côté client (Payment Element,
