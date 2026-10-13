@@ -23,6 +23,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { HEADER_CONTROL_CLASS, HEADER_ICON_CLASS } from "@/components/layout/header-controls";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { bffGet } from "@/lib/api/bff-client";
 import { COMMAND_PALETTE_DEBOUNCE_MS } from "@/lib/constants/catalog";
@@ -36,6 +37,7 @@ import { EMPTY_SEARCH_FILTERS } from "@/lib/schemas/search";
 
 import { PALETTE_MESSAGES } from "../messages";
 import { buildSearchUrl } from "../search-params";
+import { cn } from "@/lib/utils";
 
 /** Body of `GET /api/search`. */
 const SearchResponseSchema = z.object({ results: z.array(ProductCardSchema) });
@@ -151,9 +153,9 @@ export function CommandPalette(): ReactNode {
         type="button"
         onClick={toggle}
         aria-keyshortcuts="Control+K Meta+K"
-        className="flex h-9 items-center gap-2 rounded-button border border-border bg-surface-2 px-3 text-sm text-text-muted transition-colors duration-(--duration-fast) hover:text-text"
+        className={cn(HEADER_CONTROL_CLASS, "border border-border bg-surface-2")}
       >
-        <Search aria-hidden className="size-4" />
+        <Search aria-hidden className={HEADER_ICON_CLASS} />
         {PALETTE_MESSAGES.trigger}
         <kbd className="ml-4 text-xs text-text-muted">{PALETTE_MESSAGES.shortcutHint}</kbd>
       </button>

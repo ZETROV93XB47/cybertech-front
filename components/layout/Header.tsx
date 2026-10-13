@@ -3,13 +3,18 @@
  *
  * The slots (search, preferences, account, cart) are filled by the user stories that own them
  * (US1 command palette, US5 preferences, US3 account menu, US4 cart badge), so the header does
- * not depend on any feature.
+ * not depend on any feature. The navigation links mark the current section (feature 002, US3);
+ * they need the search parameters, hence the `Suspense` with a static fallback.
+ *
+ * @see specs/002-catalog-refresh/spec.md US3
  */
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 
 import { SITE_MESSAGES } from "@/features/common/messages";
-import { CATALOG_PATH, HOME_PATH } from "@/lib/constants/routes";
+import { HOME_PATH } from "@/lib/constants/routes";
+
+import { MainNav, StaticMainNav } from "./MainNav";
 
 /** Action slots of the header, right-hand side, in reading order. */
 export interface HeaderProps {
@@ -36,14 +41,9 @@ export function Header({ search, preferences, account, cart }: HeaderProps): Rea
         >
           {SITE_MESSAGES.name}
         </Link>
-        <nav aria-label={SITE_MESSAGES.mainNavigation} className="flex-1">
-          <Link
-            href={CATALOG_PATH}
-            className="text-sm text-text-muted transition-colors duration-(--duration-fast) hover:text-text"
-          >
-            {SITE_MESSAGES.catalogLink}
-          </Link>
-        </nav>
+        <Suspense fallback={<StaticMainNav />}>
+          <MainNav />
+        </Suspense>
         <div className="flex items-center gap-2">
           {search}
           {preferences}

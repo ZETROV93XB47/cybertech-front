@@ -135,3 +135,22 @@ désormais sous la case, sur un fond opaque.
 
 **Points restants** : refus « autre catégorie » non testable en réel tant que les écrans ne sont
 pas indexés ; animations de la barre et du cadre reportées à la phase 7 (T069).
+
+### US3 — Barre de navigation (2026-10-13)
+
+**Contrôles automatiques** : `npm run typecheck` 0 erreur, `npm run lint` 0 erreur et 0 warning,
+`npm run test` 427 tests verts (51 fichiers), `navigation.spec.ts` 3/3, `preferences.spec.ts`
+vert (front sur 3123). `auth.spec.ts` non rejoué : le backend Spring (8081) s'est arrêté pendant
+la vérification ; à relancer sur le port 3000 une fois le backend redémarré.
+
+**Changements** : liens Accueil, Catalogue, Ordinateurs, Écrans (`MainNav` dans un `Suspense`,
+version statique sans rubrique courante en repli) ; rubrique courante soulignée en or et
+`aria-current="page"` ; la fiche produit publie sa catégorie (`NavSectionMarker`). Hauteur
+(40 px), taille d'icône et survol communs à tous les contrôles de l'en-tête
+(`components/layout/header-controls.ts`). `main` reçoit `tabIndex={-1}` pour que « Aller au
+contenu » y place réellement le focus.
+
+| # | Résultat | Commentaire |
+|---|---|---|
+| 18 | OK | Mêmes liens dans le même ordre sur l'accueil, le catalogue, Ordinateurs, une fiche d'ordinateur (Ordinateurs actif), le panier, l'inscription et la connexion. |
+| 19 | OK | Premier Tab : « Aller au contenu » visible ; Entrée place le focus sur `main` ; tous les contrôles de l'en-tête atteints au clavier. |

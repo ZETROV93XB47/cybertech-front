@@ -10,6 +10,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { NavSectionMarker } from "@/components/layout/NavSectionMarker";
 import { ProductBreadcrumb } from "@/features/catalog/components/ProductBreadcrumb";
 import {
   ProductSpecs,
@@ -185,6 +186,7 @@ export default async function ProductPage({
   return (
     <article className="mx-auto flex w-full max-w-site flex-col gap-12 px-6 py-10">
       <RecordProductView productUuid={product.uuid} />
+      <NavSectionMarker category={toCategoryKey(product.category)} />
       <ProductBreadcrumb category={toCategoryKey(product.category)} brand={product.brand} />
       <div className="grid gap-10 lg:grid-cols-12">
         <div className="lg:col-span-7">

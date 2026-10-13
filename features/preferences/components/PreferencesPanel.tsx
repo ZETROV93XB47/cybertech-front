@@ -11,6 +11,7 @@
 import { SlidersHorizontal, X } from "lucide-react";
 import { useId, type ReactNode } from "react";
 
+import { HEADER_ICON_BUTTON_CLASS, HEADER_ICON_CLASS } from "@/components/layout/header-controls";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
@@ -181,11 +182,8 @@ function PreferencesSettings(): ReactNode {
 export function PreferencesPanel(): ReactNode {
   return (
     <Sheet>
-      <SheetTrigger
-        aria-label={PREFERENCES_MESSAGES.trigger}
-        className="inline-flex size-10 items-center justify-center rounded-button text-text-muted transition-colors duration-(--duration-fast) hover:text-text"
-      >
-        <SlidersHorizontal aria-hidden className="size-5" />
+      <SheetTrigger aria-label={PREFERENCES_MESSAGES.trigger} className={HEADER_ICON_BUTTON_CLASS}>
+        <SlidersHorizontal aria-hidden className={HEADER_ICON_CLASS} />
       </SheetTrigger>
       <SheetContent showCloseButton={false} className="overflow-y-auto border-border bg-surface">
         <SheetClose

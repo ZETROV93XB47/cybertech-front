@@ -16,6 +16,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
+import { HEADER_CONTROL_CLASS, HEADER_ICON_CLASS } from "@/components/layout/header-controls";
 import { clearGuestCart } from "@/features/cart/guest-storage";
 import { clearPendingAction } from "@/features/cart/pending-action";
 import { loginPath } from "@/lib/auth/callback-url";
@@ -32,8 +33,7 @@ const AUTHENTICATED_STATUS = "authenticated";
 const LOADING_STATUS = "loading";
 
 /** Shared style of the header actions. */
-const ACTION =
-  "inline-flex h-10 items-center gap-2 rounded-button px-3 text-sm text-text-muted transition-colors duration-(--duration-fast) hover:text-text disabled:opacity-50";
+const ACTION = `${HEADER_CONTROL_CLASS} disabled:opacity-50`;
 
 /**
  * Reloads a page restored from the back/forward cache, so private content rendered before a
@@ -81,7 +81,7 @@ export function AccountMenu(): ReactNode {
           {REGISTER_MESSAGES.headerLink}
         </Link>
         <Link href={loginPath(pathname)} className={ACTION}>
-          <UserRound aria-hidden className="size-4" />
+          <UserRound aria-hidden className={HEADER_ICON_CLASS} />
           {AUTH_MESSAGES.signIn}
         </Link>
       </div>
@@ -100,7 +100,7 @@ export function AccountMenu(): ReactNode {
         {name}
       </span>
       <button type="submit" disabled={signingOut} className={ACTION}>
-        <LogOut aria-hidden className="size-4" />
+        <LogOut aria-hidden className={HEADER_ICON_CLASS} />
         {signingOut ? AUTH_MESSAGES.signingOut : AUTH_MESSAGES.signOut}
       </button>
     </form>

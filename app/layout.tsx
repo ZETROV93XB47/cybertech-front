@@ -90,7 +90,7 @@ export default async function RootLayout({
             account={<AccountMenu />}
             cart={<CartBadge />}
           />
-          <main id={MAIN_CONTENT_ID} className="flex-1">
+          <main id={MAIN_CONTENT_ID} tabIndex={-1} className="flex-1 focus:outline-none">
             {children}
           </main>
           <Footer />

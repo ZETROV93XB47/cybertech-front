@@ -15,11 +15,13 @@ import { motion } from "motion/react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { HEADER_ICON_BUTTON_CLASS, HEADER_ICON_CLASS } from "@/components/layout/header-controls";
 import { CART_TARGET_ATTRIBUTE } from "@/components/effects/useFlyToCart";
 import { useCart } from "@/features/cart/hooks/useCart";
 import { CART_MESSAGES } from "@/features/cart/messages";
 import { CART_PATH } from "@/lib/constants/routes";
 import { useMotionTokens } from "@/styles/motion";
+import { cn } from "@/lib/utils";
 
 /** Largest count written in full; above it the badge shows « 99+ ». */
 const BADGE_MAX_COUNT = 99;
@@ -54,9 +56,9 @@ export function CartBadge(): ReactNode {
       href={CART_PATH}
       {...{ [CART_TARGET_ATTRIBUTE]: "" }}
       aria-label={count === undefined ? CART_MESSAGES.pageTitle : CART_MESSAGES.badgeLabel(count)}
-      className="relative inline-flex size-10 items-center justify-center rounded-button text-text-muted transition-colors duration-(--duration-fast) hover:text-text"
+      className={cn("relative", HEADER_ICON_BUTTON_CLASS)}
     >
-      <ShoppingBag aria-hidden className="size-5" />
+      <ShoppingBag aria-hidden className={HEADER_ICON_CLASS} />
       <span
         aria-hidden
         className="absolute -top-0.5 -right-1.5 inline-flex h-5 min-w-6 justify-center"

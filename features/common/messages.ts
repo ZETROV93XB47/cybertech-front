@@ -11,6 +11,7 @@ export const SITE_MESSAGES = {
     "Ordinateurs et écrans sélectionnés avec soin. Compare, filtre, ajoute au panier : tout se passe ici.",
   skipToContent: "Aller au contenu",
   mainNavigation: "Navigation principale",
+  homeNavLink: "Accueil",
   catalogLink: "Catalogue",
   homeLink: "Accueil de cybertech",
   footerNote: "Projet pédagogique — les commandes ne sont pas encore ouvertes.",
