@@ -14,8 +14,10 @@ import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
 
 import { useAvailability } from "@/features/catalog/hooks/useAvailability";
+import { useUiSound } from "@/features/preferences/hooks/useUiSound";
 import { CART_LINE_MIN_QUANTITY } from "@/lib/constants/cart";
 import { AvailabilityLevel } from "@/lib/enums/availability-level";
+import { UiSound } from "@/lib/enums/theme";
 import { toAvailabilityLevel } from "@/lib/schemas/product";
 import { cn } from "@/lib/utils";
 
@@ -66,9 +68,11 @@ function CompactAddButton({
   className,
 }: AddToCartButtonProps): ReactNode {
   const { add, isMutating, isReady } = useCart();
+  const play = useUiSound();
   const outOfStock = useIsOutOfStock(productUuid);
   const onAdd = async (): Promise<void> => {
     const result = await add(productUuid, CART_LINE_MIN_QUANTITY);
+    play(result.ok ? UiSound.ADD_TO_CART : UiSound.ERROR);
     if (result.ok) {
       toast.success(result.message);
     } else {
@@ -112,12 +116,15 @@ function Feedback({ result }: { readonly result: CartChangeResult | null }): Rea
  */
 function FullAddToCart({ productUuid, className }: AddToCartButtonProps): ReactNode {
   const { add, cart, isMutating, isReady } = useCart();
+  const play = useUiSound();
   const outOfStock = useIsOutOfStock(productUuid);
   const [quantity, setQuantity] = useState(CART_LINE_MIN_QUANTITY);
   const [result, setResult] = useState<CartChangeResult | null>(null);
   const inCart = cart?.lines.find((line) => line.productUuid === productUuid)?.quantity ?? 0;
   const onAdd = async (): Promise<void> => {
-    setResult(await add(productUuid, quantity));
+    const outcome = await add(productUuid, quantity);
+    play(outcome.ok ? UiSound.ADD_TO_CART : UiSound.ERROR);
+    setResult(outcome);
   };
   return (
     <div className={cn("flex flex-col gap-3", className)}>

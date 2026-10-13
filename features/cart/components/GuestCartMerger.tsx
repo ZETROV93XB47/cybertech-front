@@ -16,6 +16,8 @@ import { toast } from "sonner";
 import { BffError } from "@/lib/api/bff-client";
 import { clientLogger } from "@/lib/client-logger";
 import { FrontErrorCode } from "@/lib/enums/error-code";
+import { UiSound } from "@/lib/enums/theme";
+import { useUiSound } from "@/features/preferences/hooks/useUiSound";
 
 import { sendAccountChange } from "../cart-client";
 import { cartErrorMessage, cartSuccessMessage } from "../cart-feedback";
@@ -46,9 +48,13 @@ function showSummary(summary: MergeSummary): void {
  * Merges the guest cart, when there is one.
  *
  * @param queryClient - Query client, updated with the merged account cart.
+ * @param play - Plays an interface sound (silent unless the user turned sounds on).
  * @returns A promise resolved once the merge is over (failures are reported, never thrown).
  */
-async function mergeIfNeeded(queryClient: QueryClient): Promise<void> {
+async function mergeIfNeeded(
+  queryClient: QueryClient,
+  play: (sound: UiSound) => void,
+): Promise<void> {
   if (readGuestCart(window.localStorage).length === 0) {
     return;
   }
@@ -56,7 +62,9 @@ async function mergeIfNeeded(queryClient: QueryClient): Promise<void> {
     const report = await mergeGuestCartOnce(window.localStorage);
     if (report) {
       queryClient.setQueryData(accountCartQueryKey(), report.cart);
-      showSummary(summarizeMerge(report));
+      const summary = summarizeMerge(report);
+      play(summary.success ? UiSound.MERGE_SUCCESS : UiSound.ERROR);
+      showSummary(summary);
     }
   } catch (error) {
     clientLogger.warn("Guest cart merge failed; kept for the next visit", {
@@ -98,6 +106,7 @@ async function replayPendingAction(queryClient: QueryClient): Promise<void> {
 export function GuestCartMerger(): null {
   const { data: session, status } = useSession();
   const queryClient = useQueryClient();
+  const play = useUiSound();
   const started = useRef(false);
   const usable = status === AUTHENTICATED_STATUS && !session.error;
 
@@ -106,8 +115,8 @@ export function GuestCartMerger(): null {
       return;
     }
     started.current = true;
-    void mergeIfNeeded(queryClient).then(() => replayPendingAction(queryClient));
-  }, [usable, queryClient]);
+    void mergeIfNeeded(queryClient, play).then(() => replayPendingAction(queryClient));
+  }, [usable, queryClient, play]);
 
   return null;
 }
