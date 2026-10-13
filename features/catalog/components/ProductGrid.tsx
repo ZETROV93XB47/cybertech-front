@@ -19,6 +19,8 @@ export interface ProductGridProps {
   readonly withTransition?: boolean;
   /** Loads the first row eagerly (grid at the top of the page). */
   readonly eager?: boolean;
+  /** Shows the « Comparer » checkbox on every card (catalog results only, FR-013). */
+  readonly comparable?: boolean;
 }
 
 /**
@@ -32,6 +34,7 @@ export function ProductGrid({
   label,
   withTransition = true,
   eager = false,
+  comparable = false,
 }: ProductGridProps): ReactNode {
   return (
     <ul aria-label={label} className="grid grid-cols-2 gap-6 lg:grid-cols-3">
@@ -41,6 +44,7 @@ export function ProductGrid({
             product={product}
             withTransition={withTransition}
             priority={eager && index < EAGER_CARD_COUNT}
+            comparable={comparable}
           />
         </li>
       ))}

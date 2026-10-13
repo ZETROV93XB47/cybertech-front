@@ -19,6 +19,22 @@ export function uuidListSchema(max: number): z.ZodArray<z.ZodUUID> {
 }
 
 /**
+ * Reads every value of a UUID list parameter, comma-separated or repeated, keeping duplicates
+ * (for routes that must refuse them).
+ *
+ * @param params - Query parameters.
+ * @param name - Parameter name.
+ * @returns The trimmed, non-empty values, in order (not validated yet).
+ */
+export function splitUuidListParam(params: URLSearchParams, name: string): string[] {
+  return params
+    .getAll(name)
+    .flatMap((value) => value.split(UUID_LIST_SEPARATOR))
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
+/**
  * Reads every value of a UUID list parameter, comma-separated or repeated, without duplicates.
  *
  * @param params - Query parameters.
@@ -26,10 +42,5 @@ export function uuidListSchema(max: number): z.ZodArray<z.ZodUUID> {
  * @returns The trimmed, distinct, non-empty values (not validated yet).
  */
 export function readUuidListParam(params: URLSearchParams, name: string): string[] {
-  const values = params
-    .getAll(name)
-    .flatMap((value) => value.split(UUID_LIST_SEPARATOR))
-    .map((value) => value.trim())
-    .filter(Boolean);
-  return [...new Set(values)];
+  return [...new Set(splitUuidListParam(params, name))];
 }

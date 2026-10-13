@@ -11,4 +11,8 @@ export enum QueryKey {
   AVAILABILITY = "availability",
   SEARCH = "search",
   RECENT_PRODUCTS = "recent-products",
+  /** Cards of the products of the comparison bar. */
+  COMPARE_PRODUCTS = "compare-products",
+  /** Comparison view of the modal. */
+  COMPARE = "compare",
 }

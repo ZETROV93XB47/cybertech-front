@@ -1,7 +1,8 @@
 /**
  * Product card of the grids (home, list, recently viewed).
  *
- * Server Component: only the availability badge runs on the client. The whole card is clickable
+ * Server Component: only the availability badge, the add-to-cart button and, on the catalog
+ * results, the « Comparer » checkbox run on the client. The whole card is clickable
  * through the title link stretched over it, so there is a single tab stop per product.
  *
  * @see specs/001-catalog-auth-cart/spec.md annex « Composants »
@@ -11,7 +12,10 @@ import type { ReactNode } from "react";
 import { TiltCard } from "@/components/effects/TiltCard";
 import { TransitionLink } from "@/components/effects/TransitionLink";
 import { AddToCartButton } from "@/features/cart/components/AddToCartButton";
+import { CompareToggle } from "@/features/compare/components/CompareToggle";
 import { productPath } from "@/lib/constants/routes";
+import { CompareToggleVariant } from "@/lib/enums/compare-toggle-variant";
+import { toCategoryKey } from "@/lib/schemas/category";
 import { formatPrice } from "@/lib/format";
 import type { ProductCard as ProductCardData } from "@/lib/schemas/product";
 import { THEME } from "@/lib/theme/theme.config";
@@ -34,6 +38,11 @@ export interface ProductCardProps {
   readonly withTransition?: boolean;
   /** Loads the image eagerly (cards visible at first paint). */
   readonly priority?: boolean;
+  /**
+   * Shows the « Comparer » checkbox: catalog results only, not the home page nor the similar
+   * products (FR-013).
+   */
+  readonly comparable?: boolean;
 }
 
 /**
@@ -70,12 +79,23 @@ function CardImage({
  * @returns The card.
  */
 export function ProductCard(props: ProductCardProps): ReactNode {
-  const { product } = props;
+  const { product, comparable = false } = props;
+  const category = comparable ? toCategoryKey(product.category) : undefined;
   return (
     <TiltCard className="glass product-card relative flex w-full flex-col overflow-hidden rounded-card">
       <CardImage {...props} />
       <div className="flex flex-1 flex-col gap-2 p-5">
-        <p className="text-xs text-text-muted">{BRAND_LABELS[product.brand]}</p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs text-text-muted">{BRAND_LABELS[product.brand]}</p>
+          {category && (
+            <CompareToggle
+              productUuid={product.uuid}
+              productName={product.name}
+              category={category}
+              variant={CompareToggleVariant.CHECKBOX}
+            />
+          )}
+        </div>
         <h3 className="line-clamp-2 text-base leading-snug">
           <TransitionLink
             href={productPath(product.uuid)}

@@ -4,9 +4,10 @@
  * The URL is parsed into filters, restricted to the facets of the selected category, and
  * redirected to its canonical form when it differs (invalid parameters, no-JavaScript form
  * submission), so every result page has exactly one URL. Facet values and counts are loaded
- * with the results and shown as filters and active-filter pills (feature 002, US1).
+ * with the results and shown as filters and active-filter pills (feature 002, US1). Every
+ * result card can join the product comparison, shown in the bar at the bottom (US2).
  *
- * @see specs/002-catalog-refresh/spec.md US1
+ * @see specs/002-catalog-refresh/spec.md US1, US2
  */
 import type { Metadata } from "next";
 import { SearchX } from "lucide-react";
@@ -21,6 +22,7 @@ import { Filters } from "@/features/catalog/components/Filters";
 import { Pagination } from "@/features/catalog/components/Pagination";
 import { ProductGrid } from "@/features/catalog/components/ProductGrid";
 import { buildBrandFilter, buildFilterFacets } from "@/features/catalog/filter-facets";
+import { CompareBar } from "@/features/compare/components/CompareBar";
 import { LIST_MESSAGES } from "@/features/catalog/messages";
 import {
   buildSearchQuery,
@@ -149,9 +151,15 @@ export default async function ProductsPage({
         {results.content.length === 0 ? (
           <EmptyResults canReset={hasActiveFilters(filters)} />
         ) : (
-          <ProductGrid products={results.content} label={LIST_MESSAGES.gridLabel} eager />
+          <ProductGrid
+            products={results.content}
+            label={LIST_MESSAGES.gridLabel}
+            eager
+            comparable
+          />
         )}
         <Pagination filters={filters} totalPages={totalPages} />
+        <CompareBar />
       </section>
     </div>
   );

@@ -1,6 +1,7 @@
 /**
  * Blocks of the product page (US1): summary column (brand, name, key specs, price, current
- * offer, live stock, add to cart), technical sheet, description and similar products.
+ * offer, live stock, add to cart, comparison toggle of feature 002), technical sheet,
+ * description and similar products.
  *
  * Server Components fed with real catalog data only; the entrance is one staggered reveal of
  * the summary column (`RevealGroup`), the rest of the page stays still.
@@ -10,7 +11,10 @@ import type { ReactNode } from "react";
 
 import { RevealGroup, RevealItem } from "@/components/effects/Reveal";
 import { AddToCartButton } from "@/features/cart/components/AddToCartButton";
+import { CompareToggle } from "@/features/compare/components/CompareToggle";
+import { CompareToggleVariant } from "@/lib/enums/compare-toggle-variant";
 import { formatPrice } from "@/lib/format";
+import { toCategoryKey } from "@/lib/schemas/category";
 import type { ActiveDiscount } from "@/lib/schemas/discount";
 import type { Product, ProductAvailability, ProductCard } from "@/lib/schemas/product";
 
@@ -85,6 +89,7 @@ export function ProductSummary({
   offer,
   availability,
 }: ProductSummaryProps): ReactNode {
+  const category = toCategoryKey(product.category);
   return (
     <RevealGroup className="flex flex-col gap-6">
       <RevealItem className="flex flex-col gap-2">
@@ -112,6 +117,16 @@ export function ProductSummary({
       <RevealItem>
         <AddToCartButton productUuid={product.uuid} productName={product.name} />
       </RevealItem>
+      {category && (
+        <RevealItem>
+          <CompareToggle
+            productUuid={product.uuid}
+            productName={product.name}
+            category={category}
+            variant={CompareToggleVariant.BUTTON}
+          />
+        </RevealItem>
+      )}
     </RevealGroup>
   );
 }

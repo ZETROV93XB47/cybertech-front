@@ -39,6 +39,35 @@ export function formatSpecValue(key: string, value: unknown): string | null {
 }
 
 /**
+ * Label of an attribute, the same on the product page and in the comparator: the French label
+ * of a known attribute, else the schema `title`, else the humanised key.
+ *
+ * @param key - Attribute key.
+ * @param schemaLabels - Labels read from the category schema, by key.
+ * @returns The label.
+ */
+export function specLabel(key: string, schemaLabels: Readonly<Record<string, string>>): string {
+  return ATTRIBUTE_LABELS[key] ?? schemaLabels[key] ?? humanizeKey(key);
+}
+
+/**
+ * Lists the attribute keys of a sheet: schema properties first (in schema order), then the
+ * attributes the schema does not describe, in the order they are found.
+ *
+ * @param schemaLabels - Labels read from the category schema, by key.
+ * @param attributes - Attributes of one or more products.
+ * @returns The distinct keys.
+ */
+export function specKeys(
+  schemaLabels: Readonly<Record<string, string>>,
+  attributes: readonly Readonly<Record<string, unknown>>[],
+): string[] {
+  return [
+    ...new Set([...Object.keys(schemaLabels), ...attributes.flatMap((item) => Object.keys(item))]),
+  ];
+}
+
+/**
  * Builds the technical sheet: schema properties first (in schema order), then any extra
  * attribute the schema does not describe.
  *
@@ -50,13 +79,8 @@ export function buildProductSpecs(
   attributes: Readonly<Record<string, unknown>>,
   schemaLabels: Readonly<Record<string, string>>,
 ): ProductSpec[] {
-  const keys = [...new Set([...Object.keys(schemaLabels), ...Object.keys(attributes)])];
-  return keys.flatMap((key) => {
+  return specKeys(schemaLabels, [attributes]).flatMap((key) => {
     const value = formatSpecValue(key, attributes[key]);
-    if (value === null) {
-      return [];
-    }
-    const label = ATTRIBUTE_LABELS[key] ?? schemaLabels[key] ?? humanizeKey(key);
-    return [{ key, label, value }];
+    return value === null ? [] : [{ key, label: specLabel(key, schemaLabels), value }];
   });
 }

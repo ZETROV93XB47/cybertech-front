@@ -38,7 +38,10 @@ test.describe("catalog", () => {
     await page.goto("/products");
     await page.getByRole("radio", { name: "Ordinateurs" }).check();
     await expect(page).toHaveURL(/category=COMPUTER/);
-    await page.getByRole("checkbox", { name: "Lenovo" }).check();
+    await page
+      .getByRole("form", { name: "Filtres" })
+      .getByRole("checkbox", { name: /^Lenovo/ })
+      .check();
     await expect(page).toHaveURL(/brand=LENOVO/);
     await page.getByRole("spinbutton", { name: "Prix minimum en euros" }).fill("500");
     await page.getByRole("button", { name: "Appliquer les filtres" }).click();
@@ -49,7 +52,9 @@ test.describe("catalog", () => {
     await expect(page).toHaveURL("/products?category=COMPUTER&brand=LENOVO&min=500");
     await expect(page.getByText(/\d+ produits?$/)).toHaveText(count ?? "");
     await expect(page.getByRole("radio", { name: "Ordinateurs" })).toBeChecked();
-    await expect(page.getByRole("checkbox", { name: "Lenovo" })).toBeChecked();
+    await expect(
+      page.getByRole("form", { name: "Filtres" }).getByRole("checkbox", { name: /^Lenovo/ }),
+    ).toBeChecked();
   });
 
   test("an empty result offers to reset the filters", async ({ page }) => {

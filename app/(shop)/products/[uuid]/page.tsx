@@ -3,7 +3,8 @@
  *
  * Product data comes from the data cache (60 s); the stock is read live on the server for the
  * first paint and refreshed by the client badge. An unknown or malformed UUID shows the
- * « produit introuvable » page.
+ * « produit introuvable » page. The product can join the comparison (feature 002, US2), whose
+ * bar is shown at the bottom of the page.
  */
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -19,6 +20,7 @@ import { ProductGallery } from "@/features/catalog/components/ProductGallery";
 import { RecordProductView } from "@/features/catalog/components/RecordProductView";
 import { PRODUCT_MESSAGES } from "@/features/catalog/messages";
 import { buildProductSpecs } from "@/features/catalog/product-specs";
+import { CompareBar } from "@/features/compare/components/CompareBar";
 import { getCategorySchema } from "@/lib/api/endpoints/categories";
 import { getActiveDiscounts } from "@/lib/api/endpoints/discounts";
 import { getAvailability, getProductByUuid, searchProducts } from "@/lib/api/endpoints/products";
@@ -209,6 +211,7 @@ export default async function ProductPage({
         </div>
       </div>
       <SimilarProducts products={similar} />
+      <CompareBar />
     </article>
   );
 }

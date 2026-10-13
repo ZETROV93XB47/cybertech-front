@@ -98,3 +98,40 @@ commencent à 16 Go) ; le champ devenait invalide et bloquait toute soumission d
 Les bornes acceptées s'élargissent désormais à la plage choisie (test unitaire et e2e ajoutés).
 
 **Points restants** : scénarios MONITOR non testables (aucun écran dans l'index local).
+
+### US2 — Comparateur (2026-10-13)
+
+**Environnement** : backend local (Spring sur 8081), front sur `next dev -p 3123`
+(`playwright.capture.config.ts`).
+
+**Contrôles automatiques** : `npm run typecheck` 0 erreur, `npm run lint` 0 erreur et 0 warning,
+`npm run test` 406 tests verts (49 fichiers), `compare.spec.ts` 5/5. `catalog.spec.ts` : 7/8 ;
+`cart.spec.ts` (parcours invité) : 3/4. Les deux échecs restants ne viennent pas d'US2 :
+
+- palette Ctrl+K : le raccourci est envoyé avant l'hydratation sous Turbopack (l'événement `load`
+  arrive environ 150 ms plus tôt) ; l'échec se reproduit à l'identique sur le commit `67722fd`
+  sous Turbopack, alors que le test passe avec webpack, que ce soit sur `67722fd` ou avec US2 ;
+- « Indisponible » sur la fiche : le sélecteur `getByRole("button", { name: "Indisponible" })`
+  trouve aussi les boutons des produits similaires (lot 1).
+
+`catalog.spec.ts` a été ajusté : la case « Lenovo » est cherchée dans le formulaire des filtres,
+car les cases « Comparer Lenovo… » des cartes rendaient le sélecteur ambigu.
+
+**Captures relues** : barre avec 1 produit (invitation), barre avec 3 produits et infobulle
+« 3 produits maximum » sur une carte, cadre ouvert, cadre filtré sur les différences, fiche
+produit avec le bouton et sa raison. Infobulle d'abord rognée par la carte : elle s'ouvre
+désormais sous la case, sur un fond opaque.
+
+| # | Résultat | Commentaire |
+|---|---|---|
+| 10 | OK | Barre et invitation dès le 1er produit. Refus « autre catégorie » couvert en unitaire uniquement (aucun écran dans l'index local). |
+| 11 | OK | « Comparer » au 2e ; au 3e (page 2), les autres cases sont `aria-disabled` avec la raison. |
+| 12 | OK | Filtre marque puis rechargement : 3 produits toujours dans la barre. |
+| 13 | OK | 3 colonnes (image, marque, nom, prix, stock, panier), lignes Processeur → Connectique, « — » si absent. |
+| 14 | OK | Différences seulement ; Échap ferme et rend le focus à « Comparer ». |
+| 15 | OK | Fiche d'un 3e ordinateur : ajouté, bouton « Retirer de la comparaison », barre visible. |
+| 16 | OK | Nouveau contexte navigateur : sélection vide. |
+| 17 | OK | JSON cassé nettoyé sans message ; UUID inconnu retiré au chargement avec le message (4 UUID : unitaire). |
+
+**Points restants** : refus « autre catégorie » non testable en réel tant que les écrans ne sont
+pas indexés ; animations de la barre et du cadre reportées à la phase 7 (T069).

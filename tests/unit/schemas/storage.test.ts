@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { PendingActionType } from "@/lib/enums/cart";
+import { CategoryKey } from "@/lib/enums/category-key";
 import {
+  CompareSelectionSchema,
   GuestCartStorageSchema,
   PendingActionSchema,
   RecentlyViewedSchema,
@@ -60,6 +62,30 @@ describe("RecentlyViewedSchema", () => {
       RecentlyViewedSchema.safeParse({ uuids: [0, 1, 2, 3, 4, 5, 6, 7, 8].map(uuid) }).success,
     ).toBe(false);
     expect(RecentlyViewedSchema.safeParse({ uuids: [uuid(1), uuid(1)] }).success).toBe(false);
+  });
+});
+
+describe("CompareSelectionSchema", () => {
+  it("accepts 1 to 3 distinct UUIDs of a known category", () => {
+    for (const count of [1, 2, 3]) {
+      const uuids = Array.from({ length: count }, (_, index) => uuid(index));
+      expect(
+        CompareSelectionSchema.safeParse({ category: CategoryKey.COMPUTER, uuids }).success,
+      ).toBe(true);
+    }
+  });
+
+  it("rejects no UUID, 4 UUIDs, a duplicate, an invalid UUID and an unknown category", () => {
+    const invalid = [
+      { category: CategoryKey.COMPUTER, uuids: [] },
+      { category: CategoryKey.COMPUTER, uuids: [0, 1, 2, 3].map(uuid) },
+      { category: CategoryKey.COMPUTER, uuids: [uuid(1), uuid(1)] },
+      { category: CategoryKey.COMPUTER, uuids: ["nope"] },
+      { category: "PHONE", uuids: [uuid(1)] },
+    ];
+    for (const value of invalid) {
+      expect(CompareSelectionSchema.safeParse(value).success).toBe(false);
+    }
   });
 });
 
