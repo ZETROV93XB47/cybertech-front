@@ -238,7 +238,13 @@ sur npm le 2026-10-13 (voir `docs/speckit-prompts.md`).
   ce niveau et leurs paramètres dans `THEME.effects[niveau]` ; `REDUCED` garde la grille et les
   halos en version statique ou ralentie, sans inclinaison ni aimant.
 - **Décision — accents** : violet (défaut), bleu, cyan ; l'or reste réservé aux prix et
-  badges (FR-037), le rose aux alertes douces. Un test unitaire calcule le ratio de contraste
+  badges (FR-037), le rose aux alertes douces. Contrastes mesurés : un texte clair sur un
+  accent échoue (2,7 à 3,1:1, 1,2 sur cyan), donc tout texte posé sur un accent utilise
+  `onAccent` = `#0A0E1F` (5,1 à 13:1). Le bleu `#4F7BFF` ne donne que 4,19:1 sur `surface2` :
+  il reste la couleur de fond et de halo, et le texte bleu utilise `accentText` = `#6B8FFF`
+  (5,22:1). Avec l'accent cyan, `success` passe au vert-menthe `#7BE0A8` pour ne pas se
+  confondre avec l'accent ; comme menthe et cyan ont une luminance proche, un état n'est jamais
+  signalé par la couleur seule (WCAG 1.4.1). Un test unitaire calcule le ratio de contraste
   WCAG de chaque `accent × surface × texte` et échoue sous 4,5:1 (3:1 pour les grands textes et
   les contours de focus).
 - **Décision — sons** : `lib/sound/ui-sounds.ts` génère de courts sons avec l'API Web Audio

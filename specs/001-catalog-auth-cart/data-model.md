@@ -142,10 +142,11 @@ Cookie non httpOnly, `SameSite=Lax`, `Path=/`, durée `PREFERENCES_COOKIE_MAX_AG
 
 | Clé | Contenu |
 |---|---|
-| `palette` | `bg`, `surface`, `surface2`, `border`, `text`, `textMuted`, `gold`, `rose`, `success` (valeurs de l'annexe) |
-| `accents` | `Record<AccentVariant, { accent, accentStrong, accentGlow, gradientFrom, gradientTo }>` |
+| `palette` | `bg`, `surface`, `surface2`, `border`, `text`, `textMuted`, `gold`, `rose` (valeurs de l'annexe) |
+| `accents` | `Record<AccentVariant, { accent, accentText, onAccent, accentGlow, gradientFrom, gradientTo, success }>` — `accent` pour les fonds et halos, `accentText` pour le texte et le focus sur les surfaces (bleu : `#6B8FFF`), `onAccent` = `#0A0E1F` pour le texte posé sur l'accent, `success` = cyan sauf pour l'accent cyan (menthe `#7BE0A8`) |
 | `typography` | familles (Sora, Inter, JetBrains Mono), graisses, interlignes, letter-spacing |
 | `shape` | rayons (carte, bouton, champ), bordures, flou du verre, opacité du verre |
+| `media` | tailles d'images `card`, `gallery`, `thumbnail` (largeur, hauteur) |
 | `shadows` | ombres teintées (repos, survol, halo du CTA) |
 | `motion` | `Record<MotionIntensity, { durationFast, durationBase, durationSlow, revealOffset, stagger, easing }>` |
 | `effects` | `Record<EffectsLevel, { dotGrid, aurora, tilt, magnetic, smoothScroll, viewTransitions }>`, chacun `{ enabled, …paramètres }` |

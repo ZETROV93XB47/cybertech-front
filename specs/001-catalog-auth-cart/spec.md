@@ -319,8 +319,8 @@ recharger la page : les effets restent coupés et l'accent reste bleu dès l'aff
   bienveillant avec une action « Réessayer », jamais une page blanche.
 - **FR-030**: Tous les messages MUST être en français, au tutoiement, au ton chaleureux et jamais
   culpabilisant.
-- **FR-031**: L'interface MUST suivre la direction artistique « Aurora Glow » (annexe) et
-  respecter la préférence « réduire les animations ».
+- **FR-031**: L'interface MUST suivre la direction artistique « Aurora Glow » (annexe) ; le
+  respect de la préférence « réduire les animations » est précisé par FR-036.
 
 **Paramétrage de l'interface**
 
@@ -340,6 +340,10 @@ recharger la page : les effets restent coupés et l'accent reste bleu dès l'aff
 - **FR-037**: Les prix MUST rester en or champagne quel que soit l'accent choisi (signature
   premium de la direction artistique).
 - **FR-038**: Un bouton « Réinitialiser » MUST rétablir les réglages par défaut.
+- **FR-039**: Le texte posé sur une couleur d'accent (boutons principaux, dégradé violet → bleu)
+  MUST être foncé (bleu nuit) pour rester lisible ; la couleur « succès / état actif » MUST rester
+  distincte de l'accent choisi, et un état ne MUST jamais être signalé par la couleur seule
+  (icône ou texte en plus).
 
 ### Key Entities
 
