@@ -124,7 +124,8 @@ lib/
 ├── env.ts
 ├── logger.ts  # pino, logger enfant par module, maskUuid / maskEmail ; clientLogger séparé
 ├── assert-never.ts
-├── constants/ api · auth · cart · catalog · storage-keys · ui (constantes nommées et documentées)
+├── query/     query-client.ts (createQueryClient, resetClientState)
+├── constants/ api · auth · cart · catalog · security · storage-keys · ui (constantes nommées et documentées)
 ├── enums/     brand · category · cart · availability · error-code · log-level · … (enums string)
 ├── api/       client.ts · errors.ts · endpoints/{products,categories,discounts,cart,users}.ts · schema.d.ts
 ├── schemas/   product · paged · search · cart · user · error · storage
@@ -194,8 +195,10 @@ et rejeu de l'action en attente (R14) ; déconnexion via `end_session_endpoint` 
 ## Sécurité
 
 - Cookies httpOnly / Secure (hors localhost) / SameSite=Lax.
-- `proxy.ts` : CSP avec nonce (`script-src 'self' 'nonce-…' 'strict-dynamic'`,
-  `img-src 'self' data: <S3>`, `connect-src 'self'`, `frame-ancestors 'none'`) ;
+- `proxy.ts` : CSP avec nonce (`script-src 'self' 'nonce-…' 'strict-dynamic'`, plus
+  `'unsafe-eval'` en dev uniquement ; `style-src 'self' 'unsafe-inline'` car Next.js, Motion et
+  Radix injectent des styles en ligne ; `img-src 'self' blob: data: <S3>`, `font-src 'self'`,
+  `connect-src 'self'`, `form-action 'self' <Keycloak>`, `frame-ancestors 'none'`) ;
   `next.config` : `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`
   (caméra, micro, géolocalisation, gyroscope désactivés), `X-Content-Type-Options: nosniff`.
 - `images.remotePatterns` : `http://localhost:4566/cybertech-products/**` (LocalStack), hôte lu
