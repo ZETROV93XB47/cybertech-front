@@ -1,0 +1,11 @@
+node_modules/
+.next/
+coverage/
+playwright-report/
+test-results/
+package-lock.json
+lib/api/schema.d.ts
+specs/
+docs/
+.specify/
+.claude/
