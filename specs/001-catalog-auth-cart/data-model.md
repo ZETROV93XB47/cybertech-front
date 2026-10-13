@@ -125,6 +125,32 @@ Paramètre invalide → ignoré (jamais d'erreur), l'URL canonique est réécrit
 
 Contenu invalide → clé supprimée, valeur par défaut vide.
 
+### Préférences d'interface — `lib/schemas/preferences.ts` (cookie `ct_prefs_v1`)
+
+| Champ | Zod | Défaut |
+|---|---|---|
+| `version` | `z.literal(PREFERENCES_VERSION)` (constante = 1) | 1 |
+| `effects` | `z.enum(EffectsLevel)` : FULL, REDUCED, OFF | FULL |
+| `motion` | `z.enum(MotionIntensity)` : NORMAL, SOFT | NORMAL |
+| `accent` | `z.enum(AccentVariant)` : VIOLET, BLUE, CYAN | VIOLET |
+| `sound` | `z.enum(SoundSetting)` : ON, OFF | OFF |
+
+Cookie non httpOnly, `SameSite=Lax`, `Path=/`, durée `PREFERENCES_COOKIE_MAX_AGE_SECONDS`
+(1 an). Contenu invalide ou version différente → valeurs par défaut.
+
+### Configuration de thème — `lib/theme/theme.config.ts` (type `ThemeConfig`)
+
+| Clé | Contenu |
+|---|---|
+| `palette` | `bg`, `surface`, `surface2`, `border`, `text`, `textMuted`, `gold`, `rose`, `success` (valeurs de l'annexe) |
+| `accents` | `Record<AccentVariant, { accent, accentStrong, accentGlow, gradientFrom, gradientTo }>` |
+| `typography` | familles (Sora, Inter, JetBrains Mono), graisses, interlignes, letter-spacing |
+| `shape` | rayons (carte, bouton, champ), bordures, flou du verre, opacité du verre |
+| `shadows` | ombres teintées (repos, survol, halo du CTA) |
+| `motion` | `Record<MotionIntensity, { durationFast, durationBase, durationSlow, revealOffset, stagger, easing }>` |
+| `effects` | `Record<EffectsLevel, { dotGrid, aurora, tilt, magnetic, smoothScroll, viewTransitions }>`, chacun `{ enabled, …paramètres }` |
+| `sound` | volume, durée, fréquences par `UiSound` |
+
 ## 4. Vues construites par le BFF
 
 ### CartView (identique invité / compte) — cf. `docs/guest-cart.md` §6

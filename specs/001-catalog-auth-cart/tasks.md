@@ -11,19 +11,21 @@ description: "Task list for lot 1 — catalog, authentication and cart"
 
 **Tests**: REQUIRED — constitution principle VII (« un comportement sans test n'est pas terminé »). Unit tests (Vitest + Testing Library + MSW) and Playwright journeys are included per story.
 
-**Organization**: Tasks are grouped by user story (priority order: US1 P1, US4 P1, US3 P2, US2 P2) so each story can be implemented and tested independently.
+**Organization**: Tasks are grouped by user story (priority order: US1 P1, US4 P1, US3 P2, US2 P2, US5 P3) so each story can be implemented and tested independently.
 
 **Rules applying to EVERY task** (constitution XI–XII, `CLAUDE.md`):
 - Code, comments, TSDoc and logs in **English**; user-facing text in **French** (tutoiement) in `features/*/messages.ts` only.
 - No magic number/string: use `lib/constants/*`; closed sets are **string enums** in `lib/enums/*`; Zod built from enums (`z.enum(MyEnum)`); exhaustive `switch` + `assertNever`.
 - TSDoc on every export and at the top of every module (`@param`, `@returns`, `@throws`, `@see`).
 - Server logs via `lib/logger.ts` child loggers only; never log tokens, passwords, cookies or full emails.
+- Every visual value comes from `lib/theme/theme.config.ts` through CSS variables / Tailwind tokens; no raw hex, px, ms or arbitrary Tailwind values in `components/` or `features/` (constitution XIII).
 - A task is done when `npm run typecheck`, `npm run lint` (0 warning) and `npm run test` pass.
 
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)
-- **[Story]**: US1 catalogue · US2 inscription · US3 session · US4 panier
+- **[Story]**: US1 catalogue · US2 inscription · US3 session · US4 panier · US5 préférences
+- IDs T120+ were added after the first generation; **execution order is the order of appearance in this file**, not the numeric order
 
 ---
 
@@ -34,7 +36,7 @@ description: "Task list for lot 1 — catalog, authentication and cart"
 - [ ] T001 Scaffold Next.js 16.4 App Router project at repo root (TypeScript, no `src/`, alias `@/*`), no `output: "standalone"` (no container, constitution X), Node 24 engines in `package.json`
 - [ ] T002 Configure `tsconfig.json`: `"strict": true`, `"noUncheckedIndexedAccess": true`, `"exactOptionalPropertyTypes": true`, `"noImplicitOverride": true`, path alias `@/*`
 - [ ] T003 Install runtime deps pinned: `next-auth@5.0.0-beta.32`, `zod@4.6.7`, `@tanstack/react-query@5.104.2`, `motion@14.1.0`, `lenis@1.3.26`, `pino`, `server-only`, `cmdk`; dev deps: `openapi-typescript@7.13.0`, `pino-pretty`, `vitest`, `@testing-library/react`, `@testing-library/user-event`, `jsdom`, `msw`, `@playwright/test`, `@axe-core/playwright`, `jest-axe` in `package.json`
-- [ ] T004 Configure ESLint flat config in `eslint.config.mjs` (typescript-eslint type-checked, eslint-plugin-jsdoc, eslint-plugin-import) with rules from research R17: `no-explicit-any`, `no-magic-numbers` (ignore 0/1/-1, enums, array indexes, readonly class props; off in `tests/**`), `switch-exhaustiveness-check`, `explicit-module-boundary-types`, `prefer-readonly`, `naming-convention`, `jsdoc/require-jsdoc` (exports) + `require-param` + `require-returns`, `no-console`, `max-depth: 3`, `max-lines-per-function: 40` (80 for `*.tsx`), `no-nested-ternary`, `import/no-cycle`; all as errors
+- [ ] T004 Configure ESLint flat config in `eslint.config.mjs` (typescript-eslint type-checked, eslint-plugin-jsdoc, eslint-plugin-import) with rules from research R17: `no-explicit-any`, `no-magic-numbers` (ignore 0/1/-1, enums, array indexes, readonly class props; off in `tests/**`), `switch-exhaustiveness-check`, `explicit-module-boundary-types`, `prefer-readonly`, `naming-convention`, `jsdoc/require-jsdoc` (exports) + `require-param` + `require-returns`, `no-console`, `max-depth: 3`, `max-lines-per-function: 40` (80 for `*.tsx`), `no-nested-ternary`, `import/no-cycle`, and `no-restricted-syntax` forbidding hex colour, `px`/`ms` string literals and arbitrary Tailwind values (`[…]`) in `components/**` and `features/**` (constitution XIII); all as errors
 - [ ] T005 [P] Add Prettier config `.prettierrc.json` and `.editorconfig`; scripts `dev`, `build`, `start`, `typecheck` (`tsc --noEmit`), `lint` (`eslint . --max-warnings 0`), `test`, `test:e2e`, `gen:api` in `package.json`
 - [ ] T006 [P] Configure Vitest in `vitest.config.ts` (jsdom, alias `@/`, setup file `tests/setup.ts` with Testing Library matchers, jest-axe and MSW server lifecycle) and create `tests/msw/handlers.ts` + `tests/msw/server.ts`
 - [ ] T007 [P] Configure Playwright in `playwright.config.ts` (baseURL `http://localhost:3000`, projects `chromium` and `reduced-motion` with `reducedMotion: 'reduce'`, `webServer` → `npm run dev` with `E2E=1`)
@@ -57,9 +59,9 @@ description: "Task list for lot 1 — catalog, authentication and cart"
 - [ ] T013 [P] Create `lib/constants/auth.ts`: `ACCESS_TOKEN_REFRESH_MARGIN_MS = 30_000` (Keycloak `accessTokenLifespan` 300 s), `KEYCLOAK_PROVIDER_ID = "keycloak"`, `CALLBACK_URL_PARAM = "callbackUrl"`, Keycloak OIDC path segments (token, logout)
 - [ ] T014 [P] Create `lib/constants/cart.ts`: `GUEST_CART_MAX_LINES = 50`, `CART_LINE_MIN_QUANTITY = 1`, `CART_LINE_MAX_QUANTITY = 99`, `CART_STALE_TIME_MS = 30_000`, `AVAILABILITY_MAX_UUIDS_PER_REQUEST = 50`, `MERGE_LOCK_NAME = "ct-guest-cart-merge"`
 - [ ] T015 [P] Create `lib/constants/catalog.ts`: `SEARCH_PAGE_SIZE = 24`, `BEST_SELLERS_SIZE = 8`, `COMMAND_PALETTE_RESULT_SIZE = 6`, `COMMAND_PALETTE_DEBOUNCE_MS = 200`, `SEARCH_KEYWORD_MAX_LENGTH = 100`, `PRICE_MIN_EUR = 100`, `PRICE_MAX_EUR = 1_000_000`, `LOW_STOCK_THRESHOLD = 5`, `RECENTLY_VIEWED_MAX = 8`, `PRODUCTS_REVALIDATE_SECONDS = 60`, `DISCOUNTS_REVALIDATE_SECONDS = 300`, `CATEGORY_SCHEMA_REVALIDATE_SECONDS = 3_600`, `PRODUCTS_CACHE_TAG = "products"`
-- [ ] T016 [P] Create `lib/constants/storage-keys.ts` (documented values `ct_guest_cart_v1`, `ct_recent_v1`, `ct_pending_action_v1`) and `lib/constants/ui.ts` (motion durations 150/250/350 ms, reveal offset 12 px, dot-grid radius 120 px and spacing 28 px, aurora cycle 20–30 s, breakpoints)
+- [ ] T016 [P] Create `lib/constants/storage-keys.ts` (documented values `ct_guest_cart_v1`, `ct_recent_v1`, `ct_pending_action_v1`) and `lib/constants/preferences.ts` (`PREFERENCES_COOKIE_NAME = "ct_prefs_v1"`, `PREFERENCES_VERSION = 1`, `PREFERENCES_COOKIE_MAX_AGE_SECONDS = 31_536_000`); **no visual value here**: durations, sizes and effect parameters live in `lib/theme/theme.config.ts` (T120)
 - [ ] T017 [P] Create enums in `lib/enums/`: `brand.ts` (`Brand`, 13 values exactly as backend: ASUS, HP, LENOVO, DELL, AORUS, MSI, ACER, TOSHIBA, ALIENWARE, MICROSOFT, ALTYK, GIGABYTE, SAMSUNG), `category-key.ts` (`CategoryKey`: COMPUTER, MONITOR), `sex.ts` (`Sex`: M, F), `communication-channel.ts` (`CommunicationChannel`: EMAIL, SMS, PUSH_NOTIFICATION), `discount-calculation-type.ts` (NONE, PERCENTAGE, FIXED_AMOUNT, BUY_ONE_GET_ONE_FREE)
-- [ ] T018 [P] Create enums in `lib/enums/`: `cart.ts` (`CartSource` guest/account, `CartLineStatus` ok/insufficient-stock/unavailable, `MergeDropReason` out-of-stock/not-found, `PendingActionType` add/set/remove), `availability-level.ts` (`AvailabilityLevel` in/low/out), `log-level.ts` (`LogLevel` debug/info/warn/error), `session-error.ts` (`SessionError`: REFRESH_TOKEN_ERROR = "RefreshTokenError", the value Auth.js examples use), `query-key.ts` (`QueryKey` cart/availability/search/recent-products), `storage-key.ts` (`StorageKey` built from `lib/constants/storage-keys.ts`)
+- [ ] T018 [P] Create enums in `lib/enums/`: `cart.ts` (`CartSource` guest/account, `CartLineStatus` ok/insufficient-stock/unavailable, `MergeDropReason` out-of-stock/not-found, `PendingActionType` add/set/remove), `availability-level.ts` (`AvailabilityLevel` in/low/out), `log-level.ts` (`LogLevel` debug/info/warn/error), `session-error.ts` (`SessionError`: REFRESH_TOKEN_ERROR = "RefreshTokenError", the value Auth.js examples use), `theme.ts` (`AccentVariant` violet/blue/cyan, `EffectsLevel` full/reduced/off, `MotionIntensity` normal/soft, `SoundSetting` on/off, `UiSound` add-to-cart/merge-success/error, `ThemeDataAttribute` data-accent/data-effects/data-motion), `query-key.ts` (`QueryKey` cart/availability/search/recent-products), `storage-key.ts` (`StorageKey` built from `lib/constants/storage-keys.ts`)
 - [ ] T019 [P] Create `lib/enums/error-code.ts`: `ErrorCodeType` (TECHNICAL, FUNCTIONAL — backend `ErrorCodeType.java`), `BackendErrorCode` (string enum mirroring every value of `ErrorResponseDto.errorCode` in the OpenAPI) and `FrontErrorCode` (invalid, unauthenticated, forbidden, not-found, insufficient-stock, conflict, empty-cart, already-exists, rate-limited, unavailable, unknown) per `contracts/errors.md`
 - [ ] T020 [P] Type-level test `tests/unit/enums/error-code.test-d.ts` (Vitest `expectTypeOf`, typecheck mode enabled in `vitest.config.ts`) asserting `` `${BackendErrorCode}` `` and the `errorCode` union of `components["schemas"]["ErrorResponseDto"]` in `lib/api/schema.d.ts` are mutually assignable (detects backend drift at `npm run test`)
 
@@ -95,12 +97,20 @@ description: "Task list for lot 1 — catalog, authentication and cart"
 - [ ] T039 Create `lib/auth/guards.ts`: `getAccessTokenOrThrow()` (server-only; throws `ApiError` UNAUTHENTICATED when no session or `session.error === SessionError.REFRESH_TOKEN_ERROR`) and `requireSession(callbackPath)` for layouts (redirects to `/login?callbackUrl=`)
 - [ ] T040 [P] Unit tests `tests/unit/auth/refresh.test.ts` (refresh before margin, dedup of concurrent calls, failure → RefreshTokenError) and `tests/unit/auth/session-callback.test.ts` (no token leaked to the session object)
 
+### Theme configuration — constitution XIII, research R18
+
+- [ ] T120 Create `lib/theme/types.ts` (`ThemeConfig` type indexed by `AccentVariant`, `MotionIntensity`, `EffectsLevel`, `UiSound`) and `lib/theme/theme.config.ts` exporting `THEME` (`as const satisfies ThemeConfig`, fully TSDoc'd) with **every** visual value: palette from the spec annex (`bg #0A0E1F`, `surface #121833`, `surface2 #1A2142`, `border #2A3150`, `text #E6E8F2`, `textMuted #8B93B0`, `gold #D4AF6A`, `rose #F08BB8`, `success #5EEAD4`), accents (VIOLET `#8B7CF6` default, BLUE `#4F7BFF`, CYAN `#5EEAD4`, each with strong/glow/gradient values), typography (Sora 500–600 −0.02em, Inter 400–500 line-height 1.6–1.7, JetBrains Mono), shape (radii 16–20 px, glass opacity 0.7, blur 12 px), violet-tinted shadows, motion per intensity (NORMAL: 150/250/350 ms, reveal 12 px; SOFT: longer and smaller), effects per level (FULL / REDUCED / OFF for dotGrid radius 120 px spacing 28 px, aurora 2–3 blobs 20–30 s, tilt, magnetic, smoothScroll, viewTransitions), sound (volume, duration, frequency per `UiSound`)
+- [ ] T121 Create `lib/theme/css-variables.ts`: `buildThemeCss(theme): string` emitting `:root { --color-bg: …; --accent: …; --radius-card: …; --duration-base: …; … }` plus one block per variant (`[data-accent="blue"]`, `[data-motion="soft"]`, `[data-effects="off"]`), variable names as constants
+- [ ] T122 [P] Create `lib/theme/contrast.ts` (`contrastRatio(foreground, background)`, WCAG relative luminance) and `tests/unit/theme/contrast.test.ts` asserting every `AccentVariant` × surface (`bg`, `surface`, `surface2`) × text role meets AA (4.5:1 body text, 3:1 large text and focus ring), SC-011
+- [ ] T123 [P] Unit test `tests/unit/theme/css-variables.test.ts`: every token of `THEME` is emitted, every enum variant has its block, no `undefined`/`NaN` in the output
+- [ ] T124 Create `lib/schemas/preferences.ts` (`PreferencesSchema`: `version` literal `PREFERENCES_VERSION`, `effects` z.enum(EffectsLevel) default FULL, `motion` z.enum(MotionIntensity) default NORMAL, `accent` z.enum(AccentVariant) default VIOLET, `sound` z.enum(SoundSetting) default OFF; `DEFAULT_PREFERENCES`) and `lib/preferences/read-preferences.ts` (`readPreferences(cookieStore)`, invalid or old version → defaults), with `tests/unit/preferences/read-preferences.test.ts`
+
 ### Design system and layout — spec annexe « Aurora Glow » (use the frontend-design skill)
 
-- [ ] T041 Create `styles/globals.css`: Tailwind 4 `@import "tailwindcss"` + `@theme` with tokens `--bg #0A0E1F`, `--surface #121833`, `--surface-2 #1A2142`, `--border #2A3150`, `--text #E6E8F2`, `--text-muted #8B93B0`, `--violet #8B7CF6`, `--blue #4F7BFF`, `--gold #D4AF6A`, `--cyan #5EEAD4`, `--rose #F08BB8`, radii 16–20 px, violet-tinted shadows, glass card utility (surface 70 %, blur 12 px), violet shimmer keyframes, visible focus ring (`:focus-visible`, 2 px cyan outline + offset, AA contrast on every surface), global `prefers-reduced-motion` rules
-- [ ] T042 [P] Create `styles/motion.ts`: shared durations/easings re-exported from `lib/constants/ui.ts` and Motion variants (fade + 12 px reveal, stagger)
-- [ ] T043 Create `app/layout.tsx`: `next/font` Sora (variable `wght`), Inter, JetBrains Mono; `lang="fr"`; metadata from `features/common/messages.ts` with `metadataBase` = `NEXT_PUBLIC_SITE_URL`; `<Providers>`; skip link; `Header`; main landmark
-- [ ] T044 Create `lib/query/query-client.ts` — `createQueryClient()` (default options from `lib/constants/cart.ts`, no automatic retry on mutations) and `resetClientState(queryClient)` clearing every cached query (used at sign-out, FR-017) — then `app/providers.tsx` (`"use client"`): `QueryClientProvider` built with `createQueryClient()`, `SessionProvider`, `MotionConfig reducedMotion="user"`, toast provider
+- [ ] T041 Create `styles/globals.css` **without any literal value**: Tailwind 4 `@import "tailwindcss"` + `@theme inline` mapping every token to the CSS variables emitted by `buildThemeCss` (colours incl. `accent`, radii, shadows, fonts, durations), glass card utility (`--glass-opacity`, `--glass-blur`), accent-tinted shimmer keyframes, visible focus ring (`:focus-visible`, outline in `var(--accent)` with width/offset tokens, AA contrast verified by T122), global `prefers-reduced-motion` rules
+- [ ] T042 [P] Create `styles/motion.ts`: Motion variants (fade + reveal offset, stagger) built from `THEME.motion[intensity]`, exposed through `useMotionTokens()` which reads the current `MotionIntensity` from preferences
+- [ ] T043 Create `app/layout.tsx`: `next/font` Sora (variable `wght`), Inter, JetBrains Mono; `lang="fr"`; metadata from `features/common/messages.ts` with `metadataBase` = `NEXT_PUBLIC_SITE_URL`; reads preferences with `readPreferences(cookies())`, sets `data-accent`/`data-effects`/`data-motion` on `<html>` and injects `buildThemeCss(THEME)` in a `<style nonce>` in `<head>` (no flash on first paint, FR-034); `<Providers>`; skip link; `Header`; main landmark
+- [ ] T044 Create `lib/query/query-client.ts` — `createQueryClient()` (default options from `lib/constants/cart.ts`, no automatic retry on mutations) and `resetClientState(queryClient)` clearing every cached query (used at sign-out, FR-017) — then `app/providers.tsx` (`"use client"`): `QueryClientProvider` built with `createQueryClient()`, `SessionProvider`, `MotionConfig reducedMotion="user"`, toast provider, and `PreferencesProvider` (US5, T128; until then a pass-through returning the server-read preferences) initialised with the server-read preferences
 - [ ] T045 [P] Create `features/common/messages.ts` (French, tutoiement: site name, generic errors, retry, not found, loading labels) and `lib/format.ts` (`formatPrice` via `Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" })`)
 - [ ] T046 Create `components/layout/Header.tsx` (logo, nav, search trigger slot, cart badge slot, account slot) and `components/layout/Footer.tsx`, `components/layout/SkipLink.tsx`
 - [ ] T047 Create `app/error.tsx`, `app/not-found.tsx`, `app/loading.tsx` (messages from `features/common/messages.ts`, « Réessayer » button, violet shimmer skeleton, static when reduced motion)
@@ -229,25 +239,47 @@ description: "Task list for lot 1 — catalog, authentication and cart"
 - [ ] T106 [US2] Create `features/auth/components/RegisterForm.tsx` (`"use client"`, client-side Zod validation on blur/submit, labels and `aria-describedby` errors, focus first invalid field, progressive enhancement via the Server Action) and `app/(auth)/register/page.tsx` (success state with « Se connecter » link)
 - [ ] T107 [US2] Add registration messages to `features/auth/messages.ts` (field errors, « Un compte existe déjà avec cet email. », « Doucement ! Réessaie dans {n} s. », success)
 
-**Checkpoint**: all four user stories independently functional
+**Checkpoint**: US1–US4 independently functional
 
 ---
 
-## Phase 7: Polish & Cross-Cutting Concerns (Aurora Glow signature, perf, a11y)
+## Phase 7: User Story 5 — Personnaliser l'interface (Priority: P3)
+
+**Goal**: panneau « Préférences » (effets, intensité, accent, sons), application immédiate, mémorisation sans flash, priorité à `prefers-reduced-motion`
+
+**Independent Test**: désactiver les effets, choisir l'accent bleu, recharger : la page s'affiche directement avec effets coupés et accent bleu ; les prix restent dorés
+
+### Tests for User Story 5 ⚠️ (write first, must fail)
+
+- [ ] T125 [P] [US5] Unit tests `tests/unit/preferences/usePreferences.test.tsx` (update writes the `ct_prefs_v1` cookie with constants and updates `<html>` data attributes immediately; reset → `DEFAULT_PREFERENCES`), `useEffectiveEffects.test.tsx` (effective level = min(preference, OS reduced motion)) and `PreferencesPanel.test.tsx` (radio groups labelled, keyboard operable, state announced, reduced-motion notice shown when the OS asks for it, jest-axe)
+- [ ] T126 [P] [US5] E2E `tests/e2e/preferences.spec.ts`: choose BLUE → accent changes without reload and prices stay gold (FR-037); reload → initial HTML already has `data-accent="blue"` (no flash, FR-034); effects OFF → no canvas and no tilt; `reduced-motion` project with FULL → effects static + notice (FR-036); sound ON → add to cart plays (AudioContext spy); reset → defaults
+
+### Implementation for User Story 5
+
+- [ ] T127 [P] [US5] Create `features/preferences/messages.ts` (French, tutoiement: panel title « Préférences », labels and descriptions for each option and value, reduced-motion notice « Ton système demande moins d'animations, on les garde figées. », reset, saved confirmation)
+- [ ] T128 [US5] Create `features/preferences/PreferencesProvider.tsx` + hooks `usePreferences()`, `useEffectiveEffects()`, `useMotionIntensity()`: React context initialised from server preferences, `update(partial)` validates with `PreferencesSchema`, writes the cookie (`SameSite=Lax`, `Path=/`, max-age constant; try/catch when storage is refused) and sets `document.documentElement.dataset`; listens to `matchMedia('(prefers-reduced-motion: reduce)')`
+- [ ] T129 [US5] Create `features/preferences/components/PreferencesPanel.tsx` (shadcn Sheet/Dialog, radio groups for effects/motion/accent with colour swatches from `THEME.accents`, switch for sound, « Réinitialiser » button, reduced-motion notice) and a trigger button in `components/layout/Header.tsx`
+- [ ] T130 [US5] Create `lib/sound/ui-sounds.ts` (`playUiSound(sound: UiSound)` with a Web Audio oscillator, parameters from `THEME.sound`, lazily created `AudioContext`, no-op when `SoundSetting.OFF`) and `useUiSound()`; call it on add-to-cart success (`AddToCartButton`), merge success (`GuestCartMerger`) and error toasts
+
+**Checkpoint**: all five user stories independently functional
+
+---
+
+## Phase 8: Polish & Cross-Cutting Concerns (Aurora Glow signature, perf, a11y)
 
 **Purpose**: signature effects (desktop only), performance budgets, accessibility audit and docs — use the **frontend-design** skill with the spec annex as reference
 
-- [ ] T108 [P] Create `components/effects/DotGrid.tsx` (Canvas 2D, point count ∝ screen area with spacing constant, reveal + repulsion within radius constant, inertia, soft shadow under cursor, excluded over `[data-dotgrid-exclude]` cards/text, paused on `visibilitychange` and via IntersectionObserver, disabled with reduced motion) loaded with `next/dynamic({ ssr: false })` in `app/layout.tsx`
-- [ ] T109 [P] Create `components/effects/AuroraBlobs.tsx` (2–3 blurred blobs violet/blue/gold, 20–30 s drift cycles, slow cursor follow, paused when hidden, static with reduced motion)
-- [ ] T110 [P] Create `components/effects/MagneticButton.tsx`, `TiltCard.tsx` (3D tilt, inner spotlight, gold reflection on border) and `LiveTitle.tsx` (letter-by-letter reveal, cursor-reactive `wght`), applied to primary CTAs, product cards and page titles
-- [ ] T111 [P] Add smooth scroll with Lenis in `app/providers.tsx` (not initialized with reduced motion) and the card → product view transition (`document.startViewTransition`, fade fallback) in `features/catalog/components/ProductCard.tsx`
+- [ ] T108 [P] Create `components/effects/DotGrid.tsx` (Canvas 2D, point count ∝ screen area with spacing constant, reveal + repulsion within radius constant, inertia, soft shadow under cursor, excluded over `[data-dotgrid-exclude]` cards/text, parameters from `THEME.effects[level].dotGrid` via `useEffectiveEffects()` (renders nothing when disabled), paused on `visibilitychange` and via IntersectionObserver, disabled with reduced motion) loaded with `next/dynamic({ ssr: false })` in `app/layout.tsx`
+- [ ] T109 [P] Create `components/effects/AuroraBlobs.tsx` (blob count, colours (current accent + gold), blur and cycle from `THEME.effects[level].aurora`, 20–30 s drift cycles, slow cursor follow, paused when hidden, static with reduced motion)
+- [ ] T110 [P] Create `components/effects/MagneticButton.tsx`, `TiltCard.tsx` (3D tilt, inner spotlight, gold reflection on border) and `LiveTitle.tsx` (letter-by-letter reveal, cursor-reactive `wght`), each reading its parameters from `THEME.effects[level]` via `useEffectiveEffects()` and degrading to a static element when disabled, applied to primary CTAs, product cards and page titles
+- [ ] T111 [P] Add smooth scroll with Lenis in `app/providers.tsx` (initialized only when `THEME.effects[level].smoothScroll.enabled`, re-evaluated when preferences change) and the card → product view transition (`document.startViewTransition`, fade fallback) in `features/catalog/components/ProductCard.tsx`
 - [ ] T112 [P] Add cart micro-interactions: « fly to cart » animation, gold counter bounce, in `features/cart/components/AddToCartButton.tsx` and `components/layout/CartBadge.tsx`
 - [ ] T113 [P] Animated empty and error states (illustration + French copy) in `app/error.tsx`, `app/not-found.tsx`, cart empty state and catalog empty state
-- [ ] T114 [P] Unit tests `tests/unit/effects/reduced-motion.test.tsx`: each effect renders static / no RAF loop when `prefers-reduced-motion: reduce`
+- [ ] T114 [P] Unit tests `tests/unit/effects/effects-levels.test.tsx`: for each effect, FULL animates, REDUCED uses the reduced parameters, OFF and `prefers-reduced-motion: reduce` render static with no RAF loop
 - [ ] T115 Create `tests/e2e/a11y.spec.ts` (axe on home, list, product, cart, register — no serious/critical) `tests/e2e/backend-down.spec.ts` (backend unreachable → friendly message + « Réessayer », no blank page) and `tests/e2e/long-tasks.spec.ts` (`PerformanceObserver` on `longtask` during 5 s of cursor movement over the home page: no entry > 50 ms, constitution IX)
 - [ ] T116 Run Lighthouse manually (Chrome DevTools, Desktop mode) on `/`, `/products` and one product page; check LCP ≤ 2500 ms, CLS ≤ 0.1, TBT ≤ 200 ms; fix regressions and record the scores in `specs/001-catalog-auth-cart/quickstart.md` §3
 - [ ] T117 [P] Update `README.md` (local setup: backend services via docker-compose, Spring from IntelliJ, `npm run dev`; scripts, env, architecture, conventions summary pointing to `CLAUDE.md` and the constitution)
-- [ ] T118 Audit pass: no magic numbers/strings, every closed set is an enum, every export has TSDoc, no `console.*`, no hard-coded French string outside `messages.ts` (`npm run lint` 0 warning + grep check)
+- [ ] T118 Audit pass: no magic numbers/strings, every closed set is an enum, every export has TSDoc, no `console.*`, no hard-coded French string outside `messages.ts`, no raw visual value outside `lib/theme/` (change the default accent in `THEME` and check every screen follows, SC-012) (`npm run lint` 0 warning + grep check)
 - [ ] T119 Run `specs/001-catalog-auth-cart/quickstart.md` end to end (automatic checks, Lighthouse, 18 manual scenarios) and record results
 
 ---
@@ -262,7 +294,8 @@ description: "Task list for lot 1 — catalog, authentication and cart"
 - **US4 (Phase 4)**: depends on Foundational; uses `ProductCard`/`AvailabilityBadge`/product endpoints from US1 (T058, T063, T064) — start after T058–T064
 - **US3 (Phase 5)**: depends on Foundational (auth core T036–T039); T098 integrates with `useCart` (T084)
 - **US2 (Phase 6)**: depends on Foundational only; reuses `lib/api/endpoints/users.ts` (T092)
-- **Polish (Phase 7)**: depends on the stories it decorates
+- **US5 (Phase 7)**: depends on Foundational theme tasks (T120–T124) only; T130 hooks into US4 components when present
+- **Polish (Phase 8)**: depends on the stories it decorates; effects (T108–T112) read `useEffectiveEffects()` from T128
 
 ### Within Each User Story
 
@@ -322,7 +355,8 @@ Task: "Create features/cart/messages.ts"
 3. US4 → guest cart, then account cart + merge
 4. US3 → login UI, welcome, pending action replay
 5. US2 → registration
-6. Polish → signature effects, budgets, docs
+6. US5 → preferences panel
+7. Polish → signature effects (driven by theme + preferences), budgets, docs
 
 ---
 
@@ -330,4 +364,4 @@ Task: "Create features/cart/messages.ts"
 
 - [P] tasks = different files, no dependency on incomplete tasks
 - Commit after each task or logical group (English commit messages)
-- UI tasks (T041–T047, T063–T069, T086–T088, T106, T108–T113) are implemented with the **frontend-design** skill using the spec annex « Aurora Glow » as reference — restart Claude Code before `/speckit-implement` so the plugin is loaded
+- UI tasks (T041–T047, T063–T069, T086–T088, T106, T129, T108–T113) are implemented with the **frontend-design** skill using the spec annex « Aurora Glow » as reference — restart Claude Code before `/speckit-implement` so the plugin is loaded

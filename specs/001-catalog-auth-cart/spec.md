@@ -170,6 +170,51 @@ se connecte et retrouve un panier fusionné cohérent.
 
 ---
 
+### User Story 5 - Personnaliser l'interface (Priority: P3)
+
+En tant que visiteur ou utilisateur connecté, je veux adapter le confort visuel de la boutique
+(effets, animations, couleur d'accent, sons) sans perdre la cohérence de son style.
+
+- Un panneau « Préférences », accessible depuis l'en-tête, propose uniquement des choix prévus :
+  - **effets visuels** : complets, réduits ou désactivés (grille de points, halos, inclinaison
+    des cartes, boutons magnétiques, défilement fluide) ;
+  - **intensité des animations** : normale ou douce (durées et amplitudes réduites) ;
+  - **couleur d'accent** : violet (par défaut), bleu ou cyan — variantes prévues par la
+    direction artistique, toutes lisibles ;
+  - **sons d'interface** : désactivés par défaut, activables.
+- Les changements s'appliquent immédiatement, sans recharger la page, partout dans l'interface.
+- Les préférences sont retenues sur ce navigateur, y compris pour un visiteur non connecté, et
+  la page s'affiche dès son chargement avec les bons réglages.
+- Un bouton « Réinitialiser » revient aux réglages par défaut.
+- Si le système demande de réduire les animations, cette demande l'emporte sur les préférences.
+
+**Why this priority**: améliore le confort et l'accessibilité, mais aucun parcours d'achat n'en
+dépend ; l'apparence par défaut doit déjà être complète sans réglage.
+
+**Independent Test**: ouvrir les préférences, désactiver les effets, choisir l'accent bleu,
+recharger la page : les effets restent coupés et l'accent reste bleu dès l'affichage.
+
+**Acceptance Scenarios**:
+
+1. **Given** les réglages par défaut, **When** je choisis l'accent « bleu », **Then** tous les
+   éléments d'accent (boutons principaux, focus, liens actifs, halos) passent au bleu sans
+   rechargement, et les prix restent dorés.
+2. **Given** des préférences enregistrées, **When** je recharge la page ou reviens plus tard,
+   **Then** la page s'affiche directement avec ces préférences, sans clignotement.
+3. **Given** « effets désactivés », **When** je navigue, **Then** la grille de points, les halos,
+   l'inclinaison des cartes et le défilement fluide sont absents, et le reste de l'interface est
+   inchangé.
+4. **Given** le système en « réduire les animations », **When** je choisis « effets complets »,
+   **Then** les effets restent figés et le panneau explique pourquoi.
+5. **Given** les sons activés, **When** j'ajoute un produit au panier, **Then** un son discret
+   est joué ; **Given** les sons désactivés (défaut), **Then** aucun son.
+6. **Given** n'importe quelle combinaison de préférences, **When** je l'applique, **Then** tous
+   les textes restent lisibles (contraste WCAG 2.1 AA).
+7. **Given** le panneau ouvert, **When** je l'utilise au clavier seul ou avec un lecteur
+   d'écran, **Then** chaque option est accessible et son état est annoncé.
+
+---
+
 ### Edge Cases
 
 - **Session expirée pendant une action panier** : l'action est rejouée après renouvellement
@@ -194,6 +239,10 @@ se connecte et retrouve un panier fusionné cohérent.
   erreur bloquante.
 - **JavaScript lent à charger** : catalogue et fiches lisibles sans JavaScript.
 - **Préférence « réduire les animations »** : tous les effets sont figés ou réduits à des fondus.
+- **Préférences enregistrées illisibles ou d'une ancienne version** : retour silencieux aux
+  réglages par défaut.
+- **Navigateur qui refuse le stockage** : les préférences s'appliquent pendant la visite mais ne
+  sont pas retenues, sans erreur.
 
 ## Requirements *(mandatory)*
 
@@ -273,6 +322,25 @@ se connecte et retrouve un panier fusionné cohérent.
 - **FR-031**: L'interface MUST suivre la direction artistique « Aurora Glow » (annexe) et
   respecter la préférence « réduire les animations ».
 
+**Paramétrage de l'interface**
+
+- **FR-032**: Toute l'apparence (couleurs, typographies, rayons, ombres, durées, intensité et
+  activation de chaque effet) MUST dépendre d'une configuration de thème unique ; modifier une
+  valeur de cette configuration MUST la répercuter partout de façon cohérente.
+- **FR-033**: Les utilisateurs (connectés ou non) MUST pouvoir régler, depuis un panneau
+  « Préférences », le niveau d'effets (complets, réduits, désactivés), l'intensité des animations
+  (normale, douce), l'accent de couleur (violet, bleu, cyan) et les sons (désactivés par défaut).
+- **FR-034**: Les préférences MUST s'appliquer immédiatement et être retenues sur le navigateur ;
+  la première page d'une visite MUST s'afficher avec ces préférences, sans changement visible
+  après le chargement.
+- **FR-035**: Seules des options prédéfinies MUST être proposées (aucune couleur ni taille
+  libre) ; chaque combinaison MUST respecter WCAG 2.1 AA.
+- **FR-036**: La demande système « réduire les animations » MUST l'emporter sur la préférence
+  d'effets, et le panneau MUST l'indiquer.
+- **FR-037**: Les prix MUST rester en or champagne quel que soit l'accent choisi (signature
+  premium de la direction artistique).
+- **FR-038**: Un bouton « Réinitialiser » MUST rétablir les réglages par défaut.
+
 ### Key Entities
 
 - **Produit** : identifiant, nom, marque, catégorie, prix en euros, photos, description,
@@ -287,6 +355,10 @@ se connecte et retrouve un panier fusionné cohérent.
   utilisateur, source de vérité.
 - **Panier invité** : lignes (produit, quantité) uniquement, sans prix ni donnée personnelle ;
   existe seulement jusqu'à la fusion.
+- **Préférences d'interface** : niveau d'effets, intensité des animations, accent, sons ;
+  propres au navigateur, non sensibles, avec une version pour pouvoir évoluer.
+- **Configuration de thème** : ensemble des valeurs visuelles et des variantes autorisées
+  (accents, niveaux d'effets) ; source unique de l'apparence.
 - **Rapport de fusion** : lignes fusionnées, limitées (quantité demandée / ajoutée),
   abandonnées (rupture, produit disparu) et à retenter.
 
@@ -313,6 +385,11 @@ se connecte et retrouve un panier fusionné cohérent.
   clavier seul et ne présentent aucune violation WCAG 2.1 AA de niveau sérieux.
 - **SC-010**: Quand le service est indisponible, 100 % des pages affichent un message et une
   action « Réessayer » plutôt qu'une page blanche.
+- **SC-011**: 100 % des combinaisons de préférences (3 niveaux d'effets × 2 intensités ×
+  3 accents) respectent le contraste WCAG 2.1 AA, et un changement de préférence s'applique en
+  moins de 200 ms sans rechargement.
+- **SC-012**: Changer une valeur de la configuration de thème (ex. la couleur d'accent violet)
+  modifie tous les écrans concernés sans toucher à un seul composant.
 
 ## Assumptions
 
@@ -328,6 +405,8 @@ se connecte et retrouve un panier fusionné cohérent.
 - Une fusion dont la réponse se perd alors que les articles ont déjà été ajoutés peut doubler une
   ligne ; ce cas rare est accepté pour le lot 1.
 - Français uniquement, tutoiement partout.
+- Les sons d'interface sont de courts sons générés par le navigateur (aucun fichier audio), joués
+  uniquement si l'utilisateur les a activés.
 - Navigateur desktop récent (Chrome, Firefox, Edge) ; fenêtre d'au moins 1024 px de large.
 - Tout tourne sur le poste du développeur : services du backend via docker-compose, backend
   Spring depuis IntelliJ, front avec `npm run dev`.
@@ -336,8 +415,8 @@ se connecte et retrouve un panier fusionné cohérent.
 
 Commande et paiement, historique de commandes, wishlist, avis, recommandations personnalisées,
 carte bancaire, profil, mot de passe oublié, administration, tri du catalogue (non supporté par le
-backend), avis et notes sur la fiche (non exposés publiquement), sons d'interface (prévus mais
-désactivés), internationalisation (français uniquement), **adaptation mobile** (cible desktop
+backend), avis et notes sur la fiche (non exposés publiquement), thèmes complets alternatifs (ex. thème
+clair) et réglages libres de couleur ou de taille, internationalisation (français uniquement), **adaptation mobile** (cible desktop
 uniquement : les variantes tactiles, gyroscope et vibration de l'annexe ne sont pas réalisées),
 déploiement (exécution locale uniquement).
 

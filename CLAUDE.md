@@ -32,7 +32,13 @@ structurés et masqués.
 5. **Logs** : serveur via `lib/logger.ts` uniquement (logger enfant par module) ; chaque appel
    backend loggué (méthode, route, statut, durée, `X-Request-Id`, `errorCode`) ; jamais de token,
    mot de passe, cookie, email complet ; `maskUuid` / `maskEmail`. Client : pas de `console.*`.
-6. Une tâche est finie quand `npm run typecheck`, `npm run lint` (0 warning), `npm run test`
+6. **Interface paramétrable (constitution XIII)** : toute valeur visuelle (couleur, taille,
+   rayon, ombre, durée, paramètre d'effet) vient de `lib/theme/theme.config.ts` via les
+   variables CSS et tokens Tailwind ; aucun `#hex`, `px`, `ms` ou classe Tailwind arbitraire
+   `[...]` dans `components/` et `features/`. Les effets lisent `useEffectiveEffects()`, les
+   animations `useMotionTokens()`. Préférences utilisateur bornées par des enums, cookie
+   `ct_prefs_v1`, `prefers-reduced-motion` prioritaire.
+7. Une tâche est finie quand `npm run typecheck`, `npm run lint` (0 warning), `npm run test`
    passent et que les exports ajoutés sont documentés.
 
 ## Exemple du style attendu

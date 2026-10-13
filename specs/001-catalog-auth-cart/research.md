@@ -209,6 +209,47 @@ sur npm le 2026-10-13 (voir `docs/speckit-prompts.md`).
   propriétaire veut des enums explicites, nommés et documentés) ; `console` structuré maison
   (moins de fonctionnalités que pino : redaction, niveaux, enfants).
 
+## R18. Thème paramétrable et préférences utilisateur (constitution XIII, US5)
+
+- **Décision — config de thème unique** : `lib/theme/theme.config.ts` exporte un objet typé
+  `THEME` (`as const satisfies ThemeConfig`) qui contient **toutes** les valeurs visuelles :
+  palette de base, variantes d'accent, typographie, rayons, ombres, flous, opacités, durées et
+  easings par intensité, et réglages de chaque effet (grille de points : rayon, espacement,
+  inertie ; halos : nombre, cycle, flou ; inclinaison : angle max ; aimant : force ; défilement
+  fluide : durée). Les variantes sont indexées par des enums (`AccentVariant`, `EffectsLevel`,
+  `MotionIntensity`).
+- **Décision — de la config au CSS** : `lib/theme/css-variables.ts` transforme `THEME` en
+  variables CSS (`--color-bg`, `--accent`, `--radius-card`, `--duration-base`…).
+  `app/layout.tsx` les injecte côté serveur dans une balise `<style nonce>` placée dans le
+  `<head>`, avec un bloc par variante (`[data-accent="blue"] { --accent: … }`,
+  `[data-motion="soft"] { --duration-base: … }`). `styles/globals.css` ne contient **aucune
+  valeur** : son `@theme inline` se contente de relier les tokens Tailwind aux variables
+  (`--color-accent: var(--accent)`). Les composants n'utilisent que ces tokens.
+- **Décision — préférences sans flash** : les préférences (`{ version, effects, motion, accent,
+  sound }`) sont stockées dans un cookie `ct_prefs_v1` (non httpOnly, `SameSite=Lax`, 1 an,
+  JSON validé par Zod). Le layout racine le lit côté serveur et pose `data-accent`,
+  `data-effects` et `data-motion` sur `<html>` dès le premier rendu, donc aucun changement
+  visible après hydratation. Côté client, `PreferencesProvider` (contexte React) expose
+  `usePreferences()` et `useEffectiveEffects()` ; une modification réécrit le cookie et les
+  attributs de `<html>` immédiatement.
+- **Décision — niveau effectif** : `effectiveEffects = min(préférence, système)`. Si
+  `prefers-reduced-motion: reduce` est actif, le niveau est forcé à `OFF` pour le mouvement.
+  Les effets (DotGrid, AuroraBlobs, TiltCard, MagneticButton, Lenis, View Transitions) lisent
+  ce niveau et leurs paramètres dans `THEME.effects[niveau]` ; `REDUCED` garde la grille et les
+  halos en version statique ou ralentie, sans inclinaison ni aimant.
+- **Décision — accents** : violet (défaut), bleu, cyan ; l'or reste réservé aux prix et
+  badges (FR-037), le rose aux alertes douces. Un test unitaire calcule le ratio de contraste
+  WCAG de chaque `accent × surface × texte` et échoue sous 4,5:1 (3:1 pour les grands textes et
+  les contours de focus).
+- **Décision — sons** : `lib/sound/ui-sounds.ts` génère de courts sons avec l'API Web Audio
+  (pas de fichier audio), joués seulement si `sound = ON` ; enum `UiSound` (ADD_TO_CART,
+  MERGE_SUCCESS, ERROR). Volume et durée viennent de `THEME.sound`.
+- **Pourquoi** : constitution XIII ; un seul endroit à modifier pour faire évoluer le style ;
+  le cookie évite le flash d'un thème par défaut que provoquerait `localStorage`.
+- **Alternatives** : `localStorage` + script bloquant dans le `<head>` (fonctionne, mais un
+  script inline de plus à autoriser par la CSP) ; `next-themes` (pensé pour clair/sombre, pas
+  pour plusieurs axes de préférences) ; thèmes complets commutables (hors périmètre).
+
 ## Points restant à vérifier à l'exécution (non bloquants)
 
 | Point | Où vérifier | Impact si faux |

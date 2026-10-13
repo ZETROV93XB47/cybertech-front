@@ -145,7 +145,8 @@ Niveau d'exigence calqué sur le backend Java (`CartServiceImp`, `CyberTechAppCo
   documentée par un commentaire TSDoc qui dit à quoi elle sert et d'où vient sa valeur
   (ex. « 300 s = `accessTokenLifespan` du realm Keycloak »).
 - Les constantes vivent dans `lib/constants/` (par domaine : `api.ts`, `cart.ts`, `auth.ts`,
-  `catalog.ts`, `storage-keys.ts`, `ui.ts`) ou en tête du module si elles lui sont privées.
+  `catalog.ts`, `preferences.ts`, `security.ts`, `storage-keys.ts`) ou en tête du module si elles lui
+  sont privées. Les valeurs visuelles relèvent de `lib/theme/` (principe XIII).
 - Les durées portent leur unité dans le nom (`ACCESS_TOKEN_REFRESH_MARGIN_MS`,
   `CATALOG_REVALIDATE_SECONDS`) ; séparateurs numériques pour la lisibilité (`8_000`).
 - ESLint `@typescript-eslint/no-magic-numbers` MUST être en erreur (exceptions : `0`, `1`, `-1`,
@@ -197,6 +198,33 @@ Niveau d'exigence calqué sur le backend Java (`CartServiceImp`, `CyberTechAppCo
 **Pourquoi** : un code sans valeurs magiques, typé par des enums, documenté et observable se
 relit, se débogue et s'enseigne ; c'est le standard déjà tenu par le backend.
 
+### XIII. Interface paramétrable et cohérente
+
+**Paramétrage développeur — une seule source de vérité**
+- Toute valeur visuelle (couleurs, polices, tailles, rayons, ombres, flous, opacités, durées,
+  easings, intensité et activation de chaque effet) est définie **une seule fois** dans la
+  configuration de thème `lib/theme/` et exposée sous forme de variables CSS et de tokens
+  Tailwind. Changer une valeur à cet endroit MUST suffire à la répercuter dans toute l'interface.
+- Aucun composant ne contient de valeur visuelle brute (`#hex`, `px`, `ms`, `rgba(...)` en dur,
+  classes Tailwind arbitraires `[...]`) : il consomme les tokens ou la config des effets.
+- Les variantes (accents, niveaux d'effets) sont des **enums** et des **ensembles de tokens
+  prédéfinis**, jamais des valeurs libres : c'est ce qui garantit la cohérence d'ensemble.
+
+**Paramétrage utilisateur — des choix bornés**
+- L'utilisateur peut régler, depuis un panneau « Préférences », uniquement des options
+  prévues par la config : niveau d'effets, intensité des animations, accent de couleur parmi
+  des variantes validées, sons d'interface. Aucune saisie libre de couleur ou de taille.
+- Chaque combinaison possible MUST respecter WCAG 2.1 AA ; un test automatisé vérifie le
+  contraste de chaque accent sur chaque surface.
+- `prefers-reduced-motion` du système l'emporte toujours sur la préférence utilisateur.
+- Les préférences sont des données non sensibles, stockées côté navigateur dans un cookie
+  lisible par le serveur, pour que la première page s'affiche déjà avec le bon thème (aucun
+  flash).
+
+**Pourquoi** : une direction artistique riche ne reste cohérente que si chaque valeur a une
+seule origine ; et des réglages bornés laissent l'utilisateur adapter le confort visuel sans
+pouvoir casser l'esthétique ni l'accessibilité.
+
 ## Contraintes techniques et sécurité
 
 - Sources de vérité : `docs/backend/api-map.md`, `docs/backend/analysis.md`,
@@ -215,7 +243,7 @@ relit, se débogue et s'enseigne ; c'est le standard déjà tenu par le backend.
   `/speckit-tasks` → `/speckit-implement`. Le plan MUST passer le « Constitution Check ».
 - Une tâche n'est terminée que si `tsc --noEmit`, ESLint (0 erreur, 0 warning), Vitest et les
   tests Playwright concernés passent, et si chaque export ajouté est documenté (principe XII).
-- Avant chaque commit, la conformité aux principes I à XII est vérifiée ; une violation non
+- Avant chaque commit, la conformité aux principes I à XIII est vérifiée ; une violation non
   justifiée n'est pas commitée.
 
 ## Governance
@@ -229,4 +257,4 @@ relit, se débogue et s'enseigne ; c'est le standard déjà tenu par le backend.
   MINOR pour un principe ou une section ajouté ou nettement étendu, PATCH pour une
   clarification ou une correction de forme.
 
-**Version**: 2.0.0 | **Ratified**: 2026-10-13 | **Last Amended**: 2026-10-13
+**Version**: 2.1.0 | **Ratified**: 2026-10-13 | **Last Amended**: 2026-10-13

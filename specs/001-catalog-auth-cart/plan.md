@@ -12,7 +12,9 @@ filtrée, fiche produit avec disponibilité en direct, palette ⌘K), inscriptio
 invité fusionné à la connexion). Approche : Server Components pour le catalogue, BFF (Route
 Handlers + Server Actions) pour tout appel au backend Spring, Auth.js v5 pour la session en cookie
 chiffré, TanStack Query pour l'état panier côté client, direction artistique « Aurora Glow »
-implémentée avec Tailwind 4, shadcn/ui, Motion et des effets Canvas 2D différés. Décisions
+implémentée avec Tailwind 4, shadcn/ui, Motion et des effets Canvas 2D différés, entièrement
+pilotée par une configuration de thème unique (`lib/theme/`) et personnalisable par
+l'utilisateur via un panneau « Préférences » (effets, intensité, accent, sons). Décisions
 détaillées : [research.md](./research.md).
 
 ## Technical Context
@@ -25,8 +27,8 @@ server-only, pino (logs JSON serveur, `pino-pretty` en dev) ; qualité : typescr
 (type-checked), eslint-plugin-jsdoc
 
 **Storage**: aucune base côté front. Session : cookie chiffré httpOnly (Auth.js). Navigateur :
-`localStorage` (`ct_guest_cart_v1`, `ct_recent_v1`) et `sessionStorage` (`ct_pending_action_v1`),
-données non sensibles. Source de vérité : backend Spring (MySQL/Redis).
+`localStorage` (`ct_guest_cart_v1`, `ct_recent_v1`), `sessionStorage` (`ct_pending_action_v1`) et
+cookie lisible `ct_prefs_v1` (préférences d'interface, R18), données non sensibles. Source de vérité : backend Spring (MySQL/Redis).
 
 **Testing**: Vitest + Testing Library + MSW (unitaire), Playwright + @axe-core/playwright (e2e,
 contre la stack locale), Lighthouse manuel en mode desktop (budgets CWV)
@@ -65,6 +67,7 @@ Route Handlers (11 opérations), 2 Server Actions, ~15 endpoints Spring/Keycloak
 | X. Exécution locale | `npm run dev` ; backend IntelliJ + services docker-compose du backend ; aucun Dockerfile, CI ni chart ; variables `AUTH_*` conservées | ✅ |
 | XI. Code pédagogique | Code, commentaires, TSDoc et logs en anglais ; textes UI en français dans `features/*/messages.ts` ; pas de couche d'abstraction au-delà de `lib/api/endpoints/*` | ✅ |
 | XII. Code propre et observable | Constantes dans `lib/constants/*` ; enums string dans `lib/enums/*` (Zod dérivé) ; `assertNever` ; TSDoc sur tous les exports ; `lib/logger.ts` (pino, `maskUuid`/`maskEmail`) ; ESLint : `no-magic-numbers`, `switch-exhaustiveness-check`, `explicit-module-boundary-types`, `jsdoc/require-jsdoc`, `no-console`, `max-depth` 3, `max-lines-per-function` 40, `no-nested-ternary` (R17) | ✅ |
+| XIII. Interface paramétrable | `lib/theme/theme.config.ts` source unique → variables CSS injectées par le layout → tokens Tailwind ; aucune valeur visuelle brute dans les composants (règle ESLint `no-restricted-syntax` sur les littéraux hex/px/ms dans `components/` et `features/`, plus l'audit T118) ; préférences bornées par des enums dans le cookie `ct_prefs_v1` lu côté serveur (pas de flash) ; test de contraste de chaque accent × surface ; `prefers-reduced-motion` prioritaire (R18) | ✅ |
 | Contraintes (tutoiement, CSP, aiguillage `errorCode`) | `messages.ts` au tutoiement ; CSP avec nonce (R7) ; `contracts/errors.md` | ✅ |
 
 Gate initial : **PASS**. Re-vérification après Phase 1 : **PASS** (un écart au prompt 4.3, pas à
@@ -119,19 +122,22 @@ components/
 features/
 ├── catalog/   (components, filters, availability, command-palette, recent, messages.ts)
 ├── cart/      (components, useCart, guest-storage, GuestCartMerger, pending-action, messages.ts)
-└── auth/      (register-form, actions.ts, sign-out, messages.ts)
+├── auth/      (register-form, actions.ts, sign-out, messages.ts)
+└── preferences/ (PreferencesProvider, usePreferences, useEffectiveEffects, PreferencesPanel, actions, messages.ts)
 lib/
 ├── env.ts
 ├── logger.ts  # pino, logger enfant par module, maskUuid / maskEmail ; clientLogger séparé
+├── theme/     theme.config.ts (source unique) · types.ts · css-variables.ts · contrast.ts
+├── sound/     ui-sounds.ts (Web Audio, enum UiSound)
 ├── assert-never.ts
 ├── query/     query-client.ts (createQueryClient, resetClientState)
-├── constants/ api · auth · cart · catalog · security · storage-keys · ui (constantes nommées et documentées)
+├── constants/ api · auth · cart · catalog · security · preferences · storage-keys (constantes non visuelles, nommées et documentées)
 ├── enums/     brand · category · cart · availability · error-code · log-level · … (enums string)
 ├── api/       client.ts · errors.ts · endpoints/{products,categories,discounts,cart,users}.ts · schema.d.ts
 ├── schemas/   product · paged · search · cart · user · error · storage
 ├── auth/      config.ts · refresh.ts · guards.ts
 └── format.ts  # Intl.NumberFormat fr-FR EUR
-styles/        globals.css (@theme Aurora Glow) · motion.ts (durées, easings)
+styles/        globals.css (aucune valeur : `@theme inline` relie les tokens aux variables issues de lib/theme) · motion.ts (variants Motion lus depuis THEME.motion)
 proxy.ts       # CSP avec nonce + garde des routes privées (aucune au lot 1, /account/** au lot 2)
 instrumentation.ts  # valide env au démarrage
 tests/
