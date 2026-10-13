@@ -42,21 +42,25 @@ récents, notamment 409 USER_ALREADY_EXISTS à l'inscription) :
   résume-moi les écarts avant de lancer la première feature.
 
 Découpage proposé, une feature Spec Kit par ligne, dans cet ordre :
-- 002-account-orders : profil, bouton « Passer commande » et réduction sur le panier, tunnel
+- 002-catalog-refresh : filtres par attribut sur le catalogue, grille de 4 produits par ligne,
+  comparateur de 2 à 3 produits d'une même catégorie, accueil, catalogue et barre de
+  navigation harmonisés (front seul, aucune dépendance
+  backend : à faire pendant que le backend traite docs/backend/backend-prompts-lot2.md) ;
+- 003-account-orders : profil, bouton « Passer commande » et réduction sur le panier, tunnel
   de commande, suivi et historique des commandes, carte bancaire enregistrée ;
-- 003-engagement : wishlist, avis, recommandations personnalisées, événements comportementaux ;
-- 004-admin : espace d'administration (utilisateurs, produits et images, commandes, remises,
+- 004-engagement : wishlist, avis, recommandations personnalisées, événements comportementaux ;
+- 005-admin : espace d'administration (utilisateurs, produits et images, commandes, remises,
   schémas de catégories, cartes bancaires, wishlists) ;
-- 005-experience : harmonisation finale de toutes les pages, interface remplie et animée (§5).
+- 006-experience : harmonisation finale de toutes les pages, interface remplie et animée (§6).
 Pour chaque feature : /speckit-specify (prompts ci-dessous, docs/speckit-prompts-lot2.md),
 /speckit-clarify, /speckit-plan, /speckit-tasks, /speckit-analyze, puis /speckit-implement
 UNE user story par conversation.
 
-Chaque tasks.md DOIT se terminer par une phase « Interface vivante et cohérente » (voir §5 de
+Chaque tasks.md DOIT se terminer par une phase « Interface vivante et cohérente » (voir §6 de
 docs/speckit-prompts-lot2.md) : on ne livre pas une page fonctionnelle mais vide. Les effets de
 la fiche produit (apparition en cascade RevealGroup, fondu enchaîné, loupe pilotée par le thème)
 et du fond (grille de points, halos aurora) servent de référence de qualité. Après la feature
-004, une feature 005-experience reprend toutes les pages (§5) pour l'harmonisation finale.
+005, une feature 006-experience reprend toutes les pages (§6) pour l'harmonisation finale.
 
 Méthode de vérification (identique au lot 1, voir aussi la mémoire « local-env-quirks ») :
 - npm run typecheck, npm run lint (0 warning), npm run test avant de déclarer une story finie ;
@@ -80,10 +84,96 @@ Ne commence pas à coder : fais d'abord le rafraîchissement du backend et le r�
 
 ---
 
-## 2. Prompt `/speckit-specify` — 002-account-orders
+## 2. Prompt `/speckit-specify` — 002-catalog-refresh
 
 ````text
-/speckit-specify Feature 002 « Mon compte et mes commandes » du front cybertech, dans la
+/speckit-specify Feature 002 « Catalogue et navigation » du front cybertech, dans la continuité
+du lot 1 (specs/001-catalog-auth-cart, même constitution, mêmes conventions : BFF, Zod, textes
+au tutoiement dans features/*/messages.ts, thème unique, effets Aurora Glow, accessibilité AA).
+Front seul : aucun nouvel endpoint backend n'est nécessaire. Backend : docs/backend/api-map.md
+§3, §4, §D.10, §D.13, §F.
+
+User stories (à prioriser) :
+1. Filtres par attribut complets sur /products. Le backend les accepte déjà dans
+   POST /product/search : `attributes` (Record<string, string[]>, égalité exacte sur
+   attributes.<clé>.keyword) et `numericRanges` (Record<string, {min, max}>), décrits par le
+   JSON Schema de la catégorie (GET /product-category-schemas/{categoryKey}). Le lot 1 n'en
+   tire que les attributs numériques (plages : ram, memory, refreshRate) et les chaînes munies
+   d'un `enum` ; or les schémas réels n'ont aucun `enum` : cpu, gpu, os, connectivity,
+   displayType (COMPUTER) et resolution (MONITOR) ne sont donc pas filtrables aujourd'hui.
+   - proposer pour chaque attribut texte une liste de valeurs à cocher, avec les valeurs
+     réellement présentes dans le catalogue de la catégorie (aucune valeur inventée) ;
+     source : POST /product/search/facets (demandé au backend, prompt 3 de
+     docs/backend/backend-prompts-lot2.md : valeurs, compteurs disjonctifs, bornes min / max ;
+     vérifier sa présence avec npm run gen:api) ; s'il n'est pas encore livré, repli côté BFF
+     sur les valeurs extraites de POST /product/search pour la catégorie, mises en cache
+     serveur avec le tag catalogue, bornées, sans compteurs ;
+   - plages numériques avec les bornes du schéma (`minimum`) et les bornes observées ;
+   - filtres actifs visibles en pastilles retirables une par une, « Tout effacer »,
+     compteur de résultats, état dans l'URL (partage, retour arrière, fonctionnement sans
+     JavaScript comme au lot 1), changement de catégorie qui retire les attributs de
+     l'ancienne ;
+   - libellés français des attributs et des valeurs connues dans features/catalog/messages.ts,
+     repli lisible pour une clé inconnue ;
+   - afficher le compteur de chaque valeur quand le backend le fournit, griser une valeur à 0 ;
+   - rappel des contraintes : priceMin ≥ 100, pas de tri côté backend (à signaler, pas à
+     simuler).
+2. Grille du catalogue à 4 produits par ligne sur desktop (au lieu de 3), avec la colonne de
+   filtres conservée : adapter la largeur de contenu, la taille des cartes et des images
+   (next/image sizes), la taille de page (SEARCH_PAGE_SIZE = 24, multiple de 4, à garder
+   cohérent) et les squelettes de chargement ; vérifier que les cartes restent lisibles (nom,
+   prix, disponibilité, ajout au panier) et que le CLS reste ≤ 0,1.
+3. Accueil et catalogue cohérents : même gabarit de page (largeur, marges, en-tête de page avec
+   fil d'Ariane, LiveTitle et sous-titre), mêmes cartes produit (TiltCard, badge de
+   disponibilité, bouton d'ajout), mêmes titres de section, même rythme vertical, même état
+   vide et même squelette ; l'accueil met en avant des données réelles (meilleures ventes,
+   catégories, offre active de GET /discounts/active, derniers produits consultés) avec des
+   liens vers le catalogue préfiltré.
+4. Barre de navigation cohérente : un seul composant d'en-tête pour toutes les pages (boutique,
+   panier, inscription, et prêt pour /account, /checkout et /admin), liens principaux
+   (Accueil, Catalogue, catégories COMPUTER et MONITOR), page courante signalée visuellement et
+   par aria-current, recherche ⌘K, panier avec compteur, compte / connexion, préférences ;
+   alignements, espacements, tailles d'icônes, états survol / focus / actif homogènes, tout
+   en tokens du thème ; navigation clavier complète et lien d'évitement vers le contenu.
+5. Comparateur de produits (2 à 3 produits d'une même catégorie), front seul :
+   - chaque carte produit du catalogue porte une case à cocher « Comparer » (vraie case
+     accessible, libellé incluant le nom du produit) ;
+   - la première case cochée fixe la catégorie de la comparaison : les cases des produits
+     d'une autre catégorie sont désactivées avec une explication (infobulle et texte lu par
+     les lecteurs d'écran) ; au 3e produit coché, les autres cases sont désactivées
+     (« 3 produits maximum ») ; décocher libère la place ;
+   - dès le 2e produit coché, une barre de comparaison apparaît (bas d'écran, animée,
+     annoncée par aria-live) : vignettes des produits retenus, retrait d'un produit,
+     « Tout effacer » et bouton « Comparer » ; avec un seul produit coché, elle invite à en
+     choisir un autre ;
+   - la sélection survit à la pagination, aux filtres et au retour depuis une fiche produit
+     (stockage navigateur non sensible : identifiants seulement, revalidés par Zod,
+     constitution IV) ; un produit devenu introuvable est retiré avec un message ;
+   - « Comparer » ouvre un grand cadre (dialogue modal accessible : titre, piège de focus,
+     Échap et bouton de fermeture, retour du focus sur le bouton) qui affiche les produits en
+     colonnes alignées : en tête, image (next/image), nom, marque, prix, disponibilité en
+     direct (GET /product/availability) et ajout au panier ; puis une ligne par
+     caractéristique au format « nom d'attribut : valeur produit 1 | valeur produit 2 |
+     valeur produit 3 » ;
+   - les lignes suivent l'ordre et les libellés du JSON Schema de la catégorie (libellés
+     français de features/catalog/messages.ts, mêmes valeurs que la fiche produit, unités
+     comprises), une valeur absente s'affiche « — » ; option « Afficher seulement les
+     différences » et mise en évidence discrète des valeurs qui diffèrent ;
+   - tableau sémantique (en-têtes de colonne = produits, en-têtes de ligne = attributs),
+     défilement horizontal interne si nécessaire, sans défilement de la page ;
+   - données : ProductResponseDto (GET /product/get/{uuid}, via le cache catalogue du BFF)
+     et le schéma de catégorie ; aucune donnée inventée ; aucun appel backend nouveau.
+
+Terminer par la phase « Interface vivante et cohérente » (§6) appliquée à l'accueil, au
+catalogue, à l'en-tête et au comparateur, avec captures avant / après.
+````
+
+---
+
+## 3. Prompt `/speckit-specify` — 003-account-orders
+
+````text
+/speckit-specify Feature 003 « Mon compte et mes commandes » du front cybertech, dans la
 continuité du lot 1 (specs/001-catalog-auth-cart, même constitution, mêmes conventions : BFF,
 Zod, textes au tutoiement dans features/*/messages.ts, thème unique, effets Aurora Glow,
 accessibilité AA). Le backend fait foi (docs/backend/api-map.md §2, §7, §8, §12) ; ne jamais
@@ -108,25 +198,31 @@ User stories (à prioriser) :
      clair si la clé est inconnue, inactive ou si le minimum de commande n'est pas atteint ;
    - aucun endpoint ne calcule le prix avant la commande (OrderPriceCalculationService n'est
      appelé qu'à la création, PriceCalculationRequestDto n'a pas de controller) : afficher
-     l'économie et le total comme « estimés » (calcul front à partir du DiscountContext, même
-     règles que le backend, testées) puis les montants définitifs renvoyés par OrderResponseDto ;
-     lister « POST /order/quote » comme dépendance backend recommandée ;
-   - POST /management/order/place, puis page de confirmation qui interroge
-     GET /order/status/{uuid} (polling borné) jusqu'à PAID ou PAYMENT_FAILED ; gérer 402
-     PAYMENT_FAILED (POST /order/retry-payment/{uuid}), 409 CART_IS_EMPTY / NOT_ENOUGH_STOCK
-     (retour au panier avec les lignes concernées), 403 USER_NOT_ACTIVE ; vider le cache du
-     panier après une commande réussie.
+     l'économie, les frais de port et le total comme « estimés » (constitution V, v2.2.0 :
+     règles de api-map.md §5, un test par règle ; frais de port via l'endpoint dédié s'il
+     existe, sinon constante alignée), puis les montants définitifs renvoyés par
+     OrderResponseDto ; prévenir quand le minimum de commande n'est pas atteint (le backend
+     retire alors la remise sans erreur) ; lister « POST /order/quote » comme dépendance
+     backend recommandée ;
+   - POST /management/order/place (400 DISCOUNT_TYPE_NOT_ACTIVE si la campagne a expiré
+     entre-temps), puis page de confirmation qui interroge GET /order/status/{uuid} (polling
+     borné) jusqu'à PAID ou PAYMENT_FAILED : place ne renvoie jamais 402, un paiement refusé
+     se lit dans le statut et se relance par POST /order/retry-payment/{uuid} (402, 409
+     PAYMENT_ALREADY_COMPLETED, 422) ; gérer 409 CART_IS_EMPTY / NOT_ENOUGH_STOCK (retour au
+     panier avec les lignes concernées), 403 USER_NOT_ACTIVE ; vider le cache du panier après
+     la commande (le backend vide le panier serveur).
 3. Mes commandes : liste paginée (GET /order/mine, filtre par statut, tri createdAt desc),
    détail (GET /order/get/{uuid}), frise du cycle de vie (CREATED → AWAITING_PAYMENT →
    PAID → AWAITING_SHIPPING → SHIPPED → DELIVERED, plus CANCELED, REFUNDED, RETURNED,
    PAYMENT_FAILED), modification (POST /order/update) et annulation (POST /order/cancel) quand
    le statut le permet (409 ORDER_ALREADY_SHIPPED, CANNOT_CANCEL_ORDER, ORDER_REFUND_FAILED).
-4. Carte bancaire enregistrée (une par utilisateur) : voir la carte masquée, ajouter, modifier
-   le titulaire et l'expiration, supprimer (/bank-card/*). Point à clarifier en priorité :
-   l'ajout envoie le numéro complet au backend (chiffré AES côté serveur) ; vérifier que c'est
-   compatible avec la constitution (jamais de PAN stocké ni loggé côté front, champ jamais
-   renvoyé au navigateur) ou proposer de restreindre la feature à la consultation et à la
-   suppression.
+4. Carte bancaire enregistrée (une par utilisateur) : voir la carte masquée (GET
+   /bank-card/get, 404 = aucune carte), modifier le titulaire et l'expiration (PUT
+   /bank-card/update, 400 BANK_CARD_EXPIRED), supprimer avec confirmation (DELETE
+   /bank-card/delete). Décision validée : **pas d'ajout de carte depuis le front** (POST
+   /bank-card/add exigerait de saisir le PAN, interdit par la constitution V v2.2.0 ; le
+   paiement est de toute façon simulé côté serveur) ; l'expliquer simplement dans l'état
+   « aucune carte ».
 
 Pages privées sous /account/** protégées par proxy.ts et requireSession, réponses no-store,
 rejeu d'action après session expirée comme pour le panier. États vides et d'erreur illustrés
@@ -135,11 +231,11 @@ rejeu d'action après session expirée comme pour le panier. États vides et d'e
 
 ---
 
-## 3. Prompt `/speckit-specify` — 003-engagement
+## 4. Prompt `/speckit-specify` — 004-engagement
 
 ````text
-/speckit-specify Feature 003 « Wishlist, avis et recommandations » du front cybertech, même
-socle que les features 001 et 002. Backend : docs/backend/api-map.md §9, §10, §11.
+/speckit-specify Feature 004 « Wishlist, avis et recommandations » du front cybertech, même
+socle que les features 001 à 003. Backend : docs/backend/api-map.md §9, §10, §11.
 
 User stories :
 1. Wishlist : ajouter / retirer un produit (cœur sur les cartes et la fiche produit,
@@ -163,10 +259,10 @@ User stories :
 
 ---
 
-## 4. Prompt `/speckit-specify` — 004-admin
+## 5. Prompt `/speckit-specify` — 005-admin
 
 ````text
-/speckit-specify Feature 004 « Espace d'administration » du front cybertech, même socle que
+/speckit-specify Feature 005 « Espace d'administration » du front cybertech, même socle que
 les features précédentes. Backend : docs/backend/api-map.md §13 (tous les endpoints exigent le
 rôle ADMIN ; le rôle est déjà exposé dans la session Auth.js, champ roles).
 
@@ -183,8 +279,9 @@ User stories :
    (attributs typés), création avec images (multipart, ≤ 10 Mo, aperçu), modification,
    suppression ; après une écriture, invalider le cache catalogue du front
    (revalidateTag(PRODUCTS_CACHE_TAG)).
-3. Commandes : liste filtrable par statut et par utilisateur, détail, suppression, création
-   d'une commande de test (place/auto).
+3. Commandes : liste filtrable par statut et par utilisateur, détail, suppression (pas de
+   création de commande de test : POST /admin/management/order/place/auto est écarté et
+   devrait être retiré du backend).
 4. Remises : CRUD des campagnes (PERCENTAGE, FIXED_AMOUNT, BUY_ONE_GET_ONE_FREE, dates,
    montant minimum, plafond), 409 DISCOUNT_CAMPAIGN_ALREADY_EXISTS ; invalider le cache des
    remises actives.
@@ -198,10 +295,10 @@ d'utilisateurs, export) comme dépendances, sans les simuler.
 
 ---
 
-## 5. Phase « Interface vivante et cohérente » (à la fin de chaque feature, puis 005-experience)
+## 6. Phase « Interface vivante et cohérente » (à la fin de chaque feature, puis 006-experience)
 
-À ajouter telle quelle en dernière phase de chaque `tasks.md` (002, 003, 004), puis comme
-feature complète `005-experience` qui repasse sur TOUTES les pages (lot 1 compris). Utiliser le
+À ajouter telle quelle en dernière phase de chaque `tasks.md` (002 à 005), puis comme
+feature complète `006-experience` qui repasse sur TOUTES les pages (lot 1 compris). Utiliser le
 skill frontend-design et l'annexe « Aurora Glow » de specs/001-catalog-auth-cart/spec.md.
 Toutes les valeurs (durées, amplitudes, couleurs, flous, échelles) passent par
 `lib/theme/theme.config.ts` et `useEffectiveEffects()` / `useMotionTokens()` ; tout effet a une
@@ -240,10 +337,10 @@ Tâches de la phase « Interface vivante et cohérente » :
 - [ ] Point avec l'utilisateur, captures avant / après à l'appui.
 ````
 
-### Prompt `/speckit-specify` — 005-experience
+### Prompt `/speckit-specify` — 006-experience
 
 ````text
-/speckit-specify Feature 005 « Expérience » du front cybertech : après les features 001 à 004,
+/speckit-specify Feature 006 « Expérience » du front cybertech : après les features 001 à 005,
 repasser sur TOUTES les pages (boutique, compte, commande, wishlist, avis, admin) pour qu'elles
 forment un ensemble cohérent, rempli et vivant, dans la direction artistique « Aurora Glow »
 (annexe de specs/001-catalog-auth-cart/spec.md). Les effets existants servent de référence :
@@ -258,7 +355,7 @@ Aucune donnée fictive ; toute valeur visuelle passe par le thème ; tout effet 
 statique.
 ````
 
-## 6. Rappels utiles
+## 7. Rappels utiles
 
 - Les endpoints manquants côté backend sont tenus à jour dans `docs/backend/api-map.md` §F :
   avis publics et note moyenne, devis de commande, paiement côté client (Payment Element,

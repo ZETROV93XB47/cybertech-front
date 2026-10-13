@@ -1,6 +1,6 @@
 # Cartographie de l'API backend cybertech
 
-> Source : repo backend `cybertech-dev-develop_cybertech`, branche `develop_back`, commit `7623204` (lu en lecture seule le 2026-10-13), mis à jour après les commits backend `0b4a600` (client Keycloak front) et `d50e661` (`GET /user/me`, `GET /product/availability`, codes d'erreur machine).
+> Source : repo backend `cybertech-dev-develop_cybertech`, branche `develop_back`, commit `7623204` (lu en lecture seule le 2026-10-13), mis à jour après les commits backend `0b4a600` (client Keycloak front) et `d50e661` (`GET /user/me`, `GET /product/availability`, codes d'erreur machine), puis revérifié le 2026-10-13 au commit `a833e58` (seul changement de code : `ad38902`, 409 `USER_ALREADY_EXISTS` à l'inscription) ; `npm run gen:api` ne produit aucun écart sur `lib/api/schema.d.ts`.
 > Abréviation des chemins : `{pkg}` = `src/main/java/com/novatech/cybertech`, `{ctrl}` = `{pkg}/api/controllers/implementation`, `{res}` = `src/main/resources`.
 > Contrat OpenAPI de référence : `docs/openapi/openapi.yaml` du backend (généré par springdoc, 64 opérations) et `/v3/api-docs` à l'exécution.
 
@@ -90,7 +90,7 @@ Controller : `{ctrl}/UserManagementController.java` (base `/api/v1/services/user
 
 | Méthode | Chemin | Controller#méthode | Auth / rôle | Params | Body | Réponse | Codes HTTP | Pagination | Notes |
 |---|---|---|---|---|---|---|---|---|---|
-| POST | `/api/v1/services/user/register` | `UserManagementController#register` (:111) | **Public** | — | `UserCreateRequestDto` (§D.1) | `201` `{ "id": uuid, "email": string, "username": string }` (`Map`) | 201, 400, 409 `USER_ALREADY_EXISTS`, 429 (5 req/min/IP), 500 (échec Keycloak) | — | Saga Keycloak + DB. `bankCardCreationRequestDto` optionnel. |
+| POST | `/api/v1/services/user/register` | `UserManagementController#register` (:111) | **Public** | — | `UserCreateRequestDto` (§D.1) | `201` `{ "id": uuid, "email": string, "username": string }` (`Map`) | 201, 400, 409 `USER_ALREADY_EXISTS`, 429 (5 req/min/IP), 500 (échec Keycloak) | — | Saga Keycloak + DB. `bankCardCreationRequestDto` optionnel. Depuis `ad38902` : email déjà pris → 409 `USER_ALREADY_EXISTS` ; homonyme (username `prenom.nom` déjà pris) → nouvel essai avec suffixe numérique, jusqu'à 5 fois. |
 | GET | `/api/v1/services/user/get/{userUuid}` | `#getUserByUuid` (:81) | USER ou ADMIN ; USER limité à **son propre** profil | path `userUuid` (UUID) | — | `UserResponseDto` (§D.20) | 200, 401, 403, 404 | — | Le front ne connaît pas l'UUID local après un login Keycloak (voir §11 « GET /me manquant »). |
 | GET | `/api/v1/services/user/me` | `UserManagementController#getMe` | USER ou ADMIN | — | — | `UserResponseDto` (§D.20) | 200, 401 `AUTHENTICATION_REQUIRED`, 404 `USER_NOT_FOUND` | — | Profil de l'appelant résolu par le `sub` du JWT. **À utiliser pour obtenir l'UUID local et le profil.** |
 | PATCH | `/api/v1/services/user/me` | `#updateMe` (:147) | USER ou ADMIN | — | `UserSelfUpdateRequestDto` (§D.3) | `UserResponseDto` | 200, 400, 401, 404 | — | Utilisateur résolu par le `sub` du JWT (pas d'IDOR). Pas d'email ni mot de passe modifiables. |
@@ -123,7 +123,17 @@ Catégories seedées au démarrage : `COMPUTER` (« Computers »), `MONITOR` («
 
 | Méthode | Chemin | Controller#méthode | Auth | Body | Réponse | Codes | Notes |
 |---|---|---|---|---|---|---|---|
-| GET | `/api/v1/services/discounts/active` | `DiscountController#getActiveCampaigns` (:44) | Public | — | `DiscountContext[]` (§D.15) | 200 | Expose le record interne `DiscountContext`. Le front peut proposer la `discountKey` lors de la commande. |
+| GET | `/api/v1/services/discounts/active` | `DiscountController#getActiveCampaigns` (:44) | Public | — | `DiscountContext[]` (§D.15) | 200 | Expose le record interne `DiscountContext`. Campagnes `enabled` dont la fenêtre `[startsAt, endsAt]` contient maintenant ; **inclut `NO_DISCOUNT`** (type `NONE`), à masquer dans l'UI. |
+
+Règles de prix appliquées à `POST /order/place` (`OrderPriceCalculationServiceImp`, `strategy/discount/*`, `*ShippingProviderService`) :
+
+1. `base` = Σ `unitPrice × quantity` (arrondi 2 décimales, HALF_UP).
+2. `NO_DISCOUNT` → remise 0. Sinon la campagne doit exister, être `enabled` et dans sa fenêtre, sinon **400 `DISCOUNT_TYPE_NOT_ACTIVE`** (clé inconnue comprise).
+3. `base < minOrderAmount` → remise 0, **sans erreur** : la commande passe au plein tarif.
+4. `PERCENTAGE` : `base × percentage / 100` ; `FIXED_AMOUNT` : `min(fixedAmount, base)` ; `BUY_ONE_GET_ONE_FREE` : Σ par ligne `floor(quantity / 2) × unitPrice` ; chaque fois plafonné à `maxDiscountAmount` s'il est défini.
+5. `total = max(0, base − remise) + port`. **Frais de port** (exposés par aucun endpoint) : DHL et FEDEX identiques, `STANDARD` = 15 €, `EXPRESS` = 25 €.
+
+Campagnes créées au démarrage si absentes (`DiscountCampaignInitializer`) : `NO_DISCOUNT` (activée), `BLACK_FRIDAY` 20 %, `WINTER_SALES` 15 %, `SPRING_SALES` 10 %, `BUY_ONE_GET_ONE_FREE` (désactivées par défaut). Constaté en local le 2026-10-13 : `NO_DISCOUNT` et `BLACK_FRIDAY` (20 %) actives.
 
 ---
 
@@ -146,11 +156,11 @@ Controller : `{ctrl}/OrderManagementController.java` (base `/api/v1/services/man
 
 | Méthode | Chemin | Controller#méthode | Auth | Params | Body | Réponse | Codes HTTP | Pagination | Notes |
 |---|---|---|---|---|---|---|---|---|---|
-| POST | `/api/v1/services/management/order/place` | `#placeOrder` (:44) | USER/ADMIN | — | `OrderPlacingRequestDto` (§D.8) | `201` `OrderResponseDto` (§D.17) | 201, 400, 402 `PAYMENT_FAILED`, 403 `USER_NOT_ACTIVE`, 409 `CART_IS_EMPTY`/`NOT_ENOUGH_STOCK`, 500 | — | Convertit le **panier serveur** en commande et **déclenche le paiement Stripe côté serveur** (PaymentIntent confirmé avec le moyen de paiement configuré, voir analysis §6). Statut initial souvent `AWAITING_PAYMENT`, puis `PAID` via webhook. |
+| POST | `/api/v1/services/management/order/place` | `#placeOrder` (:44) | USER/ADMIN | — | `OrderPlacingRequestDto` (§D.8) | `201` `OrderResponseDto` (§D.17) | 201, 400 (`DISCOUNT_TYPE_NOT_ACTIVE` compris), 403 `USER_NOT_ACTIVE`, 409 `CART_IS_EMPTY`/`NOT_ENOUGH_STOCK`, 500 | — | Convertit le **panier serveur** en commande, **vide le panier** et **déclenche le paiement Stripe côté serveur** (PaymentIntent confirmé avec le moyen de paiement configuré, voir analysis §6). **Ne renvoie jamais 402** : un paiement refusé ou une panne Stripe donnent quand même 201 (stock libéré, commande à relancer par `retry-payment`) ; l'issue se lit par polling de `/status/{uuid}`. `totalAmount` inclut remise et frais de port. |
 | GET | `/api/v1/services/management/order/status/{uuid}` | `#getOrderStatusByUuid` (:96) | USER/ADMIN, propriétaire | path `uuid` | — | `OrderStatusDto` (§D.18) | 200, 403, 404 | — | Prévu pour le **polling** de la page de confirmation. |
 | GET | `/api/v1/services/management/order/get/{uuid}` | `#getOrderByUuid` (:84) | USER/ADMIN, propriétaire | path `uuid` | — | `OrderResponseDto` | 200, 403, 404 | — | — |
 | GET | `/api/v1/services/management/order/mine` | `#getMyOrders` (:119) | USER/ADMIN | query `status` (multi, `OrderStatus`), `page`, `size` (20), `sort` (`createdAt,desc`) | — | `PagedModel<OrderResponseDto>` | 200, 400 | Query | — |
-| POST | `/api/v1/services/management/order/update` | `#updateOrder` (:60) | USER/ADMIN, propriétaire | — | `OrderUpdateRequestDto` (§D.9) | `OrderResponseDto` | 200, 400, 402, 403, 404, 409 `ORDER_ALREADY_SHIPPED`/`NOT_ENOUGH_STOCK`/`ORDER_NOT_FUNDED` | — | Possible tant que la commande n'est pas expédiée (fenêtre de grâce `cybertech.shipping.grace-period=30m` après paiement). Complément / remboursement partiel automatique. |
+| POST | `/api/v1/services/management/order/update` | `#updateOrder` (:60) | USER/ADMIN, propriétaire | — | `OrderUpdateRequestDto` (§D.9) | `OrderResponseDto` | 200, 400, 402 `PAYMENT_FAILED` (complément refusé), 403, 404, 409 `ORDER_ALREADY_SHIPPED`/`NOT_ENOUGH_STOCK`/`ORDER_NOT_FUNDED` | — | Possible tant que la commande n'est pas expédiée (fenêtre de grâce `cybertech.shipping.grace-period=30m` après paiement). Complément / remboursement partiel automatique. ⚠️ Le total est **recalculé avec `NO_DISCOUNT`** : modifier une commande remisée fait perdre la remise (§E 23). |
 | POST | `/api/v1/services/management/order/cancel` | `#cancelOrder` (:52) | USER/ADMIN, propriétaire | — | `OrderCancellationRequestDto` (§D.9b) | `200` `OrderResponseDto` | 200, 403, 404, 409 `CANNOT_CANCEL_ORDER`/`ORDER_REFUND_FAILED` | — | Refusé dès `AWAITING_SHIPPING` (`OrderCancellationTransactionalDelegateImp.java:76-77`). Annuler une commande déjà annulée = no-op. |
 | POST | `/api/v1/services/management/order/retry-payment/{uuid}` | `#retryPayment` (:67) | USER/ADMIN, propriétaire | path `uuid` | — | `OrderResponseDto` | 200, 402, 404 `NO_PREVIOUS_PAYMENT_ATTEMPT_FOUND`, 409 `PAYMENT_ALREADY_COMPLETED`, 422 | — | Après `PAYMENT_FAILED`. |
 
@@ -425,6 +435,12 @@ Absents : devise, frais de port, montant de remise, `discountKey`, statut de pai
 | 20 | `GET /user/ok` renvoie une chaîne avec emojis et n'est pas public. | `UserManagementController.java:135-138` | Ne pas l'utiliser comme health check public ; préférer `/actuator/health`. |
 | 21 | Paiement confirmé **côté serveur** avec un `payment_method` fixé par configuration (`stripe.payment-method=pm_card_visa`), `allow_redirects=never`. `paymentType` n'influence pas le moyen réellement débité. | `StripePaymentAttemptProcessor.java:42,179-195`, `application.properties` | Aucun formulaire de paiement réel possible dans le lot actuel (pas de Stripe Elements, pas de 3DS). |
 | 22 | Le prompt initial décrit PostgreSQL et un JWT maison : le code utilise **MySQL** et **Keycloak**. | `pom.xml`, `application.properties`, `SecurityConfig.java` | La doc et le docker-compose du front suivent le code. |
+| 23 | `POST /order/update` recalcule le total avec `NO_DISCOUNT` : une commande passée avec une remise la perd à la première modification (complément de paiement demandé). | `OrderManagementServiceImp.java:~300` | Prévenir avant de modifier une commande remisée, ou réserver la modification aux commandes sans remise. |
+| 24 | `OrderResponseDto` ne contient ni `discountKey`, ni montant de remise, ni frais de port, alors que l'entité connaît `discountKey`, `shippingType` et `shippingProvider`. | `OrderResponseDto.java`, `OrderCreationTransactionalDelegateImp.java:107` | Le détail d'une commande ne peut pas décomposer son total ; seul `totalAmount` fait foi. |
+| 25 | Frais de port (15 € / 25 €) codés dans `DHLShippingProviderService` et `FedexShippingProviderService`, exposés par aucun endpoint. | `*ShippingProviderService.java` | Le tunnel ne peut afficher qu'un port « estimé » à partir d'une constante front alignée, signalée comme telle. |
+| 26 | `POST /order/place` ne renvoie jamais 402 : l'échec de paiement n'est visible que dans le statut. | `OrderManagementServiceImp#placeOrder` | La page de confirmation doit sonder `/status/{uuid}` et proposer `retry-payment`. |
+| 27 | Un `minOrderAmount` non atteint annule la remise sans erreur. | `OrderPriceCalculationServiceImp#computeDiscount` | Le front doit le signaler lui-même avant l'envoi. |
+| 28 | `POST /admin/management/order/place/auto` déclare `consumes = application/json` sans body. | `OrderManagementAdminController.java:64` | **Non utilisé par le front** (décision du 2026-10-13) ; retrait demandé au backend (`docs/backend/backend-prompts-lot2.md`). |
 
 ---
 
@@ -440,7 +456,9 @@ Absents : devise, frais de port, montant de remise, `discountKey`, statut de pai
 | Suggestions / autocomplétion (palette ⌘K) | `GET /product/suggest?q=` | `POST /product/search` avec `size` réduit + debounce. |
 | Avis publics d'un produit + note moyenne | `GET /api/v1/services/review/product/{uuid}` (public, paginé) | Aucun. |
 | Panier invité + fusion à la connexion | `POST /cart/merge` idempotent (optionnel) | **Retenu** : panier invité en `localStorage` puis rejoué via le BFF → `/cart/add` à la connexion — voir [`../guest-cart.md`](../guest-cart.md). |
-| Récapitulatif de prix avant commande (remise, port) | `POST /order/quote` (le DTO `PriceCalculationRequestDto` existe déjà, sans controller) | Total panier uniquement ; montant final connu après `/order/place`. |
+| Récapitulatif de prix avant commande (remise, port) | `POST /order/quote` (le DTO `PriceCalculationRequestDto` existe déjà, sans controller) | Total « estimé » calculé côté front avec les règles de §5 (remise + port) ; montant final connu après `/order/place`. |
+| Frais de port par transporteur et type | `GET /shipping/options` | Constantes front alignées sur `*ShippingProviderService` (15 € / 25 €). |
+| Détail du total d'une commande (remise, port) | `discountKey`, `discountAmount`, `shippingCost` sur `OrderResponseDto` | Aucun : seul `totalAmount` est affiché. |
 | Paiement côté client (Stripe Payment Element, 3DS) | `POST /order/{uuid}/payment-intent` → `client_secret` | Paiement serveur simulé. |
 | Derniers produits consultés (« Content de te revoir ») | `GET /api/v1/events/recently-viewed` | Historique local (cookie / localStorage non sensible) côté front. |
 | Changement de mot de passe / mot de passe oublié | Keycloak account console ou action `UPDATE_PASSWORD` | Lien vers la console Keycloak. |
