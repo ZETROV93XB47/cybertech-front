@@ -76,6 +76,10 @@ export interface ThemeShadows {
   readonly card: CssValue;
   readonly cardHover: CssValue;
   readonly cta: CssValue;
+  /** Dark neumorphism of the quantity stepper: soft raised surface. */
+  readonly neumorphicRaised: CssValue;
+  /** Dark neumorphism of the quantity stepper: pressed (inset) field. */
+  readonly neumorphicInset: CssValue;
 }
 
 /** Durations and movements of one motion intensity. */

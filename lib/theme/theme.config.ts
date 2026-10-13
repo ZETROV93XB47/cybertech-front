@@ -133,6 +133,9 @@ export const THEME = {
     card: "0 8px 32px rgba(139, 124, 246, 0.10)",
     cardHover: "0 16px 48px rgba(139, 124, 246, 0.22)",
     cta: "0 0 28px var(--accent-glow)",
+    neumorphicRaised: "6px 6px 14px rgba(5, 7, 16, 0.55), -4px -4px 12px rgba(139, 124, 246, 0.07)",
+    neumorphicInset:
+      "inset 3px 3px 8px rgba(5, 7, 16, 0.6), inset -3px -3px 8px rgba(139, 124, 246, 0.06)",
   },
   motion: {
     [MotionIntensity.NORMAL]: {

@@ -37,3 +37,23 @@ export enum PendingActionType {
   /** Remove a line. */
   REMOVE = "remove",
 }
+
+/** Cart action triggered from the UI, for both the guest and the account cart. */
+export enum CartAction {
+  /** Add a quantity to a line (additive). */
+  ADD = "add",
+  /** Set the absolute quantity of a line. */
+  SET = "set",
+  /** Remove a line. */
+  REMOVE = "remove",
+  /** Remove every line. */
+  CLEAR = "clear",
+}
+
+/** Browser-side limit of the guest cart that a change would break. */
+export enum GuestCartLimit {
+  /** More than `GUEST_CART_MAX_LINES` distinct products. */
+  MAX_LINES = "max-lines",
+  /** More than `CART_LINE_MAX_QUANTITY` units of one product. */
+  MAX_QUANTITY = "max-quantity",
+}

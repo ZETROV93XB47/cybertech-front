@@ -56,6 +56,8 @@ export const CSS_VARIABLES = {
   shadowCard: "--elevation-card",
   shadowCardHover: "--elevation-card-hover",
   shadowCta: "--elevation-cta",
+  shadowNeumorphicRaised: "--elevation-neumorphic-raised",
+  shadowNeumorphicInset: "--elevation-neumorphic-inset",
   durationFast: "--duration-fast",
   durationBase: "--duration-base",
   durationSlow: "--duration-slow",
@@ -184,6 +186,8 @@ function baseDeclarations(theme: ThemeConfig): Declarations {
     [CSS_VARIABLES.shadowCard, shadows.card],
     [CSS_VARIABLES.shadowCardHover, shadows.cardHover],
     [CSS_VARIABLES.shadowCta, shadows.cta],
+    [CSS_VARIABLES.shadowNeumorphicRaised, shadows.neumorphicRaised],
+    [CSS_VARIABLES.shadowNeumorphicInset, shadows.neumorphicInset],
     [CSS_VARIABLES.containerMaxWidth, layout.containerMaxWidth],
     [CSS_VARIABLES.headerHeight, layout.headerHeight],
   ];

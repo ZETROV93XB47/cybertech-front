@@ -57,6 +57,8 @@
   --shadow-card: var(--elevation-card);
   --shadow-card-hover: var(--elevation-card-hover);
   --shadow-cta: var(--elevation-cta);
+  --shadow-neumorphic: var(--elevation-neumorphic-raised);
+  --shadow-neumorphic-inset: var(--elevation-neumorphic-inset);
 
   /* Motion and layout. */
   --ease-aurora: var(--easing);
@@ -198,5 +200,38 @@
     );
     color: var(--on-accent);
     box-shadow: var(--elevation-cta);
+  }
+
+  /*
+   * Dark neumorphism of the quantity stepper (spec annex « Composants »): a soft raised shell
+   * whose border takes the success colour while it holds the focus or the product is in the cart.
+   * The state is never signalled by colour alone: the component also shows an icon and a text.
+   */
+  .neumorphic {
+    background-color: var(--surface);
+    border: var(--border-width) solid var(--border);
+    box-shadow: var(--elevation-neumorphic-raised);
+    transition: border-color var(--duration-fast) var(--easing);
+  }
+
+  .neumorphic:focus-within,
+  .neumorphic[data-active="true"] {
+    border-color: var(--success);
+  }
+
+  .neumorphic-inset {
+    background-color: var(--bg);
+    box-shadow: var(--elevation-neumorphic-inset);
+  }
+
+  /* Number field of the stepper: no native spin buttons, the stepper has its own. */
+  .quantity-input {
+    appearance: textfield;
+  }
+
+  .quantity-input::-webkit-inner-spin-button,
+  .quantity-input::-webkit-outer-spin-button {
+    appearance: none;
+    margin: 0;
   }
 }

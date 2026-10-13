@@ -9,6 +9,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { AddToCartButton } from "@/features/cart/components/AddToCartButton";
 import { productPath } from "@/lib/constants/routes";
 import { formatPrice } from "@/lib/format";
 import type { ProductCard as ProductCardData } from "@/lib/schemas/product";
@@ -83,8 +84,11 @@ export function ProductCard(props: ProductCardProps): ReactNode {
           </Link>
         </h3>
         <div className="mt-auto flex items-end justify-between gap-3 pt-2">
-          <p className="price text-lg">{formatPrice(product.price)}</p>
-          <AvailabilityBadge productUuid={product.uuid} className="relative" />
+          <div className="flex flex-col gap-1">
+            <p className="price text-lg">{formatPrice(product.price)}</p>
+            <AvailabilityBadge productUuid={product.uuid} className="relative" />
+          </div>
+          <AddToCartButton productUuid={product.uuid} productName={product.name} compact />
         </div>
       </div>
     </article>

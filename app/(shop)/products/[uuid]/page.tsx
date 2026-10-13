@@ -9,6 +9,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { AddToCartButton } from "@/features/cart/components/AddToCartButton";
 import { AvailabilityBadge } from "@/features/catalog/components/AvailabilityBadge";
 import { ProductGallery } from "@/features/catalog/components/ProductGallery";
 import { RecordProductView } from "@/features/catalog/components/RecordProductView";
@@ -129,6 +130,7 @@ export default async function ProductPage({
             productUuid={product.uuid}
             {...(availability === undefined ? {} : { initialAvailability: availability })}
           />
+          <AddToCartButton productUuid={product.uuid} productName={product.name} />
           {specs.length > 0 && (
             <section
               aria-labelledby="specs-title"

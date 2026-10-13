@@ -10,9 +10,11 @@ import { Inter, JetBrains_Mono, Sora } from "next/font/google";
 import { cookies, headers } from "next/headers";
 import type { ReactNode } from "react";
 
+import { CartBadge } from "@/components/layout/CartBadge";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
 import { MAIN_CONTENT_ID, SkipLink } from "@/components/layout/SkipLink";
+import { GuestCartMerger } from "@/features/cart/components/GuestCartMerger";
 import { CommandPalette } from "@/features/catalog/components/CommandPalette";
 import { SITE_MESSAGES } from "@/features/common/messages";
 import { NONCE_HEADER } from "@/lib/constants/security";
@@ -77,7 +79,8 @@ export default async function RootLayout({
       <body className="flex min-h-dvh flex-col">
         <Providers preferences={preferences}>
           <SkipLink />
-          <Header search={<CommandPalette />} />
+          <GuestCartMerger />
+          <Header search={<CommandPalette />} cart={<CartBadge />} />
           <main id={MAIN_CONTENT_ID} className="flex-1">
             {children}
           </main>
