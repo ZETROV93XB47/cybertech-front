@@ -7,6 +7,7 @@
  * @see specs/003-account-orders/spec.md US1, US2
  * @see specs/003-account-orders/contracts/bff-routes.md §1.1
  */
+import { BankCardType } from "@/lib/enums/bank-card";
 import { CheckoutStep } from "@/lib/enums/checkout";
 import { PaymentType } from "@/lib/enums/order";
 
@@ -54,10 +55,65 @@ export const CHECKOUT_MESSAGES = {
     [PaymentType.APPLE_PAY]: "Apple Pay",
     [PaymentType.GOOGLE_PAY]: "Google Pay",
   } satisfies Record<PaymentType, string>,
-  paymentSimulated:
-    "Paiement simulé : aucun débit réel n'est fait et tu n'as aucun numéro de carte à saisir.",
+  paymentTest:
+    "Paiement de test : la carte enregistrée sur ton compte est débitée en mode test Stripe, aucun numéro n'est saisi ici.",
   chooseOption: "Choisis une option pour continuer.",
   awaitingCart: "On récupère ton panier…",
+} as const;
+
+/** Saved card shown in the payment step and in the summary (FR-009). */
+export const SAVED_CARD_MESSAGES = {
+  title: "Carte débitée",
+  cardTypes: {
+    [BankCardType.VISA]: "Visa",
+    [BankCardType.MASTERCARD]: "Mastercard",
+    [BankCardType.AMERICAN_EXPRESS]: "American Express",
+    [BankCardType.DISCOVER]: "Discover",
+    [BankCardType.OTHER]: "Carte",
+  } satisfies Record<BankCardType, string>,
+  cardEnding: (network: string, lastDigits: string): string =>
+    `${network} se terminant par ${lastDigits}`,
+  cardExpiry: (expiry: string): string => `Expire fin ${expiry}`,
+  noCard: "Aucune carte n'est enregistrée sur ton compte : ajoute-en une pour pouvoir commander.",
+  unknownCard: "On n'a pas pu relire ta carte enregistrée ; elle sera vérifiée à la validation.",
+  addCard: "Ajouter une carte",
+} as const;
+
+/** « Appliquer une réduction » block, on the cart and in the checkout summary (US2). */
+export const DISCOUNT_MESSAGES = {
+  title: "Appliquer une réduction",
+  toggleOpen: "Voir les réductions",
+  toggleClose: "Masquer les réductions",
+  campaignsLabel: "Réductions en cours",
+  apply: "Appliquer",
+  applied: "Appliquée",
+  remove: "Retirer la réduction",
+  keyLabel: "Tu as une clé de réduction ?",
+  keyPlaceholder: "BLACK_FRIDAY",
+  keySubmit: "Tester la clé",
+  checking: "On vérifie la réduction…",
+  keyMalformed: "Une clé ne contient que des lettres, des chiffres et des tirets bas.",
+  refused: (key: string): string =>
+    `La clé ${key} n'existe pas ou n'est plus active. Ta réduction précédente est conservée.`,
+  expired: (key: string): string => `La réduction ${key} n'est plus valable : on l'a retirée.`,
+  appliedAnnounce: (key: string): string => `Réduction ${key} sélectionnée.`,
+  removedAnnounce: "Réduction retirée.",
+  currentKey: (key: string): string => `Réduction choisie : ${key}`,
+  missing: (amount: string, key: string): string =>
+    `Il te manque ${amount} pour profiter de ${key}.`,
+  missingHint: "Elle reste sélectionnée et s'appliquera dès que le minimum sera atteint.",
+  percentage: (percentage: number): string => `−${percentage} %`,
+  fixed: (amount: string): string => `−${amount}`,
+  buyOneGetOne: "1 acheté = 1 offert",
+  minOrder: (amount: string): string => `Dès ${amount} d'achat`,
+  cap: (amount: string): string => `Remise plafonnée à ${amount}`,
+  until: (day: string): string => `Jusqu'au ${day}`,
+  discount: (key: string): string => `Remise ${key}`,
+  nextStep: "Livraison et total calculés à l'étape suivante.",
+  guestInvite: "Connecte-toi pour appliquer une réduction à ton panier.",
+  signIn: "Se connecter",
+  unavailable: "On n'arrive pas à calculer ta remise pour l'instant.",
+  retry: "Réessayer",
 } as const;
 
 /** Summary of the checkout, with the amounts of the backend quote. */
@@ -77,6 +133,7 @@ export const CHECKOUT_SUMMARY_MESSAGES = {
   place: "Valider la commande",
   placing: "Validation…",
   placeHint: "Termine les étapes pour valider ta commande.",
+  nextStep: "Livraison et total calculés à l'étape suivante.",
   totalChanged: (total: string): string =>
     `Ton panier a changé : le nouveau total est de ${total}. Vérifie-le puis valide à nouveau.`,
 } as const;
@@ -96,8 +153,7 @@ export const CHECKOUT_ERROR_MESSAGES = {
       : `Trop de demandes d'un coup : réessaie dans ${seconds} s.`,
   unavailable: "Le service de commande ne répond pas. Réessaie dans un instant.",
   sessionExpired: "Ta session a expiré : reconnecte-toi pour finir ta commande.",
-  noSavedCard:
-    "Pour commander, ton compte doit avoir une carte enregistrée, et le site ne permet pas encore d'en ajouter. Contacte le support.",
+  noSavedCard: "Pour commander, ajoute d'abord une carte à ton compte.",
   profileMissing: "On ne retrouve pas ton profil. Reconnecte-toi ou contacte le support.",
   unknown: "Un imprévu est survenu. Réessaie dans un instant.",
 } as const;

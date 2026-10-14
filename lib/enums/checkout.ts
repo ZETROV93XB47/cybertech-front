@@ -80,3 +80,49 @@ export enum PaymentTrackerState {
   /** Status unreadable, or the order left the nominal path (cancelled, refunded…). */
   UNKNOWN = "unknown",
 }
+
+/**
+ * Feedback of the discount block after a choice, announced in its live region.
+ *
+ * @see specs/003-account-orders/spec.md FR-018, FR-020
+ */
+export enum DiscountFeedbackKind {
+  /** The quote accepted the key: it is now the applied discount. */
+  APPLIED = "applied",
+  /** The applied discount was removed by the customer. */
+  REMOVED = "removed",
+  /** The typed key is not shaped like a key; nothing was sent. */
+  MALFORMED = "malformed",
+  /** The quote refused the key (`discount-invalid`); the previous discount is kept. */
+  REFUSED = "refused",
+  /** The applied discount is no longer valid (quote or placement); it was dropped. */
+  EXPIRED = "expired",
+}
+
+/** Transition of the discount selection (`features/checkout/discount-selection.ts`). */
+export enum DiscountActionType {
+  /** Key read back from the tab storage after hydration. */
+  RESTORE = "restore",
+  /** A campaign chosen or a key typed: to be checked by a quote. */
+  PROPOSE = "propose",
+  /** The typed key is malformed. */
+  MALFORMED = "malformed",
+  /** The quote of the pending key succeeded. */
+  COMMIT = "commit",
+  /** The quote refused the pending key. */
+  REJECT = "reject",
+  /** The applied key is no longer valid. */
+  EXPIRE = "expire",
+  /** The customer removed the discount. */
+  REMOVE = "remove",
+}
+
+/** What the saved card read for the checkout says (FR-009). */
+export enum SavedCardKind {
+  /** A card is saved: it is shown and will be charged. */
+  PRESENT = "present",
+  /** No card (`BANK_CARD_NOT_FOUND`): placing is blocked, « Ajouter une carte » offered. */
+  ABSENT = "absent",
+  /** The card could not be read: placing stays possible, the backend decides. */
+  UNKNOWN = "unknown",
+}

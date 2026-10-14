@@ -26,3 +26,11 @@ export const PHONE_PATTERN = /^\+?[0-9 .-]{6,20}$/;
 
 /** Expiry of a saved card, `MM/YYYY` (`@Pattern` of `BankCardUpdateRequestDto`). */
 export const CARD_EXPIRY_PATTERN = /^(0[1-9]|1[0-2])\/[0-9]{4}$/;
+
+/**
+ * Last four digits at the end of a masked card number (`"**** **** **** 4242"`, built by
+ * `BankCardMapper` from `lastFourDigits`).
+ *
+ * @see BankCardMapper#toResponseDto (backend)
+ */
+export const CARD_LAST_DIGITS_PATTERN = /(\d{4})\s*$/;

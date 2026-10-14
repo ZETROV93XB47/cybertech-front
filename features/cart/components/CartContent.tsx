@@ -12,6 +12,7 @@ import { StateIllustration } from "@/components/effects/StateIllustration";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CATALOG_PATH } from "@/lib/constants/routes";
 import type { CartIssue } from "@/lib/enums/cart";
+import type { ActiveDiscount } from "@/lib/schemas/discount";
 
 import { useCart } from "../hooks/useCart";
 import { usePruneUnavailableGuestLines } from "../hooks/usePruneUnavailableGuestLines";
@@ -61,15 +62,17 @@ function CartSkeleton(): ReactNode {
 export interface CartContentProps {
   /** Problem met at checkout that sent the customer back here, if any. */
   readonly issue: CartIssue | null;
+  /** Displayable discount campaigns, read on the server (empty when unavailable). */
+  readonly campaigns: readonly ActiveDiscount[];
 }
 
 /**
  * Cart page body.
  *
- * @param props - Checkout issue to explain.
+ * @param props - Checkout issue to explain and discount campaigns.
  * @returns Lines and summary, or the matching state.
  */
-export function CartContent({ issue }: CartContentProps): ReactNode {
+export function CartContent({ issue, campaigns }: CartContentProps): ReactNode {
   const { cart, isLoading, isError, isMutating, announcement, setQuantity, remove, clear } =
     useCart();
   const pruneNotice = usePruneUnavailableGuestLines(cart);
@@ -92,7 +95,12 @@ export function CartContent({ issue }: CartContentProps): ReactNode {
           />
         </div>
         <div className="lg:col-span-4">
-          <CartSummary cart={cart} disabled={isMutating} onClear={() => void clear()} />
+          <CartSummary
+            cart={cart}
+            campaigns={campaigns}
+            disabled={isMutating}
+            onClear={() => void clear()}
+          />
         </div>
       </div>
     );

@@ -13,7 +13,13 @@ import { CheckoutSummary } from "@/features/checkout/components/CheckoutSummary"
 import { PaymentTracker } from "@/features/checkout/components/PaymentTracker";
 import type { QuoteView } from "@/features/checkout/quote-view";
 import { buildShippingChoices } from "@/features/checkout/shipping-choices";
+import type { PlaceOrderInput, PlaceOutcome } from "@/features/checkout/hooks/usePlaceOrder";
+import { toSavedCard } from "@/features/checkout/saved-card";
+import { BffError } from "@/lib/api/bff-client";
+import { BankCardType } from "@/lib/enums/bank-card";
 import { CartLineStatus, CartSource } from "@/lib/enums/cart";
+import { PlaceOutcomeKind } from "@/lib/enums/checkout";
+import { FrontErrorCode } from "@/lib/enums/error-code";
 import { OrderStatus } from "@/lib/enums/order";
 import { ShippingProvider, ShippingType } from "@/lib/enums/shipping";
 import type { CartView } from "@/lib/schemas/cart";
@@ -54,6 +60,7 @@ const QUOTE: QuoteView = {
 };
 
 const quoteState = { quote: undefined as QuoteView | undefined, isStale: false };
+const placeMock = vi.fn<() => Promise<PlaceOutcome>>();
 const statusState = { status: undefined as OrderStatus | undefined, isTimedOut: false };
 
 vi.mock("@/features/cart/hooks/useCart", () => ({ useCart: () => ({ cart: CART }) }));
@@ -62,7 +69,7 @@ vi.mock("@/features/checkout/hooks/useQuote", () => ({
   useQuote: () => ({ ...quoteState, isFetching: false, error: null, refetch: vi.fn() }),
 }));
 vi.mock("@/features/checkout/hooks/usePlaceOrder", () => ({
-  usePlaceOrder: () => ({ place: vi.fn(), isPending: false, error: null }),
+  usePlaceOrder: () => ({ place: placeMock, isPending: false, error: null }),
 }));
 vi.mock("@/features/checkout/hooks/useOrderStatus", () => ({
   useOrderStatus: () => ({ ...statusState, error: null, restart: vi.fn() }),
@@ -70,6 +77,18 @@ vi.mock("@/features/checkout/hooks/useOrderStatus", () => ({
 }));
 
 const ADDRESS = { street: "1 rue du Test", zipCode: "75001", city: "Paris", country: "France" };
+
+/** Saved Visa card ending in 4242. */
+const VISA_CARD = toSavedCard({
+  uuid: ORDER,
+  cardHolderName: "Jean Test",
+  maskedNumber: "**** **** **** 4242",
+  expiryDate: "12/2030",
+  cardType: BankCardType.VISA,
+});
+
+/** No saved card. */
+const NO_CARD = toSavedCard(null);
 
 const CHOICES = buildShippingChoices(
   [
@@ -82,6 +101,7 @@ const CHOICES = buildShippingChoices(
 beforeEach(() => {
   quoteState.quote = undefined;
   quoteState.isStale = false;
+  placeMock.mockReset();
   statusState.status = undefined;
   statusState.isTimedOut = false;
   window.sessionStorage.clear();
@@ -90,7 +110,14 @@ beforeEach(() => {
 describe("CheckoutFlow", () => {
   it("unfolds the steps one at a time and keeps the choices when a step is reopened", async () => {
     const user = userEvent.setup();
-    const { container } = render(<CheckoutFlow initialAddress={ADDRESS} choices={CHOICES} />);
+    const { container } = render(
+      <CheckoutFlow
+        initialAddress={ADDRESS}
+        choices={CHOICES}
+        savedCard={VISA_CARD}
+        campaigns={[]}
+      />,
+    );
     expect(screen.getByLabelText("Ville")).toHaveValue("Paris");
     expect(screen.queryByRole("radio", { name: /Livraison express/ })).toBeNull();
     expect(await axe(container)).toHaveNoViolations();
@@ -106,7 +133,14 @@ describe("CheckoutFlow", () => {
 
   it("links the error of an empty address field to it", async () => {
     const user = userEvent.setup();
-    render(<CheckoutFlow initialAddress={{ ...ADDRESS, city: "" }} choices={CHOICES} />);
+    render(
+      <CheckoutFlow
+        initialAddress={{ ...ADDRESS, city: "" }}
+        choices={CHOICES}
+        savedCard={VISA_CARD}
+        campaigns={[]}
+      />,
+    );
     await user.click(screen.getByRole("button", { name: "Continuer" }));
     const city = screen.getByLabelText("Ville");
     expect(city).toHaveAttribute("aria-invalid", "true");
@@ -115,7 +149,14 @@ describe("CheckoutFlow", () => {
 
   it("shows real prices, the estimate label and store pickup disabled", async () => {
     const user = userEvent.setup();
-    render(<CheckoutFlow initialAddress={ADDRESS} choices={CHOICES} />);
+    render(
+      <CheckoutFlow
+        initialAddress={ADDRESS}
+        choices={CHOICES}
+        savedCard={VISA_CARD}
+        campaigns={[]}
+      />,
+    );
     await user.click(screen.getByRole("button", { name: "Continuer" }));
     const standard = screen.getByRole("radio", { name: /Livraison standard — DHL/ });
     expect(standard.closest("label")).toHaveTextContent("15,00");
@@ -127,14 +168,23 @@ describe("CheckoutFlow", () => {
 
   it("offers the four payment methods and never a card number field", async () => {
     const user = userEvent.setup();
-    render(<CheckoutFlow initialAddress={ADDRESS} choices={CHOICES} />);
+    render(
+      <CheckoutFlow
+        initialAddress={ADDRESS}
+        choices={CHOICES}
+        savedCard={VISA_CARD}
+        campaigns={[]}
+      />,
+    );
     await user.click(screen.getByRole("button", { name: "Continuer" }));
     await user.click(screen.getByRole("radio", { name: /Livraison standard — DHL/ }));
     await user.click(screen.getByRole("button", { name: "Continuer" }));
     for (const name of ["Mastercard", "Visa", "Apple Pay", "Google Pay"]) {
       expect(screen.getByRole("radio", { name })).toBeInTheDocument();
     }
-    expect(screen.getByText(/Paiement simulé/)).toBeInTheDocument();
+    expect(screen.getByText(/Paiement de test/)).toBeInTheDocument();
+    expect(screen.getByTestId("saved-card")).toHaveTextContent("Visa se terminant par 4242");
+    expect(screen.getByTestId("saved-card")).toHaveTextContent("Expire fin 12/2030");
     expect(screen.queryByLabelText(/carte/i)).toBeNull();
     expect(document.querySelector('input[autocomplete^="cc-"]')).toBeNull();
   });
@@ -150,15 +200,129 @@ describe("CheckoutFlow", () => {
         hadCustomAddress: true,
       }),
     );
-    render(<CheckoutFlow initialAddress={ADDRESS} choices={CHOICES} />);
+    render(
+      <CheckoutFlow
+        initialAddress={ADDRESS}
+        choices={CHOICES}
+        savedCard={VISA_CARD}
+        campaigns={[]}
+      />,
+    );
     expect(screen.getByText(/ton adresse a été reprise/)).toBeInTheDocument();
     expect(window.sessionStorage.getItem("ct_checkout_v1")).toBeNull();
+  });
+});
+
+describe("CheckoutFlow — saved card (T083)", () => {
+  /**
+   * Validates the three steps with Standard DHL and Visa.
+   *
+   * @param user - User event instance.
+   */
+  async function completeSteps(user: ReturnType<typeof userEvent.setup>): Promise<void> {
+    await user.click(screen.getByRole("button", { name: "Continuer" }));
+    await user.click(screen.getByRole("radio", { name: /Livraison standard — DHL/ }));
+    await user.click(screen.getByRole("button", { name: "Continuer" }));
+    await user.click(screen.getByRole("radio", { name: "Visa" }));
+    await user.click(screen.getByRole("button", { name: "Continuer" }));
+  }
+
+  it("blocks placing without a saved card and offers « Ajouter une carte »", async () => {
+    const user = userEvent.setup();
+    quoteState.quote = QUOTE;
+    render(
+      <CheckoutFlow
+        initialAddress={ADDRESS}
+        choices={CHOICES}
+        savedCard={NO_CARD}
+        campaigns={[]}
+      />,
+    );
+    await completeSteps(user);
+    expect(screen.getByRole("button", { name: "Valider la commande" })).toBeDisabled();
+    for (const link of screen.getAllByRole("link", { name: "Ajouter une carte" })) {
+      expect(link).toHaveAttribute("href", "/account/card?returnTo=%2Fcheckout");
+    }
+  });
+
+  it("shows « Ajouter une carte » when the placement finds no saved card", async () => {
+    const user = userEvent.setup();
+    quoteState.quote = QUOTE;
+    placeMock.mockResolvedValue({
+      kind: PlaceOutcomeKind.FAILED,
+      error: new BffError(FrontErrorCode.NO_SAVED_CARD, 404, "test"),
+    });
+    render(
+      <CheckoutFlow
+        initialAddress={ADDRESS}
+        choices={CHOICES}
+        savedCard={VISA_CARD}
+        campaigns={[]}
+      />,
+    );
+    await completeSteps(user);
+    expect(screen.queryByRole("link", { name: "Ajouter une carte" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Valider la commande" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("ajoute d'abord une carte");
+    expect(screen.getByRole("link", { name: "Ajouter une carte" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Valider la commande" })).toBeDisabled();
+  });
+
+  it("drops a discount that expired before the placement and asks for a new click", async () => {
+    const user = userEvent.setup();
+    window.sessionStorage.setItem("ct_discount_v1", "BLACK_FRIDAY");
+    quoteState.quote = {
+      ...QUOTE,
+      discount: 100,
+      discountKey: "BLACK_FRIDAY",
+      isDiscountApplied: true,
+    };
+    placeMock.mockResolvedValue({ kind: PlaceOutcomeKind.DISCOUNT_INVALID });
+    render(
+      <CheckoutFlow
+        initialAddress={ADDRESS}
+        choices={CHOICES}
+        savedCard={VISA_CARD}
+        campaigns={[]}
+      />,
+    );
+    await completeSteps(user);
+    await user.click(screen.getByRole("button", { name: "Valider la commande" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("Cette réduction n'est plus valable");
+    expect(window.sessionStorage.getItem("ct_discount_v1")).toBeNull();
+    expect(placeMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends the quoted discount key with the order", async () => {
+    const user = userEvent.setup();
+    quoteState.quote = {
+      ...QUOTE,
+      discount: 100,
+      discountKey: "BLACK_FRIDAY",
+      isDiscountApplied: true,
+    };
+    placeMock.mockResolvedValue({ kind: PlaceOutcomeKind.IGNORED });
+    render(
+      <CheckoutFlow
+        initialAddress={ADDRESS}
+        choices={CHOICES}
+        savedCard={VISA_CARD}
+        campaigns={[]}
+      />,
+    );
+    await completeSteps(user);
+    await user.click(screen.getByRole("button", { name: "Valider la commande" }));
+    const [input] = placeMock.mock.calls[0] as unknown as [PlaceOrderInput];
+    expect(input.body.discountKey).toBe("BLACK_FRIDAY");
   });
 });
 
 describe("CheckoutSummary", () => {
   const props = {
     cart: CART,
+    showShipping: true,
+    discountBlock: null,
+    needsCard: false,
     quoteError: null,
     onRetry: vi.fn(),
     isPlacing: false,
@@ -175,6 +339,30 @@ describe("CheckoutSummary", () => {
     expect(total).toHaveAttribute("aria-busy", "false");
     expect(screen.getByRole("button", { name: "Valider la commande" })).toBeEnabled();
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it("shows only the subtotal and the discount before a shipping is chosen", () => {
+    render(
+      <CheckoutSummary
+        {...props}
+        showShipping={false}
+        quote={{ ...QUOTE, discount: 100, discountKey: "BLACK_FRIDAY" }}
+        isStale={false}
+        canPlace={false}
+      />,
+    );
+    expect(screen.getByText("Remise BLACK_FRIDAY")).toBeInTheDocument();
+    expect(screen.queryByTestId("checkout-total")).toBeNull();
+    expect(screen.getByText("Livraison et total calculés à l'étape suivante.")).toBeInTheDocument();
+  });
+
+  it("disables placing and offers « Ajouter une carte » without a saved card", () => {
+    render(<CheckoutSummary {...props} quote={QUOTE} isStale={false} canPlace needsCard />);
+    expect(screen.getByRole("button", { name: "Valider la commande" })).toBeDisabled();
+    expect(screen.getByRole("link", { name: "Ajouter une carte" })).toHaveAttribute(
+      "href",
+      "/account/card?returnTo=%2Fcheckout",
+    );
   });
 
   it("marks stale amounts as updating and waits before placing", () => {

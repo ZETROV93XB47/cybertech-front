@@ -59,7 +59,7 @@ async function readOrder(uuid: string, accessToken: string): Promise<OrderRespon
 }
 
 /**
- * Lines and total of the order.
+ * Lines, discount (when one was granted, US2) and total of the order.
  *
  * @param props - The order.
  * @returns The section.
@@ -86,6 +86,12 @@ function OrderRecap({ order }: { readonly order: OrderResponse }): ReactNode {
           </li>
         ))}
       </ul>
+      {order.discountAmount !== null && order.discountAmount > 0 && (
+        <p className="flex items-baseline justify-between gap-4 text-sm text-gold">
+          <span>{CHECKOUT_SUMMARY_MESSAGES.discountWithKey(order.discountKey)}</span>
+          <span data-testid="confirmation-discount">− {formatPrice(order.discountAmount)}</span>
+        </p>
+      )}
       <p className="flex items-baseline justify-between gap-4 border-t border-border pt-3">
         <span>{CONFIRMATION_MESSAGES.totalPaid}</span>
         <span className="price text-2xl" data-testid="confirmation-total">

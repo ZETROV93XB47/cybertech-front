@@ -2,23 +2,32 @@
 
 /**
  * Client island of the single-page checkout: the three steps unfolding one after the other
- * (reducer of `checkout-state.ts`), the summary priced by the backend quote, and the placement.
+ * (reducer of `checkout-state.ts`), the summary priced by the backend quote with the discount
+ * chosen on the cart or here, the saved card that will be charged, and the placement.
+ *
+ * Before a shipping is chosen, the quote is priced with `CART_QUOTE_SHIPPING` so that the
+ * subtotal and the discount are known; the summary only shows shipping and total once the
+ * customer chose a shipping.
  *
  * A draft kept across a forced re-login is restored after the first render (the server render
  * cannot read `sessionStorage`), then removed. The order is never placed without a new click.
  *
- * @see specs/003-account-orders/spec.md US1, FR-002, FR-006 to FR-015
- * @see specs/003-account-orders/research.md R3, R4, R9, R10
+ * @see specs/003-account-orders/spec.md US1, US2, FR-002, FR-006 to FR-020
+ * @see specs/003-account-orders/research.md R3, R4, R5, R7, R9, R10, R21
  */
 import { useEffect, useReducer, useState, type Dispatch, type ReactNode } from "react";
 
 import { useCart } from "@/features/cart/hooks/useCart";
 import type { ParsedAddress } from "@/lib/address";
+import type { BffError } from "@/lib/api/bff-client";
 import { assertNever } from "@/lib/assert-never";
+import { CART_QUOTE_SHIPPING } from "@/lib/constants/checkout";
 import { NO_DISCOUNT_KEY } from "@/lib/constants/discount";
-import { PlaceOutcomeKind } from "@/lib/enums/checkout";
+import { DiscountBlockMode, PlaceOutcomeKind, SavedCardKind } from "@/lib/enums/checkout";
 import { CheckoutActionType } from "@/lib/enums/checkout-step-state";
+import { FrontErrorCode } from "@/lib/enums/error-code";
 import { formatPrice } from "@/lib/format";
+import type { ActiveDiscount } from "@/lib/schemas/discount";
 
 import { checkoutErrorMessage } from "../checkout-errors";
 import { clearCheckoutDraft, readCheckoutDraft } from "../checkout-draft";
@@ -32,14 +41,17 @@ import {
   type CheckoutAction,
   type CheckoutState,
 } from "../checkout-state";
-import { cartSignature, useQuote } from "../hooks/useQuote";
+import { useDiscountedQuote, type UseDiscountedQuoteResult } from "../hooks/useDiscountedQuote";
 import { usePlaceOrder, type PlaceOutcome } from "../hooks/usePlaceOrder";
+import { cartSignature } from "../hooks/useQuote";
 import { CHECKOUT_ERROR_MESSAGES, CHECKOUT_MESSAGES, CHECKOUT_SUMMARY_MESSAGES } from "../messages";
+import type { SavedCard } from "../saved-card";
 import type { ShippingChoice } from "../shipping-choices";
 
 import { CheckoutStepPanel } from "./CheckoutStepPanel";
 import { CheckoutStepForm, stepSummary } from "./CheckoutStepForm";
 import { CheckoutSummary } from "./CheckoutSummary";
+import { DiscountBlock } from "./DiscountBlock";
 
 /** Props of {@link CheckoutFlow}. */
 export interface CheckoutFlowProps {
@@ -47,6 +59,10 @@ export interface CheckoutFlowProps {
   readonly initialAddress: ParsedAddress;
   /** Shipping choices with their real prices (empty when unavailable). */
   readonly choices: readonly ShippingChoice[];
+  /** Card that will be charged, or its absence (FR-009). */
+  readonly savedCard: SavedCard;
+  /** Displayable discount campaigns, read on the server. */
+  readonly campaigns: readonly ActiveDiscount[];
 }
 
 /**
@@ -88,19 +104,34 @@ function outcomeMessage(outcome: PlaceOutcome): string | null {
 }
 
 /**
+ * Error of the quote shown in the summary. A refused discount key is not one: the discount
+ * block explains it and the previous key is quoted again (FR-018).
+ *
+ * @param error - Error of the latest quote.
+ * @returns The message, or `null`.
+ */
+function quoteErrorMessage(error: BffError | null): string | null {
+  return error === null || error.code === FrontErrorCode.DISCOUNT_INVALID
+    ? null
+    : checkoutErrorMessage(error);
+}
+
+/**
  * Steps column.
  *
- * @param props - State, dispatcher and shipping choices.
+ * @param props - State, dispatcher, shipping choices and saved card.
  * @returns The three step panels.
  */
 function CheckoutSteps({
   state,
   dispatch,
   choices,
+  savedCard,
 }: {
   readonly state: CheckoutState;
   readonly dispatch: Dispatch<CheckoutAction>;
   readonly choices: readonly ShippingChoice[];
+  readonly savedCard: SavedCard;
 }): ReactNode {
   return (
     <ol aria-label={CHECKOUT_MESSAGES.stepsLabel} className="flex flex-col gap-4">
@@ -116,7 +147,13 @@ function CheckoutSteps({
               dispatch({ type: CheckoutActionType.REOPEN, step });
             }}
           >
-            <CheckoutStepForm step={step} state={state} dispatch={dispatch} choices={choices} />
+            <CheckoutStepForm
+              step={step}
+              state={state}
+              dispatch={dispatch}
+              choices={choices}
+              savedCard={savedCard}
+            />
           </CheckoutStepPanel>
         </li>
       ))}
@@ -124,26 +161,37 @@ function CheckoutSteps({
   );
 }
 
+/** Result of {@link useCheckoutPlacement}. */
+interface CheckoutPlacement {
+  readonly onPlace: () => void;
+  readonly isPending: boolean;
+  /** Outcome of the last click (French), if any. */
+  readonly message: string | null;
+  /** No saved card, known from the page or from a `no-saved-card` refusal. */
+  readonly needsCard: boolean;
+}
+
 /**
- * Single-page checkout.
+ * « Valider la commande »: places with the quoted discount, then reacts to the outcome — new
+ * quote on a changed total, discount dropped when no longer valid (FR-020), « Ajouter une
+ * carte » when the backend finds no saved card (FR-009).
  *
- * @param props - Prefill and shipping choices.
- * @returns Steps and summary.
+ * @param state - Checkout state.
+ * @param discount - Discount selection and quote.
+ * @param savedCard - Saved card read by the page.
+ * @returns The place handler and its state.
  */
-export function CheckoutFlow({ initialAddress, choices }: CheckoutFlowProps): ReactNode {
-  const [state, dispatch] = useReducer(checkoutReducer, initialAddress, initCheckoutState);
-  useRestoredDraft(dispatch);
-  const { cart } = useCart();
-  const quote = useQuote({
-    shipping: state.shipping,
-    discountKey: null,
-    cartSignature: cart ? cartSignature(cart) : "",
-  });
+function useCheckoutPlacement(
+  state: CheckoutState,
+  discount: UseDiscountedQuoteResult,
+  savedCard: SavedCard,
+): CheckoutPlacement {
   const { place, isPending } = usePlaceOrder();
   const [message, setMessage] = useState<string | null>(null);
-  const isComplete = areStepsComplete(state);
+  const [cardRefused, setCardRefused] = useState(false);
   const onPlace = async (): Promise<void> => {
-    if (!quote.quote || !state.shipping || !state.payment) {
+    const quote = discount.quote.quote;
+    if (!quote || !state.shipping || !state.payment) {
       return;
     }
     setMessage(null);
@@ -153,32 +201,70 @@ export function CheckoutFlow({ initialAddress, choices }: CheckoutFlowProps): Re
         shippingType: state.shipping.type,
         shippingProvider: state.shipping.provider,
         address: { ...state.address },
-        discountKey: quote.quote.discountKey ?? NO_DISCOUNT_KEY,
+        discountKey: quote.discountKey ?? NO_DISCOUNT_KEY,
       },
-      displayedTotal: quote.quote.total,
+      displayedTotal: quote.total,
       draft: toCheckoutDraft(state),
     });
     setMessage(outcomeMessage(outcome));
     if (outcome.kind === PlaceOutcomeKind.TOTAL_CHANGED) {
-      quote.refetch();
+      discount.quote.refetch();
+    } else if (outcome.kind === PlaceOutcomeKind.DISCOUNT_INVALID) {
+      discount.expire();
+    } else if (outcome.kind === PlaceOutcomeKind.FAILED) {
+      setCardRefused(outcome.error.code === FrontErrorCode.NO_SAVED_CARD);
     }
   };
+  const needsCard = savedCard.kind === SavedCardKind.ABSENT || cardRefused;
+  return { onPlace: () => void onPlace(), isPending, message, needsCard };
+}
+
+/**
+ * Single-page checkout.
+ *
+ * @param props - Prefill, shipping choices, saved card and discount campaigns.
+ * @returns Steps and summary.
+ */
+export function CheckoutFlow({
+  initialAddress,
+  choices,
+  savedCard,
+  campaigns,
+}: CheckoutFlowProps): ReactNode {
+  const [state, dispatch] = useReducer(checkoutReducer, initialAddress, initCheckoutState);
+  useRestoredDraft(dispatch);
+  const { cart } = useCart();
+  const discount = useDiscountedQuote({
+    shipping: state.shipping ?? CART_QUOTE_SHIPPING,
+    cartSignature: cart ? cartSignature(cart) : "",
+  });
+  const { quote } = discount;
+  const placement = useCheckoutPlacement(state, discount, savedCard);
   return (
     <div className="grid items-start gap-8 lg:grid-cols-12">
       <div className="lg:col-span-7">
-        <CheckoutSteps state={state} dispatch={dispatch} choices={choices} />
+        <CheckoutSteps state={state} dispatch={dispatch} choices={choices} savedCard={savedCard} />
       </div>
       <div className="lg:col-span-5">
         <CheckoutSummary
           cart={cart}
           quote={quote.quote}
+          showShipping={state.shipping !== null}
           isStale={quote.isStale}
-          quoteError={quote.error ? checkoutErrorMessage(quote.error) : null}
+          quoteError={quoteErrorMessage(quote.error)}
           onRetry={quote.refetch}
-          canPlace={isComplete && quote.quote !== undefined && !quote.isStale}
-          isPlacing={isPending}
-          onPlace={() => void onPlace()}
-          message={message}
+          canPlace={areStepsComplete(state) && quote.quote !== undefined && !quote.isStale}
+          isPlacing={placement.isPending}
+          onPlace={placement.onPlace}
+          message={placement.message}
+          needsCard={placement.needsCard}
+          discountBlock={
+            <DiscountBlock
+              mode={DiscountBlockMode.CHECKOUT}
+              campaigns={campaigns}
+              discount={discount}
+            />
+          }
         />
       </div>
     </div>

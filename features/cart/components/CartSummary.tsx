@@ -1,8 +1,11 @@
 "use client";
 
 /**
- * Summary of the cart page: item count, total (« estimé » for a visitor), and the clear button
- * with its confirmation dialog.
+ * Summary of the cart page: item count, total (« estimé » for a visitor, subtotal for a
+ * signed-in customer since the discount and shipping come next), the discount block (feature
+ * 003 US2), « Passer commande », and the clear button with its confirmation dialog.
+ *
+ * @see specs/003-account-orders/spec.md FR-016, clarification Q3
  */
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
@@ -15,20 +18,37 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { PRIMARY_CTA_CLASS } from "@/components/layout/cta";
+import { CartDiscountBlock } from "@/features/checkout/components/CartDiscountBlock";
 import { loginPath } from "@/lib/auth/callback-url";
 import { CHECKOUT_PATH } from "@/lib/constants/routes";
 import { formatPrice } from "@/lib/format";
 import { CartLineStatus, CartSource } from "@/lib/enums/cart";
 import { cn } from "@/lib/utils";
 import type { CartView } from "@/lib/schemas/cart";
+import type { ActiveDiscount } from "@/lib/schemas/discount";
 
 import { CART_MESSAGES } from "../messages";
 
 /** Props of {@link CartSummary}. */
 export interface CartSummaryProps {
   readonly cart: CartView;
+  /** Displayable discount campaigns, read on the server. */
+  readonly campaigns: readonly ActiveDiscount[];
   readonly disabled: boolean;
   readonly onClear: () => void;
+}
+
+/**
+ * Label of the amount row.
+ *
+ * @param cart - Displayed cart.
+ * @returns « Total estimé » for a visitor, « Sous-total » for a signed-in customer.
+ */
+function amountLabel(cart: CartView): string {
+  if (cart.totalIsEstimate) {
+    return CART_MESSAGES.estimatedTotal;
+  }
+  return cart.source === CartSource.ACCOUNT ? CART_MESSAGES.subtotal : CART_MESSAGES.total;
 }
 
 /** Style of the secondary buttons. */
@@ -127,7 +147,7 @@ function CheckoutButton({
  * @param props - Cart, busy state and clear handler.
  * @returns The summary panel.
  */
-export function CartSummary({ cart, disabled, onClear }: CartSummaryProps): ReactNode {
+export function CartSummary({ cart, campaigns, disabled, onClear }: CartSummaryProps): ReactNode {
   const [confirming, setConfirming] = useState(false);
   return (
     <section
@@ -139,7 +159,7 @@ export function CartSummary({ cart, disabled, onClear }: CartSummaryProps): Reac
       </h2>
       <p className="text-sm text-text-muted">{CART_MESSAGES.itemCount(cart.itemCount)}</p>
       <div className="flex items-baseline justify-between gap-4">
-        <span>{cart.totalIsEstimate ? CART_MESSAGES.estimatedTotal : CART_MESSAGES.total}</span>
+        <span>{amountLabel(cart)}</span>
         <span className="price text-2xl" data-testid="cart-total">
           {formatPrice(cart.total)}
         </span>
@@ -150,6 +170,7 @@ export function CartSummary({ cart, disabled, onClear }: CartSummaryProps): Reac
       {cart.source === CartSource.GUEST && (
         <p className="text-xs text-text-muted">{CART_MESSAGES.guestHint}</p>
       )}
+      <CartDiscountBlock cart={cart} campaigns={campaigns} />
       <CheckoutButton cart={cart} disabled={disabled} />
       <button
         type="button"

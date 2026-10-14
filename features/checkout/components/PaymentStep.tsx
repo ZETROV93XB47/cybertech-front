@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * Payment step of the checkout: the four methods accepted by the backend, without any card
- * number field (payment is simulated server-side, constitution V).
+ * Payment step of the checkout: the four methods accepted by the backend (type recorded on the
+ * order), the saved card that will be charged, and no card number field (constitution V).
  *
  * @see specs/003-account-orders/spec.md FR-009, FR-032
  */
@@ -12,12 +12,17 @@ import type { ReactNode } from "react";
 import { PaymentType } from "@/lib/enums/order";
 
 import { CHECKOUT_MESSAGES } from "../messages";
+import type { SavedCard } from "../saved-card";
+
+import { SavedCardPanel } from "./SavedCardPanel";
 
 /** Name shared by the radio buttons of the step. */
 const RADIO_NAME = "payment";
 
 /** Props of {@link PaymentStep}. */
 export interface PaymentStepProps {
+  /** Card that will be charged, or its absence. */
+  readonly savedCard: SavedCard;
   readonly value: PaymentType | null;
   readonly error: string | null;
   readonly onChange: (value: PaymentType) => void;
@@ -30,7 +35,13 @@ export interface PaymentStepProps {
  * @param props - Selection, error and handlers.
  * @returns The form.
  */
-export function PaymentStep({ value, error, onChange, onSubmit }: PaymentStepProps): ReactNode {
+export function PaymentStep({
+  savedCard,
+  value,
+  error,
+  onChange,
+  onSubmit,
+}: PaymentStepProps): ReactNode {
   return (
     <form
       className="flex flex-col gap-4"
@@ -63,8 +74,9 @@ export function PaymentStep({ value, error, onChange, onSubmit }: PaymentStepPro
           </label>
         ))}
       </fieldset>
+      <SavedCardPanel card={savedCard} />
       <p id="payment-hint" className="text-xs text-text-muted">
-        {CHECKOUT_MESSAGES.paymentSimulated}
+        {CHECKOUT_MESSAGES.paymentTest}
       </p>
       {error && (
         <p id="payment-error" className="text-sm text-rose">

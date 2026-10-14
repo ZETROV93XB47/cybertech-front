@@ -14,6 +14,11 @@ import { fakeUuids } from "../../helpers/products";
 
 const [UUID = ""] = fakeUuids(1);
 
+// The discount block has its own tests (`tests/unit/checkout/discount-block.test.tsx`).
+vi.mock("@/features/checkout/components/CartDiscountBlock", () => ({
+  CartDiscountBlock: () => null,
+}));
+
 /**
  * Builds a cart with one line.
  *
@@ -45,7 +50,12 @@ function cartOf(source: CartSource, status: CartLineStatus = CartLineStatus.OK):
 describe("CartSummary — Passer commande", () => {
   it("leads a signed-in user to the checkout", async () => {
     const { container } = render(
-      <CartSummary cart={cartOf(CartSource.ACCOUNT)} disabled={false} onClear={vi.fn()} />,
+      <CartSummary
+        cart={cartOf(CartSource.ACCOUNT)}
+        campaigns={[]}
+        disabled={false}
+        onClear={vi.fn()}
+      />,
     );
     expect(screen.getByRole("link", { name: "Passer commande" })).toHaveAttribute(
       "href",
@@ -55,7 +65,14 @@ describe("CartSummary — Passer commande", () => {
   });
 
   it("leads a visitor to the sign-in page coming back to the checkout", () => {
-    render(<CartSummary cart={cartOf(CartSource.GUEST)} disabled={false} onClear={vi.fn()} />);
+    render(
+      <CartSummary
+        cart={cartOf(CartSource.GUEST)}
+        campaigns={[]}
+        disabled={false}
+        onClear={vi.fn()}
+      />,
+    );
     expect(screen.getByRole("link", { name: "Passer commande" })).toHaveAttribute(
       "href",
       "/login?callbackUrl=%2Fcheckout",
@@ -66,6 +83,7 @@ describe("CartSummary — Passer commande", () => {
     render(
       <CartSummary
         cart={cartOf(CartSource.ACCOUNT, CartLineStatus.INSUFFICIENT_STOCK)}
+        campaigns={[]}
         disabled={false}
         onClear={vi.fn()}
       />,

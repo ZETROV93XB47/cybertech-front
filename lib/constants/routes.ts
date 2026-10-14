@@ -52,7 +52,26 @@ export const BFF_ROUTES = {
   checkoutPlace: "/api/checkout/place",
   /** Prefix of the order routes; see {@link orderRoute}. */
   orders: "/api/orders",
+  /**
+   * `GET` — product UUIDs of the signed-in user's wishlist (USER).
+   *
+   * @see specs/003-account-orders/contracts/bff-routes.md §1
+   */
+  wishlistIds: "/api/wishlist/ids",
+  /** Prefix of the wishlist item routes; see {@link wishlistItemRoute}. */
+  wishlist: "/api/wishlist",
 } as const;
+
+/**
+ * Builds the BFF route adding (`PUT`) or removing (`DELETE`) one product of the wishlist.
+ *
+ * @param productUuid - Product UUID.
+ * @returns The path `/api/wishlist/{productUuid}`.
+ * @see specs/003-account-orders/contracts/bff-routes.md §1
+ */
+export function wishlistItemRoute(productUuid: string): string {
+  return `${BFF_ROUTES.wishlist}/${encodeURIComponent(productUuid)}`;
+}
 
 /**
  * Builds the BFF route of one order: `POST /api/orders/{uuid}` edits it, the actions are
@@ -104,7 +123,28 @@ export const ACCOUNT_PATHS = {
   profile: "/account/profile",
   /** « Ma carte ». */
   card: "/account/card",
+  /** « Ma wishlist ». */
+  wishlist: "/account/wishlist",
 } as const;
+
+/**
+ * Query parameter of « Ma carte » holding the relative path to go back to once a card is saved
+ * (checked with `safeCallbackPath`).
+ *
+ * @see specs/003-account-orders/research.md R21
+ */
+export const CARD_RETURN_PARAM = "returnTo";
+
+/**
+ * Builds the path of « Ma carte » coming back to a page after the card is saved.
+ *
+ * @param returnTo - Relative path to come back to (e.g. `/checkout`).
+ * @returns The path `/account/card?returnTo=…`.
+ * @see specs/003-account-orders/spec.md FR-009
+ */
+export function cardPathReturningTo(returnTo: string): string {
+  return `${ACCOUNT_PATHS.card}?${new URLSearchParams({ [CARD_RETURN_PARAM]: returnTo }).toString()}`;
+}
 
 /**
  * Builds the path of an order detail page.

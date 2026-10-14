@@ -14,6 +14,7 @@ import { CheckoutActionType } from "@/lib/enums/checkout-step-state";
 
 import type { CheckoutAction, CheckoutState } from "../checkout-state";
 import { CHECKOUT_MESSAGES } from "../messages";
+import type { SavedCard } from "../saved-card";
 import type { ShippingChoice } from "../shipping-choices";
 
 import { AddressStep } from "./AddressStep";
@@ -26,6 +27,8 @@ export interface CheckoutStepFormProps {
   readonly state: CheckoutState;
   readonly dispatch: Dispatch<CheckoutAction>;
   readonly choices: readonly ShippingChoice[];
+  /** Card that will be charged, shown in the payment step. */
+  readonly savedCard: SavedCard;
 }
 
 /**
@@ -55,7 +58,7 @@ export function stepSummary(step: CheckoutStep, state: CheckoutState): ReactNode
 /**
  * Form of the open step.
  *
- * @param props - Step, state, dispatcher and shipping choices.
+ * @param props - Step, state, dispatcher, shipping choices and saved card.
  * @returns The form.
  */
 export function CheckoutStepForm({
@@ -63,6 +66,7 @@ export function CheckoutStepForm({
   state,
   dispatch,
   choices,
+  savedCard,
 }: CheckoutStepFormProps): ReactNode {
   switch (step) {
     case CheckoutStep.ADDRESS:
@@ -96,6 +100,7 @@ export function CheckoutStepForm({
     case CheckoutStep.PAYMENT:
       return (
         <PaymentStep
+          savedCard={savedCard}
           value={state.payment}
           error={state.stepError}
           onChange={(value) => {

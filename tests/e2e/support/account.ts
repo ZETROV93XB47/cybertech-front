@@ -11,12 +11,13 @@ const PASSWORD = "Passw0rd!";
 
 /**
  * Saved card of the test users who place orders: the backend refuses `POST /order/place`
- * without one (`BANK_CARD_NOT_FOUND`), and the front never adds a card (constitution V). Stripe
- * test number, sent to the backend only, by the test itself.
+ * without one (`BANK_CARD_NOT_FOUND`), and the front never adds a card (constitution V). Since
+ * backend `ae1d263` the number decides the payment: only 1s pay, any other number is declined
+ * (backend `docs/test-cards.md`). Sent to the backend only, by the test itself.
  */
 const TEST_BANK_CARD = {
   cardHolderName: "Camille Testeur",
-  cardNumber: "4242424242424242",
+  cardNumber: "1111111111111111",
   expiryDate: "12/2030",
   cardType: "VISA",
 } as const;

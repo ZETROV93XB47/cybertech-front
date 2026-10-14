@@ -4,7 +4,7 @@
  * the `(account)` layout. An empty server cart waits for the guest cart merged at sign-in, or
  * sends the customer back to the cart (`CheckoutAwaitingCart`).
  *
- * @see specs/003-account-orders/spec.md US1, Clarifications (Q1)
+ * @see specs/003-account-orders/spec.md US1, US2, FR-009, Clarifications (Q1)
  * @see specs/003-account-orders/research.md R3
  */
 import type { Metadata } from "next";
@@ -53,7 +53,12 @@ export default async function CheckoutPage(): Promise<ReactNode> {
         subtitle={CHECKOUT_MESSAGES.pageDescription}
       />
       {data.hasLines ? (
-        <CheckoutFlow initialAddress={data.address} choices={data.choices} />
+        <CheckoutFlow
+          initialAddress={data.address}
+          choices={data.choices}
+          savedCard={data.savedCard}
+          campaigns={data.campaigns}
+        />
       ) : (
         <CheckoutAwaitingCart />
       )}

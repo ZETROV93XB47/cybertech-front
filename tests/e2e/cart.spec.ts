@@ -120,7 +120,7 @@ test.describe("account cart", () => {
 
     await signIn(page, email, "/cart");
     await expect(page.getByText("1 article ajouté à ton panier.")).toBeVisible();
-    await expect(page.getByText("Total", { exact: true })).toBeVisible();
+    await expect(page.getByText("Sous-total", { exact: true })).toBeVisible();
     const lines = page.getByRole("list", { name: "Articles du panier" }).getByRole("listitem");
     await expect(lines.first().getByRole("spinbutton")).toHaveValue("2");
     expect(await guestStorage(page)).toBeNull();
