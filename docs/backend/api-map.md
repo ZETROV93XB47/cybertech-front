@@ -476,7 +476,8 @@ Requête : `shippingType` (req), `shippingProvider` (req), `discountKey` (défau
 | Tri du catalogue (prix, nouveautés) | param `sort` sur `/product/search` | Aucun (pertinence ES uniquement). |
 | ~~Facettes (marques, plages de prix, attributs avec compteurs)~~ | **Fait** : `POST /api/v1/services/product/search/facets` (§3) | Repli front sans compteurs si l'endpoint manque (feature 002). |
 | Suggestions / autocomplétion (palette ⌘K) | `GET /product/suggest?q=` | `POST /product/search` avec `size` réduit + debounce. |
-| Avis publics d'un produit + note moyenne | `GET /api/v1/services/review/product/{uuid}` (public, paginé) | Aucun. |
+| Avis publics d'un produit + note moyenne | `GET /api/v1/services/review/product/{uuid}` (public, paginé) — demandé (`backend-prompts-lot2.md` §8) | Section « Avis clients » de la fiche produit vide en attendant. |
+| Délais de livraison, heure limite, retrait en magasin | champs de délai sur `ShippingOptionResponseDto`, type `PICKUP` — demandés (`backend-prompts-lot2.md` §9) | Délais indicatifs du front (`lib/constants/shipping.ts`), pas de retrait en magasin. |
 | Panier invité + fusion à la connexion | `POST /cart/merge` idempotent (optionnel) | **Retenu** : panier invité en `localStorage` puis rejoué via le BFF → `/cart/add` à la connexion — voir [`../guest-cart.md`](../guest-cart.md). |
 | ~~Récapitulatif de prix avant commande (remise, port)~~ | **Fait** : `POST /api/v1/services/management/order/quote` (§7) | — (à utiliser par la feature 003). |
 | ~~Frais de port par transporteur et type~~ | **Fait** : `GET /api/v1/services/shipping/options` (§7b) | — (remplace les constantes front 15 € / 25 €). |

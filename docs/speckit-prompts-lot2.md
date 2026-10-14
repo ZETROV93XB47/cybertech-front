@@ -13,15 +13,17 @@
 ## 1. Prompt de démarrage (à coller en premier dans la nouvelle conversation)
 
 ````text
-Tu reprends le front cybertech (Next.js 16, App Router) après le lot 1, livré avec Spec Kit
-dans specs/001-catalog-auth-cart/ (toutes les tâches cochées). Objectif : couvrir tout le
+Tu reprends le front cybertech (Next.js 16, App Router) après le lot 1
+(specs/001-catalog-auth-cart/) et la feature 002 (specs/002-catalog-refresh/), livrés avec
+Spec Kit (toutes les tâches cochées ; résultats et points restants dans leur quickstart.md §5). Objectif : couvrir tout le
 périmètre fonctionnel exposé par le backend Spring, en plusieurs features Spec Kit successives.
 
 Avant toute chose, lis (sans rien modifier) :
 1. CLAUDE.md, puis .specify/memory/constitution.md (fait foi) ;
 2. docs/backend/api-map.md (§2 à §13 et §F), docs/backend/analysis.md, docs/guest-cart.md ;
-3. specs/001-catalog-auth-cart/ : spec.md, plan.md, research.md, data-model.md, contracts/,
-   tasks.md, quickstart.md (§3 et §5 : résultats et points restés manuels) ;
+3. specs/001-catalog-auth-cart/ et specs/002-catalog-refresh/ : spec.md, plan.md, research.md,
+   data-model.md, contracts/, tasks.md, quickstart.md (§3 et §5 : résultats et points restés
+   manuels) ;
 4. le code existant, pour réutiliser ses briques au lieu d'en créer de nouvelles :
    lib/api/client.ts (backendFetch, seul client HTTP serveur), lib/api/errors.ts (mapping des
    errorCode), lib/api/bff-response.ts, lib/api/bff-client.ts (bffGet/bffSend),
@@ -31,8 +33,10 @@ Avant toute chose, lis (sans rien modifier) :
    lib/theme/theme.config.ts et components/effects (effets pilotés par useEffectiveEffects),
    tests/e2e/support (inscription de comptes de test, connexion Keycloak, axe).
 
-Ensuite, rafraîchis la connaissance du backend, qui a évolué depuis le lot 1 (correctifs
-récents, notamment 409 USER_ALREADY_EXISTS à l'inscription) :
+Ensuite, rafraîchis la connaissance du backend, qui a évolué depuis le lot 1 (depuis la
+feature 002 : facettes, devis de commande, options de livraison, détail du total des commandes,
+remise conservée à la modification, retrait de place/auto ; api-map.md est à jour au
+2026-10-13, vérifie seulement ce qui a changé depuis) :
 - le repo backend est C:\Users\guill\Downloads\cybertech-dev-develop_cybertech, en LECTURE
   SEULE : relis les controllers, DTO et ErrorCode, et compare-les avec docs/backend/api-map.md ;
 - avec le backend lancé sur http://localhost:8081, exécute `npm run gen:api` pour régénérer
@@ -42,10 +46,8 @@ récents, notamment 409 USER_ALREADY_EXISTS à l'inscription) :
   résume-moi les écarts avant de lancer la première feature.
 
 Découpage proposé, une feature Spec Kit par ligne, dans cet ordre :
-- 002-catalog-refresh : filtres par attribut sur le catalogue (connectique exclue),
-  comparateur de 2 à 3 produits d'une même catégorie, accueil, catalogue et barre de
-  navigation harmonisés (front seul, aucune dépendance
-  backend : à faire pendant que le backend traite docs/backend/backend-prompts-lot2.md) ;
+- 002-catalog-refresh : TERMINÉE le 2026-10-13 (filtres, comparateur, navigation, gabarit
+  commun, bannière, livraison et avis sur la fiche produit) ;
 - 003-account-orders : profil, bouton « Passer commande » et réduction sur le panier, tunnel
   de commande, suivi et historique des commandes, carte bancaire enregistrée ;
 - 004-engagement : wishlist, avis, recommandations personnalisées, événements comportementaux ;
@@ -74,6 +76,9 @@ Méthode de vérification (identique au lot 1, voir aussi la mémoire « local-e
   USER_NOT_FOUND) : créer les comptes via /register ou POST /user/register ; pour un ADMIN,
   le créer ainsi puis lui donner le rôle ADMIN (console Keycloak ou
   PATCH /admin/user/update-role/{uuid}) ;
+- serveur de vérification : `next dev -p 3123` avec NEXT_DIST_DIR=.next-verify et les variables
+  d'environnement en ligne (playwright.capture.config.ts vise 3123) ; ensuite
+  `git checkout -- tsconfig.json` (next dev y ajoute .next-verify) et supprimer .next-verify ;
 - build de production à part : NEXT_DIST_DIR=.next-prod npx next build, puis next start sur
   un autre port (Lighthouse, backend injoignable) ;
 - captures d'écran relues avant chaque point d'étape ; arrêt et point avec moi (en français) à
@@ -176,10 +181,13 @@ catalogue, à l'en-tête et au comparateur, avec captures avant / après.
 
 ````text
 /speckit-specify Feature 003 « Mon compte et mes commandes » du front cybertech, dans la
-continuité du lot 1 (specs/001-catalog-auth-cart, même constitution, mêmes conventions : BFF,
-Zod, textes au tutoiement dans features/*/messages.ts, thème unique, effets Aurora Glow,
-accessibilité AA). Le backend fait foi (docs/backend/api-map.md §2, §7, §8, §12) ; ne jamais
-inventer un endpoint : un besoin non couvert est listé comme « dépendance backend ».
+continuité du lot 1 et de la feature 002 (specs/001-catalog-auth-cart,
+specs/002-catalog-refresh : même constitution, mêmes conventions : BFF, Zod, textes au
+tutoiement dans features/*/messages.ts, thème unique, effets Aurora Glow, accessibilité AA ;
+réutiliser le gabarit commun PageShell / PageHeader / SectionHeading / EmptyState, la barre de
+navigation MainNav et les entrées CSS .enter-rise / .enter-fade). Le backend fait foi
+(docs/backend/api-map.md §2, §7, §7b, §8, §12, §D.17, §D.27, §D.28) ; ne jamais inventer un
+endpoint : un besoin non couvert est listé comme « dépendance backend ».
 
 User stories (à prioriser) :
 1. Profil : consulter mon profil (GET /user/me) et le modifier (PATCH /user/me,
@@ -198,14 +206,17 @@ User stories (à prioriser) :
      minOrderAmount, maxDiscountAmount, dates). Proposer sur le panier et le récapitulatif un
      bloc « Appliquer une réduction » : choix d'une campagne active ou saisie de sa clé, refus
      clair si la clé est inconnue, inactive ou si le minimum de commande n'est pas atteint ;
-   - aucun endpoint ne calcule le prix avant la commande (OrderPriceCalculationService n'est
-     appelé qu'à la création, PriceCalculationRequestDto n'a pas de controller) : afficher
-     l'économie, les frais de port et le total comme « estimés » (constitution V, v2.2.0 :
-     règles de api-map.md §5, un test par règle ; frais de port via l'endpoint dédié s'il
-     existe, sinon constante alignée), puis les montants définitifs renvoyés par
-     OrderResponseDto ; prévenir quand le minimum de commande n'est pas atteint (le backend
-     retire alors la remise sans erreur) ; lister « POST /order/quote » comme dépendance
-     backend recommandée ;
+   - montants avant commande : POST /management/order/quote (USER, api-map §7, §D.27) chiffre le
+     panier serveur pour un type, un transporteur et une `discountKey` : sous-total, remise
+     (`discountApplied` faux sous `minOrderAmount`, le backend retire alors la remise sans
+     erreur : le dire clairement), frais de port, total, devise. Le récapitulatif et le bloc
+     réduction affichent CES montants, jamais un calcul du front ; un nouveau devis à chaque
+     changement de type, transporteur ou réduction (requête annulée si une autre part) ;
+   - livraison : choix du type et du transporteur depuis GET /shipping/options (public, prix
+     réels, api-map §7b), en réutilisant ce que la fiche produit utilise déjà
+     (lib/api/endpoints/shipping.ts, features/catalog/delivery.ts : délais indicatifs du front,
+     promesse express) ; pas de retrait en magasin (absent du backend, demandé dans
+     docs/backend/backend-prompts-lot2.md §9) ;
    - POST /management/order/place (400 DISCOUNT_TYPE_NOT_ACTIVE si la campagne a expiré
      entre-temps), puis page de confirmation qui interroge GET /order/status/{uuid} (polling
      borné) jusqu'à PAID ou PAYMENT_FAILED : place ne renvoie jamais 402, un paiement refusé
@@ -214,10 +225,13 @@ User stories (à prioriser) :
      panier avec les lignes concernées), 403 USER_NOT_ACTIVE ; vider le cache du panier après
      la commande (le backend vide le panier serveur).
 3. Mes commandes : liste paginée (GET /order/mine, filtre par statut, tri createdAt desc),
-   détail (GET /order/get/{uuid}), frise du cycle de vie (CREATED → AWAITING_PAYMENT →
+   détail (GET /order/get/{uuid}) avec la décomposition du total renvoyée par OrderResponseDto
+   (sous-total, remise et sa clé, frais de port, type et transporteur ; ces champs valent null
+   sur les commandes antérieures : n'afficher alors que le total), frise du cycle de vie (CREATED → AWAITING_PAYMENT →
    PAID → AWAITING_SHIPPING → SHIPPED → DELIVERED, plus CANCELED, REFUNDED, RETURNED,
-   PAYMENT_FAILED), modification (POST /order/update) et annulation (POST /order/cancel) quand
-   le statut le permet (409 ORDER_ALREADY_SHIPPED, CANNOT_CANCEL_ORDER, ORDER_REFUND_FAILED).
+   PAYMENT_FAILED), modification (POST /order/update, qui garde la remise d'origine de la
+   commande) et annulation (POST /order/cancel) quand le statut le permet (409
+   ORDER_ALREADY_SHIPPED, CANNOT_CANCEL_ORDER, ORDER_REFUND_FAILED).
 4. Carte bancaire enregistrée (une par utilisateur) : voir la carte masquée (GET
    /bank-card/get, 404 = aucune carte), modifier le titulaire et l'expiration (PUT
    /bank-card/update, 400 BANK_CARD_EXPIRED), supprimer avec confirmation (DELETE
@@ -370,8 +384,9 @@ statique.
 ## 7. Rappels utiles
 
 - Les endpoints manquants côté backend sont tenus à jour dans `docs/backend/api-map.md` §F :
-  avis publics et note moyenne, devis de commande, paiement côté client (Payment Element,
-  3DS), suppression de compte, suivi de livraison, liste publique des catégories, tri et
-  facettes du catalogue.
+  avis publics et note moyenne (demandé, backend-prompts-lot2 §8), délais de livraison et
+  retrait en magasin (§9), paiement côté client (Payment Element, 3DS), suppression de
+  compte, suivi de livraison, liste publique des catégories, tri du catalogue. Livrés depuis :
+  facettes, devis de commande, options de livraison, détail du total des commandes.
 - `quickstart.md` du lot 1 liste les scénarios encore à faire à la main (stock réel à 0,
   20 min de navigation, passage complet au clavier).
