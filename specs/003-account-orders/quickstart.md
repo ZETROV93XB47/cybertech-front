@@ -143,6 +143,18 @@ Parcours attendus :
 | 51 ter | Carte 4000 0000 0000 0341, commander | Confirmation « Paiement refusé » ; remplacer par 4242 puis « Relancer le paiement » → « Payée » | US5-7, FR-014 |
 | 51 quater | Carte refusée à l'enregistrement (`4000 0000 0000 0002`) | Message de refus, carte précédente conservée | US5-6 |
 
+### US6 — Ma wishlist
+
+| # | Scénario | Résultat attendu | Spec |
+|---|---|---|---|
+| 60 | Connecté, cliquer le cœur de deux produits du catalogue | Cœurs pleins immédiatement, ajout annoncé | US6-1, FR-035, SC-010 |
+| 61 | Ouvrir « Ma wishlist » (menu du compte) | Les deux produits, le dernier ajouté en premier, avec prix, disponibilité et date d'ajout | US6, FR-037 |
+| 62 | Retirer un produit depuis la page, puis depuis le cœur d'une carte | Produit retiré, cœur vide | US6-2 |
+| 63 | « Ajouter au panier » depuis la wishlist | Badge du panier incrémenté ; le produit reste dans la wishlist | FR-037 |
+| 64 | Visiteur clique un cœur | Connexion puis retour : produit dans la wishlist sans nouveau clic | US6-5, FR-038 |
+| 65 | Backend arrêté, clic sur un cœur | Le cœur revient à son état et un message l'explique | US6-3 |
+| 66 | Wishlist vide | État vide illustré, lien vers le catalogue | US6-6 |
+
 ### Accès, navigation et interface
 
 | # | Scénario | Résultat attendu | Spec |
@@ -224,11 +236,36 @@ l'utilisateur sur 3000.
 
 ### US2 — Appliquer une réduction
 
-À remplir.
+Vérifié le 2026-10-14 (T034–T040 et T083) : backend `20f5666` sur 8081, front de
+l'utilisateur sur 3000. Campagnes actives en local : `NO_DISCOUNT` et `BLACK_FRIDAY` (−20 %,
+sans minimum ni plafond).
+
+- Contrôles : `typecheck` OK, `lint` 0 warning, `test` 728 tests verts (78 fichiers).
+- E2E (`--workers=1`, chromium) : `discount.spec.ts` 1 OK, 1 sauté après ses vérifications
+  (clé `NOPE` refusée vérifiée ; partie « minimum non atteint » non testable : aucune campagne
+  active n'a de minimum) ; `checkout.spec.ts` 3 OK, 1 sauté (session expirée, front sans
+  `E2E=true`).
+- **Découverte backend** : `ae1d263` abandonne l'enregistrement Stripe (§10) ; la carte est
+  saisie et chiffrée par le backend et **seul un numéro composé de 1 paie** (4242… est refusé).
+  Les comptes e2e utilisent désormais `1111111111111111` (`tests/e2e/support/account.ts`).
+- Captures relues : `screenshots/us2/` (bloc ouvert, réduction appliquée, clé refusée, étape
+  paiement avec et sans carte, tunnel prêt avec remise).
+- Lighthouse desktop (build `.next-prod`, port 3124) : accueil 99 (LCP 1 043 ms, CLS 0,002,
+  TBT 0), catalogue 99 (LCP 831 ms, TBT 11 ms), fiche produit 99 (LCP 919 ms), panier 99
+  (LCP 831 ms) : budgets tenus.
 
 | # | Résultat | Commentaire |
 |---|---|---|
-| 15–24 | à remplir | |
+| 15 | OK | BLACK_FRIDAY « −20 % », sans `NO_DISCOUNT` |
+| 16 | OK | Panier : sous-total, « Remise BLACK_FRIDAY − 399,80 € », « Livraison et total calculés à l'étape suivante » |
+| 17 | OK | Réduction déjà appliquée dans le tunnel, total 1 614,20 € |
+| 18–19 | non testable | aucune campagne active avec minimum ; couvert par les tests unitaires |
+| 20 | OK | `NOPE` refusée, réduction précédente gardée |
+| 21 | non testé à la main | couvert par les tests unitaires (FR-020) |
+| 22 | couvert par les tests unitaires | une campagne est active en local |
+| 23 | couvert par les tests unitaires | invitation à se connecter |
+| 24 | OK (confirmation) | même remise et même total sur la confirmation ; détail de commande en US3 |
+| T083 | OK | sans carte : « Ajouter une carte », « Valider la commande » désactivé (lien vers `/account/card`, page de US5 pas encore livrée) |
 
 ### US3 — Suivre et gérer mes commandes
 
@@ -253,6 +290,28 @@ l'utilisateur sur 3000.
 | # | Résultat | Commentaire |
 |---|---|---|
 | 47–51 | à remplir | |
+
+### US6 — Ma wishlist
+
+Vérifié le 2026-10-14 (T089–T097) : backend `20f5666` sur 8081, front de l'utilisateur sur
+3000.
+
+- E2E `wishlist.spec.ts` : 2 OK après correctif (le lien de l'image de chaque ligne n'avait pas
+  de nom accessible : rendu décoratif, le nom du produit porte le lien).
+- Captures relues : `screenshots/us6/` (cœurs du catalogue, fiche produit, wishlist remplie et
+  vide).
+- Écarts à R22 : `PUT` / `DELETE` répondent `200 { productUuid, isInWishlist }` (le client BFF
+  lit toujours un JSON) ; disponibilité lue dans le navigateur par le badge de stock existant.
+
+| # | Résultat | Commentaire |
+|---|---|---|
+| 60 | OK | cœur plein immédiatement |
+| 61 | OK | dernier ajouté en premier, prix, stock, date d'ajout |
+| 62 | OK | retrait depuis la page |
+| 63 | OK | badge « Panier, 1 article », produit gardé dans la wishlist |
+| 64 | OK | visiteur → connexion → produit ajouté au retour |
+| 65 | couvert par les tests unitaires | retour arrière du cœur et message |
+| 66 | OK | état vide illustré |
 
 ### Phase « Interface vivante et cohérente »
 

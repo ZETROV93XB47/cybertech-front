@@ -12,7 +12,9 @@ import type { ReactNode } from "react";
 import { RevealGroup, RevealItem } from "@/components/effects/Reveal";
 import { AddToCartButton } from "@/features/cart/components/AddToCartButton";
 import { CompareToggle } from "@/features/compare/components/CompareToggle";
+import { WishlistButton } from "@/features/wishlist/components/WishlistButton";
 import { CompareToggleVariant } from "@/lib/enums/compare-toggle-variant";
+import { WishlistButtonVariant } from "@/lib/enums/wishlist-button-variant";
 import { formatPrice } from "@/lib/format";
 import { toCategoryKey } from "@/lib/schemas/category";
 import type { ActiveDiscount } from "@/lib/schemas/discount";
@@ -116,14 +118,21 @@ export function ProductSummary({
       )}
       <RevealItem className="flex flex-col items-start gap-3">
         <AddToCartButton productUuid={product.uuid} productName={product.name} />
-        {category && (
-          <CompareToggle
+        <div className="flex flex-wrap items-start gap-3">
+          <WishlistButton
             productUuid={product.uuid}
             productName={product.name}
-            category={category}
-            variant={CompareToggleVariant.BUTTON}
+            variant={WishlistButtonVariant.DETAIL}
           />
-        )}
+          {category && (
+            <CompareToggle
+              productUuid={product.uuid}
+              productName={product.name}
+              category={category}
+              variant={CompareToggleVariant.BUTTON}
+            />
+          )}
+        </div>
       </RevealItem>
     </RevealGroup>
   );

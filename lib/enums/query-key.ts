@@ -21,4 +21,6 @@ export enum QueryKey {
   ORDER_STATUS = "order-status",
   /** Product search of the order edit form. */
   ORDER_SEARCH = "order-search",
+  /** Product UUIDs of the signed-in user's wishlist, shared by every heart of a page. */
+  WISHLIST = "wishlist",
 }

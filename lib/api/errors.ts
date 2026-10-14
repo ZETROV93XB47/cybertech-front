@@ -116,7 +116,7 @@ const FRONT_CODE_BY_BACKEND_CODE = {
   [BackendErrorCode.BANK_CARD_EXPIRED]: FrontErrorCode.CARD_EXPIRED,
   // `POST /order/place` needs a saved card (`validateUserBeforeProcessingPayment`).
   [BackendErrorCode.BANK_CARD_NOT_FOUND]: FrontErrorCode.NO_SAVED_CARD,
-  [BackendErrorCode.PRODUCT_ALREADY_IN_WISHLIST]: FrontErrorCode.UNKNOWN,
+  [BackendErrorCode.PRODUCT_ALREADY_IN_WISHLIST]: FrontErrorCode.ALREADY_EXISTS,
   [BackendErrorCode.USER_NOT_AUTHOR_OF_REVIEW]: FrontErrorCode.UNKNOWN,
   [BackendErrorCode.COMMENT_POST_NOT_ALLOWED]: FrontErrorCode.UNKNOWN,
   [BackendErrorCode.UNAUTHORIZED_CART_ACCESS]: FrontErrorCode.UNKNOWN,

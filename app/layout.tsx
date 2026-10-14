@@ -19,6 +19,7 @@ import { AccountMenu } from "@/features/auth/components/AccountMenu";
 import { GuestCartMerger } from "@/features/cart/components/GuestCartMerger";
 import { CommandPalette } from "@/features/catalog/components/CommandPalette";
 import { PreferencesPanel } from "@/features/preferences/components/PreferencesPanel";
+import { WishlistPendingReplayer } from "@/features/wishlist/components/WishlistPendingReplayer";
 import { SITE_MESSAGES } from "@/features/common/messages";
 import { NONCE_HEADER } from "@/lib/constants/security";
 import { getEnv } from "@/lib/env";
@@ -84,6 +85,7 @@ export default async function RootLayout({
           <SkipLink />
           <BackgroundEffects />
           <GuestCartMerger />
+          <WishlistPendingReplayer />
           <Header
             search={<CommandPalette />}
             preferences={<PreferencesPanel />}

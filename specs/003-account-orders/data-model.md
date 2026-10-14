@@ -280,6 +280,18 @@ Règles lues dans le backend (`OrderManagementServiceImp`,
 - Statuts terminaux pour le sondage de la confirmation (`CONFIRMATION_TERMINAL_STATUSES`) :
   tous sauf `CREATED` et `AWAITING_PAYMENT`.
 
+### 4.8 Wishlist (US6, R22)
+
+- `WishlistItemSchema` (`lib/schemas/wishlist.ts`) : `WishlistResponseDto` (§D.19) : `uuid`,
+  `product` (`ProductSchema` existant), `addedAt` (LocalDateTime, chaîne) ;
+  `WishlistPageSchema` via `lib/schemas/paged.ts`.
+- `WishlistIdsSchema` : `{ productUuids: z.array(z.uuid()).max(WISHLIST_IDS_MAX) }` (sortie
+  de `GET /api/wishlist/ids`).
+- `WishlistPendingSchema` (`lib/schemas/wishlist.ts`, à côté des autres schémas de la wishlist) : `{ productUuid: z.uuid() }` sous
+  `StorageKey.WISHLIST_PENDING = "ct_wishlist_pending_v1"`.
+- `WishlistRow` (`features/wishlist/wishlist-view.ts`) : produit (uuid, nom, image, prix,
+  chemin), `addedAt` formaté, disponibilité (`isAvailable`), dérivés sans calcul de montant.
+
 ## 6. Constantes ajoutées
 
 | Constante | Valeur | Fichier | Raison |
@@ -314,4 +326,9 @@ Règles lues dans le backend (`OrderManagementServiceImp`,
 | `PICKUP_PLACEHOLDER` | entrée d'affichage grisée | `lib/constants/checkout.ts` | R8, clarification Q2 |
 | `SETUP_INTENT_ID_PATTERN` | `/^seti_[A-Za-z0-9]+$/` | `lib/constants/account.ts` | forme des identifiants `SetupIntent` de Stripe (R21) |
 | `STRIPE_CSP_SOURCES` | `{ script: ["https://js.stripe.com"], frame: ["https://js.stripe.com"], connect: ["https://api.stripe.com"] }` | `lib/constants/security.ts` | origines exigées par Stripe Elements, ajoutées à la CSP de `/account/card` seulement (constitution, contraintes) |
+| `WISHLIST_PAGE_SIZE` | 20 | `lib/constants/wishlist.ts` | `DEFAULT_PAGE_SIZE_WISHLIST` du backend (R22) |
+| `WISHLIST_IDS_MAX` | 100 | `lib/constants/wishlist.ts` | `spring.data.web.pageable.max-page-size` (R22) |
+| `WISHLIST_SORT` | `"createdAt,desc"` | `lib/constants/wishlist.ts` | défaut du backend |
+| `ACCOUNT_PATHS.wishlist`, `BFF_ROUTES.wishlistIds`, `.wishlistItem(uuid)` | `/account/wishlist`, `/api/wishlist/ids`, `/api/wishlist/{uuid}` | `lib/constants/routes.ts` | R22 |
+| `BACKEND_PATHS.wishlistAdd(uuid)`, `.wishlistRemove(uuid)`, `.wishlistMine` | `/services/wishlist/{add/{uuid},remove/{uuid},my-wishlist}` | `lib/constants/api.ts` | api-map §9 |
 | `CARD_RETURN_PARAM` | `"returnTo"` | `lib/constants/routes.ts` | retour au tunnel après l'ajout d'une carte (`/account/card?returnTo=/checkout`) |

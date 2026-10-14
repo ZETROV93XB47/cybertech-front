@@ -1,8 +1,8 @@
 /**
  * Product card of the grids (home, list, recently viewed).
  *
- * Server Component: only the availability badge, the add-to-cart button and, on the catalog
- * results, the « Comparer » checkbox run on the client. The whole card is clickable
+ * Server Component: only the availability badge, the add-to-cart button, the wishlist heart and,
+ * on the catalog results, the « Comparer » checkbox run on the client. The whole card is clickable
  * through the title link stretched over it, so there is a single tab stop per product.
  *
  * @see specs/001-catalog-auth-cart/spec.md annex « Composants »
@@ -13,8 +13,10 @@ import { TiltCard } from "@/components/effects/TiltCard";
 import { TransitionLink } from "@/components/effects/TransitionLink";
 import { AddToCartButton } from "@/features/cart/components/AddToCartButton";
 import { CompareToggle } from "@/features/compare/components/CompareToggle";
+import { WishlistButton } from "@/features/wishlist/components/WishlistButton";
 import { productPath } from "@/lib/constants/routes";
 import { CompareToggleVariant } from "@/lib/enums/compare-toggle-variant";
+import { WishlistButtonVariant } from "@/lib/enums/wishlist-button-variant";
 import { toCategoryKey } from "@/lib/schemas/category";
 import { formatPrice } from "@/lib/format";
 import type { ProductCard as ProductCardData } from "@/lib/schemas/product";
@@ -84,6 +86,13 @@ export function ProductCard(props: ProductCardProps): ReactNode {
   return (
     <TiltCard className="glass product-card relative flex w-full flex-col overflow-hidden rounded-card">
       <CardImage {...props} />
+      <div className="absolute top-3 left-3">
+        <WishlistButton
+          productUuid={product.uuid}
+          productName={product.name}
+          variant={WishlistButtonVariant.CARD}
+        />
+      </div>
       {category && (
         <div className="absolute top-3 right-3">
           <CompareToggle

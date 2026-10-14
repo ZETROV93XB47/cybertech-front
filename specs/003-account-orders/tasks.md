@@ -97,7 +97,7 @@ description: "Task list for feature 003 — checkout, discounts, my orders, prof
 
 ### US1 follow-up (decision of 2026-10-14)
 
-- [ ] T083 [US1] Payment step shows the saved card that will be charged (masked network and last 4 digits, read by `getBankCard` in `features/checkout/server/checkout-data.ts`, needs the read part of T066); without a card, « Valider la commande » is disabled with « Ajouter une carte » linking to `/account/card?returnTo=/checkout` (`CARD_RETURN_PARAM`), and a `no-saved-card` answer at placement shows the same link; « Paiement simulé » texts become « paiement de test » (FR-009); tests in `tests/unit/checkout/checkout-components.test.tsx`
+- [X] T083 [US1] Payment step shows the saved card that will be charged (masked network and last 4 digits, read by `getBankCard` in `features/checkout/server/checkout-data.ts`, needs the read part of T066); without a card, « Valider la commande » is disabled with « Ajouter une carte » linking to `/account/card?returnTo=/checkout` (`CARD_RETURN_PARAM`), and a `no-saved-card` answer at placement shows the same link; « Paiement simulé » texts become « paiement de test » (FR-009); tests in `tests/unit/checkout/checkout-components.test.tsx`
 
 **Checkpoint**: an order can be placed and paid from the cart — MVP.
 
@@ -111,16 +111,16 @@ description: "Task list for feature 003 — checkout, discounts, my orders, prof
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T034 [P] [US2] Unit tests in `tests/unit/checkout/discount-storage.test.ts`: read / write / clear the key under `StorageKey.DISCOUNT` validated by `DiscountKeySchema`, lower-case input normalised, tampered value removed; `describeDiscountOffer(discount)` (advantage « −20 % », « −10 € », « 1 acheté = 1 offert », minimum, cap and end date when present) and `NO_DISCOUNT` excluded through `isDisplayableDiscount`
-- [ ] T035 [P] [US2] Component tests with jest-axe in `tests/unit/checkout/discount-block.test.tsx`: cart mode shows only subtotal and discount then « Livraison et total calculés à l'étape suivante » (no shipping, no total); checkout mode shows the full summary; campaign list without `NO_DISCOUNT`; only key input when no campaign; unknown key → error and previous key kept; minimum not reached → « Il te manque X € pour profiter de KEY » and key kept selected; guest → invitation to sign in, no quote request; messages announced in a live region
-- [ ] T036 [P] [US2] E2E `tests/e2e/discount.spec.ts`: apply BLACK_FRIDAY on the cart (amount above the minimum when the campaign has one, otherwise just applied), find it applied in the checkout, place the order, read the same discount key and amount on the confirmation; minimum not reached case (if the local campaign has `minOrderAmount`, otherwise reported « non testable » in quickstart §5); unknown key `NOPE` refused; axe on the cart with the block open
+- [X] T034 [P] [US2] Unit tests in `tests/unit/checkout/discount-storage.test.ts`: read / write / clear the key under `StorageKey.DISCOUNT` validated by `DiscountKeySchema`, lower-case input normalised, tampered value removed; `describeDiscountOffer(discount)` (advantage « −20 % », « −10 € », « 1 acheté = 1 offert », minimum, cap and end date when present) and `NO_DISCOUNT` excluded through `isDisplayableDiscount`
+- [X] T035 [P] [US2] Component tests with jest-axe in `tests/unit/checkout/discount-block.test.tsx`: cart mode shows only subtotal and discount then « Livraison et total calculés à l'étape suivante » (no shipping, no total); checkout mode shows the full summary; campaign list without `NO_DISCOUNT`; only key input when no campaign; unknown key → error and previous key kept; minimum not reached → « Il te manque X € pour profiter de KEY » and key kept selected; guest → invitation to sign in, no quote request; messages announced in a live region
+- [X] T036 [P] [US2] E2E `tests/e2e/discount.spec.ts`: apply BLACK_FRIDAY on the cart (amount above the minimum when the campaign has one, otherwise just applied), find it applied in the checkout, place the order, read the same discount key and amount on the confirmation; minimum not reached case (if the local campaign has `minOrderAmount`, otherwise reported « non testable » in quickstart §5); unknown key `NOPE` refused; axe on the cart with the block open
 
 ### Implementation for User Story 2
 
-- [ ] T037 [P] [US2] Create `features/checkout/discount-storage.ts` (`readDiscountKey`, `writeDiscountKey`, `clearDiscountKey`) and `features/checkout/discount-offer.ts` (`describeDiscountOffer`); add the discount texts to `features/checkout/messages.ts` (offer advantages, conditions, « Il te manque … », refusal, expired campaign at placement, sign-in invitation); T034 passes
-- [ ] T038 [US2] Create `features/checkout/components/DiscountBlock.tsx` (client; prop `mode: DiscountBlockMode` from T003; campaigns passed from the server; key typed then tested with `useQuote`, rollback on `discount-invalid`; uses `CART_QUOTE_SHIPPING` in cart mode); T035 passes
-- [ ] T039 [US2] Wire it: cart page (`app/(shop)/cart/page.tsx` fetches `getActiveDiscounts()`, `CartSummary` renders `DiscountBlock` mode cart for a signed-in user, invitation for a guest) and checkout (`CheckoutSummary` renders mode checkout; `useQuote` reads the stored key); `usePlaceOrder` sends the key and handles `discount-invalid` at placement (FR-020): key cleared, quote refreshed without it, message, no order, explicit new click required — add the matching cases to T019 and T020
-- [ ] T040 [US2] Run `tests/e2e/discount.spec.ts` and `checkout.spec.ts` one by one, review screenshots (cart with block, checkout with discount, minimum not reached), fill quickstart §5 US2, commit `feat(checkout): apply a discount campaign on the cart and the checkout`, stop and report; Lighthouse desktop (constitution IX) on `/`, `/products`, one product page and `/cart` with the discount block, budgets LCP ≤ 2,5 s, CLS ≤ 0,1, TBT ≤ 200 ms, recorded in quickstart §5
+- [X] T037 [P] [US2] Create `features/checkout/discount-storage.ts` (`readDiscountKey`, `writeDiscountKey`, `clearDiscountKey`) and `features/checkout/discount-offer.ts` (`describeDiscountOffer`); add the discount texts to `features/checkout/messages.ts` (offer advantages, conditions, « Il te manque … », refusal, expired campaign at placement, sign-in invitation); T034 passes
+- [X] T038 [US2] Create `features/checkout/components/DiscountBlock.tsx` (client; prop `mode: DiscountBlockMode` from T003; campaigns passed from the server; key typed then tested with `useQuote`, rollback on `discount-invalid`; uses `CART_QUOTE_SHIPPING` in cart mode); T035 passes
+- [X] T039 [US2] Wire it: cart page (`app/(shop)/cart/page.tsx` fetches `getActiveDiscounts()`, `CartSummary` renders `DiscountBlock` mode cart for a signed-in user, invitation for a guest) and checkout (`CheckoutSummary` renders mode checkout; `useQuote` reads the stored key); `usePlaceOrder` sends the key and handles `discount-invalid` at placement (FR-020): key cleared, quote refreshed without it, message, no order, explicit new click required — add the matching cases to T019 and T020
+- [X] T040 [US2] Run `tests/e2e/discount.spec.ts` and `checkout.spec.ts` one by one, review screenshots (cart with block, checkout with discount, minimum not reached), fill quickstart §5 US2, commit `feat(checkout): apply a discount campaign on the cart and the checkout`, stop and report; Lighthouse desktop (constitution IX) on `/`, `/products`, one product page and `/cart` with the discount block, budgets LCP ≤ 2,5 s, CLS ≤ 0,1, TBT ≤ 200 ms, recorded in quickstart §5
 
 **Checkpoint**: discounts usable end to end; US1 still green.
 
@@ -212,6 +212,29 @@ description: "Task list for feature 003 — checkout, discounts, my orders, prof
 
 ---
 
+## Phase 7 bis: User Story 6 - Ma wishlist (Priority: P2, added 2026-10-14)
+
+**Goal**: a heart on every product card and on the product page adds or removes the product from the wishlist (optimistic, rolled back on refusal); « Ma wishlist » (`/account/wishlist`) lists the products, newest first, paginated, with « Ajouter au panier » and « Retirer »; a visitor signs in and the add is replayed once.
+
+**Independent Test**: signed in, heart two catalog products, open « Ma wishlist » and see both (latest first); remove one, add the other to the cart; reload: one product left, heart filled on its card (quickstart §3 US6).
+
+### Tests for User Story 6 ⚠️
+
+- [X] T089 [P] [US6] Schema and endpoint tests with MSW in `tests/unit/api/wishlist-endpoints.test.ts`: `WishlistItemSchema` / `WishlistPageSchema` accept a `WishlistResponseDto` page; `getMyWishlist(token, page)` (0-based page, `size=WISHLIST_PAGE_SIZE`, `sort=WISHLIST_SORT`, `no-store`), `getWishlistProductUuids(token)` (`size=WISHLIST_IDS_MAX`), `addToWishlist` (409 `PRODUCT_ALREADY_IN_WISHLIST` → resolves), `removeFromWishlist` (404 → resolves); `Authorization` present, non-conforming response → `unavailable`; mapping `PRODUCT_ALREADY_IN_WISHLIST` → `FrontErrorCode.ALREADY_EXISTS` in `tests/unit/api/errors.test.ts`
+- [X] T090 [P] [US6] Route tests in `tests/unit/api/bff-wishlist-routes.test.ts`: `GET /api/wishlist/ids` (200 list, no session → 401, 503), `PUT` / `DELETE /api/wishlist/[productUuid]` (invalid UUID → 400 without backend call, 204, 409 absorbed, 404 on PUT → `not-found`, 404 on DELETE absorbed, 429 with `retryAfterSeconds`); `Cache-Control: no-store`
+- [X] T091 [P] [US6] Client tests in `tests/unit/wishlist/`: `wishlist-pending.test.ts` (read / write / clear under `StorageKey.WISHLIST_PENDING`, tampered value removed, blocked storage); `use-wishlist.test.tsx` (ids query disabled for a visitor, optimistic toggle then rollback on error, 409 kept as added, one query shared by several buttons); `wishlist-components.test.tsx` with jest-axe (`WishlistButton` name and `aria-pressed`, visitor → stores the pending add and goes to `loginPath(current path)`; `WishlistList` rows, unavailable product → add-to-cart disabled, empty state, pagination links)
+
+### Implementation for User Story 6
+
+- [X] T092 [US6] Foundations: `lib/constants/wishlist.ts` (`WISHLIST_PAGE_SIZE`, `WISHLIST_IDS_MAX`, `WISHLIST_SORT`), `ACCOUNT_PATHS.wishlist`, `BFF_ROUTES.wishlistIds` / `.wishlistItem(uuid)`, `BACKEND_PATHS.wishlistAdd(uuid)` / `.wishlistRemove(uuid)` / `.wishlistMine`, `QueryKey.WISHLIST`, `StorageKey.WISHLIST_PENDING`, mapping `PRODUCT_ALREADY_IN_WISHLIST` → `ALREADY_EXISTS`; `lib/schemas/wishlist.ts`, `WishlistPendingSchema` in `lib/schemas/storage.ts`, `lib/api/endpoints/wishlist.ts` (`server-only`, logger per contracts §5); T089 passes
+- [X] T093 [US6] Routes `app/api/wishlist/ids/route.ts` and `app/api/wishlist/[productUuid]/route.ts` (contracts §1, `jsonOk` / `jsonError`, `getAccessTokenOrThrow`); T090 passes
+- [X] T094 [US6] `features/wishlist/messages.ts` (`WISHLIST_MESSAGES`, French, tutoiement), `features/wishlist/wishlist-pending.ts`, `features/wishlist/hooks/useWishlist.ts` (`useWishlistIds`, `useToggleWishlist`), `features/wishlist/components/WishlistButton.tsx` (heart from `lucide-react`, filled state, theme tokens, `useMotionTokens()` pop with a static version) and `WishlistPendingReplayer.tsx` mounted next to `GuestCartMerger`; wire the button into `features/catalog/components/ProductCard.tsx` and `ProductDetails.tsx` without breaking the card link (button outside the link or `stopPropagation`); T091 passes for these
+- [X] T095 [US6] Page `app/(account)/account/wishlist/page.tsx` (Server Component, `?page=` validated, `PageShell` + `PageHeader` + breadcrumb, metadata from `WISHLIST_MESSAGES`, `robots: { index: false }`), `features/wishlist/wishlist-view.ts` (`toWishlistRows`, availability from `GET /product/availability`), `features/wishlist/components/WishlistList.tsx` (rows, « Ajouter au panier » through `useCart`, « Retirer » through `useToggleWishlist` then `router.refresh()`, `EmptyState`, pagination); link « Ma wishlist » in `features/auth/components/AccountMenu.tsx`; T091 passes
+- [X] T096 [US6] E2E `tests/e2e/wishlist.spec.ts` (unique account): heart two products in the catalog → « Ma wishlist » lists them newest first → remove one, add the other to the cart (cart badge) → reload → one product, heart filled on its card; visitor heart → login → back → product in the wishlist; axe on `/account/wishlist` (empty and filled)
+- [X] T097 [US6] Run `wishlist.spec.ts` (`--workers=1`), review screenshots (catalog hearts, product page, wishlist filled and empty), fill quickstart §5 US6, commit `feat(wishlist): heart on products and « Ma wishlist » page`, stop and report
+
+---
+
 ## Phase 8: Interface vivante et cohérente
 
 **Purpose**: `docs/speckit-prompts-lot2.md` §6 applied to the pages of this feature, with the **frontend-design** skill and the « Aurora Glow » annex of `specs/001-catalog-auth-cart/spec.md`. Every value through `lib/theme/theme.config.ts`, `useEffectiveEffects()` and `useMotionTokens()`; every effect has a static version and a test per level.
@@ -246,6 +269,7 @@ description: "Task list for feature 003 — checkout, discounts, my orders, prof
 - **US2 (Phase 4)**: after US1 (the block lives in the cart summary and the checkout summary, and uses `useQuote` / `usePlaceOrder`)
 - **US3 (Phase 5)**: after Foundational; reuses `PaymentTracker` / `useOrderStatus` and the step components of US1 for retry and edit — best after US1; needs orders to exist (e2e fixture places them through the BFF)
 - **US4 (Phase 6)**: after Foundational; independent of US1–US3 except for the account shell (T050): if US3 is not done, create `AccountNav` and `app/(account)/account/layout.tsx` here
+- **US6 (Phase 7 bis, wishlist)**: after Foundational; independent of US2–US5 (own files except `ProductCard`, `ProductDetails`, `AccountMenu` and the shared constants); the account navigation of US3 gets a « Ma wishlist » entry when it lands
 - **US5 (Phase 7)**: after Foundational; same remark about the account shell; the Stripe card tasks T084–T088 also wait for `docs/backend/backend-prompts-lot2.md` §10, and T083 (US1 follow-up) needs the read part of T066
 - **Interface vivante (Phase 8)**: after the stories it decorates
 - **Polish (Phase 9)**: last
@@ -315,6 +339,7 @@ Task: "Create features/orders/messages.ts"
 4. US3 → my orders
 5. US4 → profile
 6. US5 → saved card
+6 bis. US6 → wishlist (added 2026-10-14, implemented right after US2)
 7. Phase 8 → « Interface vivante et cohérente », before / after screenshots
 8. Phase 9 → docs, full run, wrap-up
 

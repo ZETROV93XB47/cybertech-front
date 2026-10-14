@@ -25,3 +25,6 @@ export const DISCOUNT_STORAGE_KEY = StorageKey.DISCOUNT;
 
 /** `sessionStorage` key of the checkout draft. */
 export const CHECKOUT_DRAFT_STORAGE_KEY = StorageKey.CHECKOUT;
+
+/** `sessionStorage` key of the wishlist add kept aside during the sign-in. */
+export const WISHLIST_PENDING_STORAGE_KEY = StorageKey.WISHLIST_PENDING;

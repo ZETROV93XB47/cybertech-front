@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * Account slot of the header: « Se connecter » for a visitor, the user's name and
- * « Se déconnecter » once signed in.
+ * Account slot of the header: « Se connecter » for a visitor, the user's name, « Ma wishlist »
+ * and « Se déconnecter » once signed in.
  *
  * Sign-out first empties every client cache (account cart, availability…) and the browser cart
  * keys, then runs the Server Action that closes the Keycloak session, so neither the account
@@ -10,7 +10,7 @@
  * cache after sign-out is reloaded, so the server renders it again without the session.
  */
 import { useQueryClient } from "@tanstack/react-query";
-import { LogOut, UserRound } from "lucide-react";
+import { Heart, LogOut, UserRound } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -19,8 +19,10 @@ import { useEffect, useState, type ReactNode } from "react";
 import { HEADER_CONTROL_CLASS, HEADER_ICON_CLASS } from "@/components/layout/header-controls";
 import { clearGuestCart } from "@/features/cart/guest-storage";
 import { clearPendingAction } from "@/features/cart/pending-action";
+import { WISHLIST_MESSAGES } from "@/features/wishlist/messages";
+import { clearWishlistPending } from "@/features/wishlist/wishlist-pending";
 import { loginPath } from "@/lib/auth/callback-url";
-import { REGISTER_PATH } from "@/lib/constants/routes";
+import { ACCOUNT_PATHS, REGISTER_PATH } from "@/lib/constants/routes";
 import { resetClientState } from "@/lib/query/query-client";
 
 import { signOutEverywhere } from "../actions";
@@ -93,12 +95,17 @@ export function AccountMenu(): ReactNode {
     resetClientState(queryClient);
     clearGuestCart(window.localStorage);
     clearPendingAction(window.sessionStorage);
+    clearWishlistPending(window.sessionStorage);
   };
   return (
     <form action={signOutEverywhere} onSubmit={onSignOut} className="flex items-center gap-1">
       <span className="hidden text-sm text-text lg:inline" data-testid="account-name">
         {name}
       </span>
+      <Link href={ACCOUNT_PATHS.wishlist} className={ACTION}>
+        <Heart aria-hidden className={HEADER_ICON_CLASS} />
+        {WISHLIST_MESSAGES.menuLink}
+      </Link>
       <button type="submit" disabled={signingOut} className={ACTION}>
         <LogOut aria-hidden className={HEADER_ICON_CLASS} />
         {signingOut ? AUTH_MESSAGES.signingOut : AUTH_MESSAGES.signOut}

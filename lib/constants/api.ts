@@ -128,6 +128,12 @@ export const BACKEND_PATHS = {
   bankCardUpdate: `${API_BASE_PATH}/bank-card/update`,
   /** `DELETE` — deletes the saved card. */
   bankCardDelete: `${API_BASE_PATH}/bank-card/delete`,
+  /** `POST` — adds a product to the caller's wishlist (`201`, `409` when already in). Append the product UUID. */
+  wishlistAdd: `${API_BASE_PATH}/wishlist/add`,
+  /** `DELETE` — removes a product from the caller's wishlist (`204`, `404` when absent). Append the product UUID. */
+  wishlistRemove: `${API_BASE_PATH}/wishlist/remove`,
+  /** `GET` — paginated wishlist of the caller (`page`, `size`, `sort`). */
+  wishlistMine: `${API_BASE_PATH}/wishlist/my-wishlist`,
 } as const;
 
 /** Query parameter names used by backend endpoints. */

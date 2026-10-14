@@ -312,6 +312,50 @@ carte ».
 
 ---
 
+### User Story 6 - Ma wishlist (Priority: P2)
+
+En tant que client, je veux mettre de côté les produits qui m'intéressent et les retrouver
+sur une page « Ma wishlist », pour les acheter plus tard.
+
+- Un bouton cœur sur chaque carte produit (catalogue, accueil, recherche) et sur la fiche
+  produit ajoute le produit à ma wishlist ou l'en retire ; son état (plein ou vide) reflète
+  ma wishlist.
+- La page « Ma wishlist » liste mes produits du plus récent au plus ancien, avec image, nom,
+  prix, disponibilité et date d'ajout, paginée ; depuis chaque produit je peux l'ajouter au
+  panier ou le retirer de la wishlist.
+- Visiteur : le cœur propose de se connecter, puis l'ajout est fait au retour, une seule fois
+  (même mécanisme que l'action de panier mise de côté).
+
+**Why this priority**: le backend gère déjà la wishlist (`api-map.md` §9) mais aucun client
+ne peut s'en servir ; elle prépare l'achat sans bloquer le parcours de commande. Ajoutée à la
+feature à la demande de l'utilisateur le 2026-10-14 (avancée depuis la feature 004).
+
+**Independent Test**: connecté, cliquer le cœur de deux produits du catalogue, ouvrir « Ma
+wishlist » et les voir (le dernier ajouté en premier) ; retirer l'un, ajouter l'autre au
+panier ; recharger : un seul produit reste, cœur plein sur sa carte.
+
+**Acceptance Scenarios**:
+
+1. **Given** un client connecté et un produit hors de sa wishlist, **When** il clique le
+   cœur, **Then** le cœur devient plein immédiatement, l'ajout est annoncé et le produit
+   apparaît dans « Ma wishlist ».
+2. **Given** un produit dans la wishlist, **When** il clique le cœur plein, **Then** le
+   produit est retiré et le cœur redevient vide.
+3. **Given** un ajout refusé par le backend (indisponible), **When** la réponse arrive,
+   **Then** le cœur revient à son état précédent et un message l'explique.
+4. **Given** un produit déjà présent dans la wishlist (autre onglet), **When** il l'ajoute,
+   **Then** l'ajout est traité comme réussi (409 `PRODUCT_ALREADY_IN_WISHLIST`).
+5. **Given** un visiteur, **When** il clique le cœur, **Then** il est invité à se connecter
+   et, à son retour, le produit est dans sa wishlist sans nouveau clic.
+6. **Given** une wishlist vide, **When** il ouvre « Ma wishlist », **Then** un état vide
+   illustré l'invite à parcourir le catalogue.
+7. **Given** un produit de la wishlist en rupture, **When** il regarde la page, **Then** le
+   produit est signalé indisponible et « Ajouter au panier » est désactivé.
+8. **Given** plus de produits qu'une page, **When** il change de page, **Then** la page
+   suivante s'affiche et l'adresse reflète la page (`?page=`).
+
+---
+
 ### Edge Cases
 
 - **Panier vide au moment du devis** (vidé dans un autre onglet) : retour au panier avec un
@@ -483,6 +527,24 @@ carte ».
   expliqué et laisser la carte précédente en place ; remplacer une carte MUST être confirmé.
   L'état « aucune carte » MUST expliquer qu'une carte est nécessaire pour commander.
 
+**Wishlist**
+
+- **FR-035**: Un bouton cœur MUST être présent sur chaque carte produit et sur la fiche
+  produit, avec un nom accessible qui dit l'action (« Ajouter à ma wishlist » / « Retirer de
+  ma wishlist ») et `aria-pressed` ; l'état MUST être mis à jour de façon optimiste puis
+  rétabli si le backend refuse.
+- **FR-036**: Un ajout répondu `409 PRODUCT_ALREADY_IN_WISHLIST` MUST être traité comme un
+  succès ; un retrait répondu `404` MUST être traité comme un succès (déjà retiré).
+- **FR-037**: La page « Ma wishlist » (`/account/wishlist`, privée) MUST lister les produits
+  du plus récent au plus ancien (`createdAt,desc`), paginée côté backend, avec image, nom,
+  prix, disponibilité, date d'ajout, « Ajouter au panier » (désactivé si indisponible) et
+  « Retirer » ; état vide illustré ; lien depuis le menu du compte.
+- **FR-038**: Pour un visiteur, le cœur MUST proposer la connexion et l'ajout MUST être
+  rejoué une seule fois au retour (action mise de côté en `sessionStorage`, produit seulement).
+- **FR-039**: L'état des cœurs MUST venir d'une seule lecture de la wishlist par page vue
+  (identifiants des produits, au plus `WISHLIST_IDS_MAX` produits), partagée par toutes les
+  cartes ; aucun appel par carte.
+
 **Interface vivante**
 
 - **FR-033**: Chaque page de la feature MUST avoir une apparition orchestrée et utile
@@ -510,6 +572,9 @@ carte ».
   au plus par utilisateur ; enregistrée chez Stripe (le site ne connaît que son identifiant)
   et débitée à chaque paiement.
 
+- **Wishlist** : liste de produits mis de côté par un client, chacun avec sa date d'ajout ;
+  un produit au plus une fois.
+
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
@@ -534,6 +599,9 @@ carte ».
   requêtes du site.
 - **SC-009**: Budgets de performance du lot 1 tenus sur le panier, le tunnel et « Mes
   commandes ».
+
+- **SC-010**: Le cœur change d'état en moins de 100 ms après le clic (mise à jour optimiste),
+  et 100 % des refus du backend le ramènent à son état précédent avec un message.
 
 ## Assumptions
 
@@ -578,6 +646,11 @@ carte ».
 - **Carte de l'utilisateur chez Stripe** (bloquante pour l'ajout de carte de US5 et pour un
   paiement refusé selon la carte) : client Stripe, `SetupIntent`, enregistrement et débit de
   la carte de l'utilisateur — `backend-prompts-lot2.md` §10, `api-map.md` §E 32.
+
+- **État de la wishlist par produit** (non bloquante) : aucun endpoint ne dit si un produit
+  est dans ma wishlist ; le front lit la première page de `GET /wishlist/my-wishlist` à la
+  taille maximale (100, `spring.data.web.pageable.max-page-size`) pour colorer les cœurs ;
+  au-delà, un cœur peut s'afficher vide à tort (l'ajout reste correct grâce au 409).
 
 ## Hors périmètre
 

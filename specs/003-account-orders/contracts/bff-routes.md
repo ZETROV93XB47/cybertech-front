@@ -22,6 +22,10 @@ navigateur n'appelle jamais Spring.
 | POST | `/api/orders/[uuid]` | `OrderUpdateBodySchema` : `{ items: { productUuid, quantity 1..99 }[] (≥ 1, sans doublon), address: AddressInput, shippingType, shippingProvider, paymentType }` | `200 OrderView` | `POST /management/order/update` (`OrderUpdateRequestDto`, §D.9 : `uuid` pris dans le chemin, liste **complète** des lignes) |
 | POST | `/api/orders/[uuid]/cancel` | `uuid` (chemin) | `200 OrderView` | `POST /management/order/cancel` (`{ orderUuid }`, §D.9b) |
 
+| GET | `/api/wishlist/ids` | — | `200 { productUuids: uuid[] }` (≤ `WISHLIST_IDS_MAX`) ; visiteur → `401` (lu comme « vide ») | `GET /services/wishlist/my-wishlist?size=100&sort=createdAt,desc` (§9) |
+| PUT | `/api/wishlist/[productUuid]` | `productUuid` (chemin, `z.uuid()`) | `200 { productUuid, isInWishlist: true }` (aussi sur `409 PRODUCT_ALREADY_IN_WISHLIST`) ; `404` produit inconnu | `POST /services/wishlist/add/{productUuid}` |
+| DELETE | `/api/wishlist/[productUuid]` | `productUuid` (chemin) | `200 { productUuid, isInWishlist: false }` (aussi sur `404`) | `DELETE /services/wishlist/remove/{productUuid}` |
+
 `AddressInput = { street, zipCode, city, country }`, chaque champ chaîne non vide après `trim`
 (équivalent `@NotBlank`). `DiscountKey` : chaîne 1–64, `[A-Z0-9_]`, normalisée en majuscules.
 `QuoteView` et `OrderView` sont décrits dans `data-model.md`.
@@ -146,7 +150,8 @@ Règles :
 
 Logger enfant par module (`lib/logger.ts`) : `checkout.quote`, `checkout.place`,
 `orders.status`, `orders.retry-payment`, `orders.update`, `orders.cancel`, `orders.read`,
-`account.profile`, `account.card`.
+`account.profile`, `account.card`. `wishlist.ids`, `wishlist.toggle`, `wishlist.page` (UUID de produit en clair : donnée
+publique ; UUID d'utilisateur jamais loggué).
 
 - En plus du log de chaque appel backend (méthode, route, statut, durée, `X-Request-Id`,
   `errorCode`, déjà fait par `lib/api/client.ts`) :

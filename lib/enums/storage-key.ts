@@ -34,4 +34,11 @@ export enum StorageKey {
    * @see specs/003-account-orders/research.md R9
    */
   CHECKOUT = "ct_checkout_v1",
+  /**
+   * `sessionStorage`: product a visitor wanted to add to the wishlist, added once after the
+   * sign-in.
+   *
+   * @see specs/003-account-orders/research.md R22
+   */
+  WISHLIST_PENDING = "ct_wishlist_pending_v1",
 }

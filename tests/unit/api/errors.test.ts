@@ -42,7 +42,7 @@ describe("toFrontErrorCode — one case per row of contracts/errors.md", () => {
     [BackendErrorCode.USER_ALREADY_EXISTS, 409, FrontErrorCode.ALREADY_EXISTS],
     [BackendErrorCode.TOO_MANY_REQUESTS, 429, FrontErrorCode.RATE_LIMITED],
     [BackendErrorCode.APPLICATION_ERROR, 500, FrontErrorCode.UNAVAILABLE],
-    [BackendErrorCode.PRODUCT_ALREADY_IN_WISHLIST, 409, FrontErrorCode.UNKNOWN],
+    [BackendErrorCode.PRODUCT_ALREADY_IN_WISHLIST, 409, FrontErrorCode.ALREADY_EXISTS],
     // Feature 003 (specs/003-account-orders/data-model.md §1).
     [BackendErrorCode.DISCOUNT_TYPE_NOT_ACTIVE, 400, FrontErrorCode.DISCOUNT_INVALID],
     [BackendErrorCode.PAYMENT_FAILED, 402, FrontErrorCode.PAYMENT_FAILED],

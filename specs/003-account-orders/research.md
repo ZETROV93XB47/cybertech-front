@@ -280,6 +280,31 @@ décision du 2026-10-14). Backend vérifié au commit `84dc038` le 2026-10-14
   `setupIntentId`) ; d'ici là, les comptes e2e sont inscrits avec une carte de test et le
   tunnel gère `NO_SAVED_CARD`.
 
+## R22 — Wishlist : un cœur par produit, une lecture partagée (US6, ajoutée le 2026-10-14)
+
+- **Decision** : trois routes BFF (USER) : `GET /api/wishlist/ids` lit la première page de
+  `GET /wishlist/my-wishlist?size=WISHLIST_IDS_MAX&sort=createdAt,desc` et ne renvoie que
+  `{ productUuids: uuid[] }` ; `PUT /api/wishlist/[productUuid]` → `POST /wishlist/add/{uuid}`
+  (`409 PRODUCT_ALREADY_IN_WISHLIST` = succès) ; `DELETE /api/wishlist/[productUuid]` →
+  `DELETE /wishlist/remove/{uuid}` (`404` = succès). Côté client, `useWishlistIds()` (TanStack,
+  `QueryKey.WISHLIST`, activé seulement pour une session connectée) alimente tous les cœurs
+  d'une page ; `useToggleWishlist()` met à jour le cache de façon optimiste et le rétablit sur
+  erreur. Visiteur : `ct_wishlist_pending_v1` (`sessionStorage`, `{ productUuid }` validé par
+  Zod) puis `loginPath(page courante)` ; `WishlistPendingReplayer` (monté dans le layout
+  racine à côté de `GuestCartMerger`) rejoue l'ajout une fois au retour et le supprime. La page
+  « Ma wishlist » est un Server Component (`/account/wishlist?page=`, lecture `no-store` avec le
+  jeton, `WISHLIST_PAGE_SIZE` = 20, défaut du backend) ; disponibilité par
+  `GET /product/availability` (déjà utilisé par le panier invité). `PUT` plutôt que `POST`
+  côté BFF : l'opération est idempotente une fois le 409 absorbé. Les deux routes répondent
+  `200 { productUuid, isInWishlist }` (et non `204`) : `bffSend` lit toujours un corps JSON.
+  Disponibilité de la page : badges et bouton panier existants (`useAvailability`, lecture
+  groupée `GET /api/availability`) plutôt qu'une lecture serveur.
+- **Rationale** : aucun endpoint « ce produit est-il dans ma wishlist ? » ; une lecture par page
+  vue évite un appel par carte (FR-039) ; 100 = `max-page-size` du backend.
+- **Alternatives considered** : un appel par carte (N requêtes) ; lire toutes les pages (coût
+  non borné) ; Server Action (le cœur vit dans des cartes rendues côté client et serveur, une
+  route BFF + TanStack partage plus simplement l'état optimiste).
+
 ## Prérequis hors feature
 
 - `lib/enums/brand.ts` n'a que 13 marques sur les 43 du backend (`api-map.md` §E 29) : à

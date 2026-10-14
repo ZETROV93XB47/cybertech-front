@@ -168,6 +168,21 @@ tests/
 (commandes existantes) et `features/account/` (profil, carte, navigation du compte). Le
 groupe de routes `app/(account)/` porte la garde serveur unique des pages privées.
 
+### Ajout US6 — Wishlist (2026-10-14, R22)
+
+```text
+app/(account)/account/wishlist/page.tsx      + « Ma wishlist », paginée (?page=)
+app/api/wishlist/ids/route.ts                + GET
+app/api/wishlist/[productUuid]/route.ts      + PUT, DELETE
+features/wishlist/                           + wishlist-view.ts · wishlist-pending.ts ·
+                                               hooks/useWishlist.ts · components/
+                                               WishlistButton · WishlistList ·
+                                               WishlistPendingReplayer · messages.ts
+features/catalog/components/ProductCard.tsx  ~ cœur ; ProductDetails.tsx ~ cœur
+features/auth/components/AccountMenu.tsx     ~ lien « Ma wishlist »
+lib/ schemas/wishlist.ts + · api/endpoints/wishlist.ts + · constants/wishlist.ts +
+```
+
 ## Mapping page → BFF → endpoint Spring
 
 | Page / composant | Côté Next | Endpoint Spring | Cache |

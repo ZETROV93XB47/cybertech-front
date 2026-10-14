@@ -7,5 +7,7 @@ export enum HttpMethod {
   GET = "GET",
   POST = "POST",
   PATCH = "PATCH",
+  /** Idempotent write of the BFF (`PUT /api/wishlist/[productUuid]`). */
+  PUT = "PUT",
   DELETE = "DELETE",
 }
