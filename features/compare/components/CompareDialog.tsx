@@ -116,7 +116,7 @@ export function CompareDialog({ uuids }: CompareDialogProps): ReactNode {
       </DialogTrigger>
       <DialogContent
         data-entrance={mode}
-        className="glass flex max-h-11/12 flex-col gap-6 overflow-hidden rounded-card duration-(--duration-base) sm:max-w-site"
+        className="glass flex max-h-11/12 flex-col gap-8 overflow-hidden rounded-card p-8 duration-(--duration-base) sm:max-w-catalog"
       >
         <DialogHeader>
           <DialogTitle className="text-2xl">{COMPARE_DIALOG_MESSAGES.title}</DialogTitle>

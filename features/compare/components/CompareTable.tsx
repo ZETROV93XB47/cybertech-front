@@ -44,8 +44,8 @@ export interface CompareTableProps {
  */
 function ProductHeader({ product }: { readonly product: ProductCard }): ReactNode {
   return (
-    <th scope="col" className="w-64 p-3 text-left align-top font-normal">
-      <TiltCard className="glass relative flex flex-col gap-2 rounded-card p-3">
+    <th scope="col" className="w-72 px-4 pb-6 text-left align-top font-normal">
+      <TiltCard className="glass relative flex flex-col gap-2 rounded-card p-4">
         <div className="aspect-4/3 overflow-hidden rounded-field bg-surface-2">
           <ProductImage
             src={product.imageUrl}
@@ -76,8 +76,11 @@ function ProductHeader({ product }: { readonly product: ProductCard }): ReactNod
  */
 function CharacteristicRow({ row }: { readonly row: ComparisonRow }): ReactNode {
   return (
-    <tr className="border-t border-border">
-      <th scope="row" className="p-3 text-left align-top text-sm font-normal text-text-muted">
+    <tr className="border-t border-border even:bg-surface-2/40">
+      <th
+        scope="row"
+        className="py-5 pr-6 pl-4 text-left align-top text-sm font-medium tracking-wide text-text-muted"
+      >
         <span className="inline-flex items-center gap-2">
           {row.label}
           {row.differs && (
@@ -89,7 +92,7 @@ function CharacteristicRow({ row }: { readonly row: ComparisonRow }): ReactNode 
         </span>
       </th>
       {row.values.map((value, index) => (
-        <td key={index} className="p-3 align-top text-sm text-text">
+        <td key={index} className="px-4 py-5 align-top text-sm leading-relaxed text-text">
           {value ?? COMPARE_DIALOG_MESSAGES.missingValue}
         </td>
       ))}
@@ -114,7 +117,10 @@ export function CompareTable({ view, differencesOnly }: CompareTableProps): Reac
         <caption className="sr-only">{COMPARE_DIALOG_MESSAGES.title}</caption>
         <thead>
           <tr>
-            <th scope="col" className="w-48 p-3 text-left align-bottom text-xs text-text-muted">
+            <th
+              scope="col"
+              className="w-56 px-4 pb-6 text-left align-bottom text-xs text-text-muted"
+            >
               {COMPARE_DIALOG_MESSAGES.characteristic}
             </th>
             {view.products.map((product) => (
