@@ -25,11 +25,15 @@ Routes BFF : [contracts/](./contracts/). Modèle : [data-model.md](./data-model.
    - compte A : profil avec adresse complète (rue, code postal, ville, pays) ;
    - compte B : sans adresse, pour vérifier le préremplissage vide ;
    - compte C : avec une carte enregistrée (US5).
-4. **Carte enregistrée (US5)** : le front ne permet pas d'en ajouter une (constitution V). On
-   l'ajoute hors du front, avec curl ou Postman, sur `POST /api/v1/services/bank-card/add`
-   (en-têtes `Authorization: Bearer <jeton du compte C>` et `X-API-VERSION: 1.0`) avec un
-   numéro de test, par exemple `4242424242424242`, et une expiration future. Le jeton ne doit
-   apparaître dans aucun fichier du repo.
+4. **Carte enregistrée** : **une commande exige une carte** (404 `BANK_CARD_NOT_FOUND` sinon).
+   Tant que le backend n'a pas livré `backend-prompts-lot2.md` §10, les comptes qui commandent
+   sont inscrits avec une carte de test (`registerUser(context, { withBankCard: true })` dans les
+   e2e, ou `bankCardCreationRequestDto` à l'inscription) et le backend débite toujours sa carte
+   de configuration. Après §10, la carte s'ajoute sur « Ma carte » par Stripe Elements (décision
+   du 2026-10-14, constitution V v2.3.0) et les cartes de test Stripe décident de l'issue :
+   `4242 4242 4242 4242` acceptée, `4000 0000 0000 0341` enregistrée puis refusée au paiement,
+   `4000 0000 0000 9995` fonds insuffisants, `4000 0025 0000 3155` refusée faute de
+   3-D Secure ; expiration future et cryptogramme quelconque.
 5. **Connexion** : elle ne fonctionne que sur le port 3000, seule redirect URI du client
    Keycloak `cybertech-front-client`. Si un `next dev` tourne déjà, le réutiliser, sinon en
    lancer un.
@@ -69,7 +73,7 @@ Parcours attendus :
 | 3 | Modifier la ville dans le tunnel, puis ouvrir `/account/profile` | La ville du profil n'a pas changé | FR-007 |
 | 4 | Étape Livraison : 4 options DHL / FedEx × Standard / Express | Prix du backend, délai marqué « estimatif » (ou délai du backend s'il est livré), promesse express ; « Retrait en magasin » grisé, « Bientôt disponible », non sélectionnable au clavier ni à la souris | US1-3, FR-008, clarification Q2 |
 | 5 | Basculer vite entre Standard et Express plusieurs fois | Montants signalés « en cours de mise à jour », puis seuls ceux du dernier choix restent affichés (onglet Réseau : requêtes obsolètes annulées) | US1-4, FR-011 |
-| 6 | Étape Paiement | Mastercard, Visa, Apple Pay, Google Pay ; mention « paiement simulé » ; aucun champ de numéro de carte | FR-009 |
+| 6 | Étape Paiement | Mastercard, Visa, Apple Pay, Google Pay ; carte enregistrée affichée masquée ; sans carte, « Ajouter une carte » et validation bloquée ; mention « paiement de test » ; aucun champ de numéro de carte dans le tunnel | FR-009 |
 | 7 | Replier puis rouvrir l'étape Adresse | Les choix de livraison et de paiement sont conservés | FR-006 |
 | 8 | « Valider la commande » (double clic) | Une seule commande créée ; compteur du panier à 0 ; arrivée sur `/checkout/confirmation/{uuid}` | US1-5, FR-012, FR-013 |
 | 9 | Confirmation | « Paiement en cours » puis « Payée » sans action ; total identique à celui du récapitulatif | US1-5, SC-002, SC-005 |
@@ -134,7 +138,10 @@ Parcours attendus :
 | 48 | Expiration passée | Erreur claire sur le champ | US5-2, FR-031 |
 | 49 | Modifier titulaire et expiration, recharger | Valeurs à jour | Test indépendant US5 |
 | 50 | Supprimer (confirmation) | État « aucune carte » | US5-3 |
-| 51 | Compte sans carte | État illustré : aucune carte, ajout non proposé sur le site ; aucun champ de numéro | US5-4, FR-032 |
+| 51 | Compte sans carte | État illustré : une carte est nécessaire pour commander, « Ajouter une carte » | US5-4, FR-032 |
+| 51 bis | Ajouter 4242… dans le champ Stripe (après §10) | Carte masquée affichée ; dans l'onglet Réseau, aucune requête vers le site ne contient le numéro ni le cryptogramme | US5-5, SC-008 |
+| 51 ter | Carte 4000 0000 0000 0341, commander | Confirmation « Paiement refusé » ; remplacer par 4242 puis « Relancer le paiement » → « Payée » | US5-7, FR-014 |
+| 51 quater | Carte refusée à l'enregistrement (`4000 0000 0000 0002`) | Message de refus, carte précédente conservée | US5-6 |
 
 ### Accès, navigation et interface
 

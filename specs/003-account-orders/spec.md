@@ -32,8 +32,11 @@ son profil et sa carte enregistrée à jour.
   acheté, un offert »), avec minimum de commande et plafond éventuels ; la campagne
   « aucune remise » y figure aussi.
 - **Commande** : la commande est créée à partir du panier du serveur, qui est vidé ; le
-  paiement est **simulé côté serveur** (le moyen de paiement choisi est enregistré mais
-  n'influence pas le débit) ; l'issue du paiement ne se lit que dans le statut de la commande.
+  paiement passe par Stripe en mode test côté serveur ; l'issue du paiement ne se lit que dans
+  le statut de la commande. **Une commande exige une carte enregistrée sur le compte**
+  (404 `BANK_CARD_NOT_FOUND` sinon, constaté le 2026-10-14). Aujourd'hui le backend débite
+  toujours la même carte de test fixée dans sa configuration ; la demande backend
+  `backend-prompts-lot2.md` §10 lui fait débiter la carte de l'utilisateur.
 - **Détail d'une commande** : sous-total, remise et sa clé, frais de port, type et
   transporteur ; ces champs sont vides sur les commandes passées avant leur ajout.
 - **Profil** : l'adresse est renvoyée **en une seule ligne** (« rue, code postal ville,
@@ -61,6 +64,11 @@ son profil et sa carte enregistrée à jour.
 - Q: Que peut-on changer aux articles d'une commande non expédiée ? → A: Les quantités, le
   retrait de lignes (au moins une ligne doit rester) et l'ajout de produits depuis une
   recherche dans la commande ; l'adresse, la livraison et le paiement restent modifiables.
+- Décision (2026-10-14, après la vérification de US1, constitution V v2.3.0) : le site permet
+  d'ajouter sa carte, saisie uniquement dans le champ hébergé par Stripe (Stripe Elements) ; le
+  backend l'enregistre chez Stripe et la débite à chaque paiement, si bien que les cartes de
+  test Stripe décident de l'issue (4242 4242 4242 4242 acceptée, 4000 0000 0000 0341 refusée au
+  paiement…). Sans carte enregistrée, le tunnel invite à en ajouter une avant de valider.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -268,14 +276,20 @@ supprimer.
 - La carte est affichée masquée (4 derniers chiffres), avec titulaire, expiration et réseau.
 - Je peux modifier le titulaire et la date d'expiration, ou supprimer la carte après
   confirmation.
-- Le site ne permet pas d'ajouter une carte : aucune saisie de numéro de carte. L'état
-  « aucune carte » l'explique simplement.
+- J'ajoute ou je remplace ma carte dans un champ sécurisé fourni par Stripe : le numéro ne
+  passe jamais par le site. Une carte refusée par Stripe à l'enregistrement est expliquée.
+- Une seule carte par compte : en ajouter une nouvelle remplace l'ancienne, après
+  confirmation.
+- Cette carte est débitée à chaque commande et à chaque relance de paiement.
 
-**Why this priority**: le paiement est simulé côté serveur et n'utilise pas cette carte ; la
-gestion reste utile pour les comptes qui en ont une.
+**Why this priority**: sans carte, aucune commande n'est possible ; P3 tant que le backend
+n'a pas livré l'enregistrement Stripe (`backend-prompts-lot2.md` §10), les comptes existants
+gardant leur carte.
 
-**Independent Test**: avec un compte doté d'une carte, modifier l'expiration, recharger, puis
-supprimer la carte et voir l'état « aucune carte ».
+**Independent Test**: sans carte, ajouter la carte de test 4242 4242 4242 4242, la voir
+masquée, commander et voir « Payée » ; la remplacer par 4000 0000 0000 0341, commander et voir
+« Paiement refusé » ; modifier l'expiration, puis supprimer la carte et voir l'état « aucune
+carte ».
 
 **Acceptance Scenarios**:
 
@@ -286,7 +300,15 @@ supprimer la carte et voir l'état « aucune carte ».
 3. **Given** une carte, **When** il confirme la suppression, **Then** l'état « aucune carte »
    s'affiche.
 4. **Given** aucune carte, **When** il ouvre « Ma carte », **Then** un état illustré explique
-   qu'aucune carte n'est enregistrée et que l'ajout n'est pas proposé sur le site.
+   qu'une carte est nécessaire pour commander et propose « Ajouter une carte ».
+5. **Given** le formulaire d'ajout, **When** le client saisit une carte de test valide dans le
+   champ Stripe et enregistre, **Then** la carte masquée s'affiche et aucun numéro complet n'a
+   été envoyé au site.
+6. **Given** une carte refusée par Stripe à l'enregistrement, **When** il enregistre, **Then**
+   un message explique le refus et la carte précédente (s'il y en avait une) est conservée.
+7. **Given** une carte enregistrée qui refuse les paiements, **When** il commande, **Then** la
+   confirmation affiche « Paiement refusé » ; après avoir remplacé la carte, « Relancer le
+   paiement » fait passer la commande à « Payée ».
 
 ---
 
@@ -364,8 +386,11 @@ supprimer la carte et voir l'état « aucune carte ».
   (promesse express comprise). L'option « Retrait en magasin » MUST être
   affichée grisée avec la mention « Bientôt disponible », non sélectionnable (désactivation
   annoncée aux lecteurs d'écran).
-- **FR-009**: Le paiement MUST proposer Mastercard, Visa, Apple Pay et Google Pay, sans
-  aucune saisie de numéro de carte ; l'interface MUST indiquer que le paiement est simulé.
+- **FR-009**: Le paiement MUST proposer Mastercard, Visa, Apple Pay et Google Pay (type
+  enregistré sur la commande), MUST montrer la carte enregistrée qui sera débitée (masquée),
+  et, sans carte enregistrée, MUST bloquer la validation en proposant « Ajouter une carte »
+  (page « Ma carte », retour au tunnel ensuite) ; aucune saisie de numéro de carte dans le
+  tunnel ; l'interface MUST indiquer qu'il s'agit d'un paiement de test.
 - **FR-010**: Le récapitulatif MUST afficher les produits, l'adresse, la livraison, le
   paiement, la réduction et les montants (sous-total, remise, frais de port, total, devise)
   **issus du devis du backend** ; aucun montant ne MUST être calculé par le front.
@@ -452,8 +477,11 @@ supprimer la carte et voir l'état « aucune carte ».
 - **FR-031**: « Ma carte » MUST afficher la carte enregistrée masquée (titulaire, 4 derniers
   chiffres, expiration, réseau) et permettre de modifier titulaire et expiration (mois et
   année, non passée) ou de supprimer la carte après confirmation.
-- **FR-032**: Le site MUST ne jamais proposer de saisir un numéro de carte ; l'état « aucune
-  carte » MUST l'expliquer simplement.
+- **FR-032**: L'ajout ou le remplacement de la carte MUST se faire uniquement dans le champ
+  hébergé par Stripe (Stripe Elements) ; le site MUST ne recevoir et ne transmettre qu'un
+  identifiant Stripe, jamais le numéro ni le cryptogramme ; un refus de Stripe MUST être
+  expliqué et laisser la carte précédente en place ; remplacer une carte MUST être confirmé.
+  L'état « aucune carte » MUST expliquer qu'une carte est nécessaire pour commander.
 
 **Interface vivante**
 
@@ -479,7 +507,8 @@ supprimer la carte et voir l'état « aucune carte ».
 - **Statut de commande** : Créée, En attente de paiement, Payée, Paiement refusé, En
   préparation, Expédiée, Livrée, Annulée, Remboursée, Retournée.
 - **Carte enregistrée** : titulaire, numéro masqué, expiration (mois/année), réseau ; une
-  au plus par utilisateur.
+  au plus par utilisateur ; enregistrée chez Stripe (le site ne connaît que son identifiant)
+  et débitée à chaque paiement.
 
 ## Success Criteria *(mandatory)*
 
@@ -500,16 +529,19 @@ supprimer la carte et voir l'état « aucune carte ».
 - **SC-007**: Aucune violation d'accessibilité détectée par l'audit automatique sur le
   panier, chaque étape du tunnel, la confirmation, « Mes commandes », le détail, le profil et
   la carte ; tout le parcours de commande est utilisable au clavier seul.
-- **SC-008**: Aucun numéro de carte complet n'est jamais saisi, affiché ni transmis par le
-  site.
+- **SC-008**: Aucun numéro de carte complet ni cryptogramme n'est jamais saisi hors du champ
+  Stripe, affiché, ni transmis par le site (navigateur → BFF → backend), vérifiable dans les
+  requêtes du site.
 - **SC-009**: Budgets de performance du lot 1 tenus sur le panier, le tunnel et « Mes
   commandes ».
 
 ## Assumptions
 
 - La cible reste le navigateur de bureau (constitution IX).
-- Le paiement reste simulé côté serveur : le moyen de paiement choisi est enregistré sur la
-  commande sans formulaire de paiement réel ; l'interface le dit.
+- Le paiement se fait en mode test Stripe côté serveur, sans redirection (une carte exigeant
+  3-D Secure est donc refusée) ; tant que le backend n'a pas livré `backend-prompts-lot2.md`
+  §10, il débite sa carte de test de configuration et les comptes de test sont inscrits avec
+  une carte.
 - Les délais de livraison seront des valeurs fixes fournies par le backend (configuration),
   sans calcul ni jours fériés ; tant qu'ils ne sont pas livrés, les délais indicatifs du front,
   déjà utilisés par la fiche produit, prennent le relais.
@@ -543,14 +575,16 @@ supprimer la carte et voir l'état « aucune carte ».
   modification avant de l'enregistrer.
 - **Suppression de compte** et **suivi de livraison** : absents (`api-map.md` §F), hors
   périmètre.
-- **Paiement réel côté client** : absent (§F), hors périmètre.
+- **Carte de l'utilisateur chez Stripe** (bloquante pour l'ajout de carte de US5 et pour un
+  paiement refusé selon la carte) : client Stripe, `SetupIntent`, enregistrement et débit de
+  la carte de l'utilisateur — `backend-prompts-lot2.md` §10, `api-map.md` §E 32.
 
 ## Hors périmètre
 
-- Ajout d'une carte bancaire depuis le site (saisie de numéro interdite, constitution V).
 - Retrait en magasin effectif (l'option n'est qu'affichée, grisée), suivi de colis, factures téléchargeables.
 - Suppression de compte, modification de l'email ou du mot de passe dans le site.
-- Paiement réel (formulaire de carte, 3-D Secure).
+- Paiement réel en production, 3-D Secure et moyens de paiement autres que la carte (Apple Pay
+  et Google Pay restent un type déclaratif enregistré sur la commande).
 - Commande sans compte (le panier invité reste fusionné à la connexion).
 - Administration des commandes et des campagnes (feature 005).
 - Navigation mobile.

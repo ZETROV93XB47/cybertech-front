@@ -1,9 +1,10 @@
 # Research — 003 Mon compte et mes commandes
 
-Décisions techniques de la feature, numérotées R1 à R20. Le socle (Next.js 16 App Router, BFF,
+Décisions techniques de la feature, numérotées R1 à R21. Le socle (Next.js 16 App Router, BFF,
 Zod, TanStack Query, Auth.js, thème unique, effets) est celui du lot 1 et de la feature 002 :
 voir `specs/001-catalog-auth-cart/research.md` et `specs/002-catalog-refresh/research.md`.
-Aucune dépendance npm n'est ajoutée. Backend vérifié au commit `84dc038` le 2026-10-14
+Seules dépendances npm ajoutées : `@stripe/stripe-js` et `@stripe/react-stripe-js` (R21,
+décision du 2026-10-14). Backend vérifié au commit `84dc038` le 2026-10-14
 (`docs/backend/api-map.md`).
 
 ## R1 — Protection des pages privées : proxy + vérification serveur
@@ -217,7 +218,8 @@ Aucune dépendance npm n'est ajoutée. Backend vérifié au commit `84dc038` le 
   Bean Validation (`@Size(2..50)`, `MM/YYYY` non passé), `fieldErrors` du backend reportés sur
   les champs, `revalidatePath` après succès. Téléphone : envoyé seulement s'il est saisi. Lien
   « Changer de mot de passe » : `KEYCLOAK_ACCOUNT_URL` dérivée de `AUTH_KEYCLOAK_ISSUER` +
-  `/account` (constante serveur). Suppression de carte : `AlertDialog` puis action.
+  `/account` (constante serveur). Suppression de carte : `AlertDialog` puis action. L'ajout
+  et le remplacement de la carte passent par Stripe Elements (R21), pas par une Server Action.
 - **Rationale** : formulaires simples, fonctionnent sans JavaScript, aucun état client à
   synchroniser ; pas de TanStack pour des données lues une fois.
 
@@ -245,6 +247,38 @@ Aucune dépendance npm n'est ajoutée. Backend vérifié au commit `84dc038` le 
   qui se remplit étape par étape ; listes de commandes en apparition en cascade ; états vides
   avec `StateIllustration`. Version statique quand `useEffectiveEffects()` est réduit ou
   désactivé ; tests par niveau d'effet comme en 002.
+
+## R21 — Carte de l'utilisateur : Stripe Elements et SetupIntent (décision du 2026-10-14)
+
+- **Decision** : l'ajout ou le remplacement de la carte se fait sur « Ma carte » avec Stripe
+  Elements (`@stripe/stripe-js` + `@stripe/react-stripe-js`, composant `PaymentElement` limité
+  aux cartes). Flux :
+  1. le client ouvre le formulaire → `POST /api/bank-card/setup-intent` (BFF, USER) →
+     backend `POST /bank-card/setup-intent` → `{ clientSecret, publishableKey }` (la clé
+     publiable vient du backend : aucune variable d'environnement front ajoutée) ;
+  2. `loadStripe(publishableKey)` (chargé à la demande, uniquement sur cette page), puis
+     `stripe.confirmSetup({ elements, redirect: "if_required" })` : le numéro part de l'iframe
+     Stripe directement chez Stripe ;
+  3. succès → `POST /api/bank-card { setupIntentId }` (BFF) → backend `POST /bank-card/add` →
+     carte masquée renvoyée ; refus Stripe (`setup_intent_unexpected_state`,
+     `card_declined`…) → message traduit, carte précédente conservée.
+  La CSP n'autorise `js.stripe.com` (script, frame) et `api.stripe.com` (connect) que sur
+  `/account/card` (`proxy.ts` construit la CSP par chemin). Le tunnel ne saisit jamais de
+  carte : l'étape paiement affiche la carte enregistrée (lue par `getBankCard` côté serveur)
+  et, sans carte, bloque la validation avec un lien « Ajouter une carte » vers
+  `/account/card?returnTo=/checkout` (chemin relatif vérifié par `safeCallbackPath`).
+- **Rationale** : constitution V v2.3.0 (aucun PAN par le front, le BFF ni le backend, SAQ A) ;
+  le backend débite cette carte à chaque paiement (`backend-prompts-lot2.md` §10), donc les
+  cartes de test Stripe décident de l'issue (4242… acceptée, 4000 0000 0000 0341 refusée au
+  paiement, 4000 0000 0000 9995 fonds insuffisants, 4000 0025 0000 3155 refusée faute de
+  3-D Secure).
+- **Alternatives considered** : saisir le numéro dans un champ du site et le traduire en jeton
+  de test côté backend (PAN en clair dans le front et le backend, contraire à la constitution) ;
+  Stripe Checkout hébergé (redirection hors du site, pas d'enregistrement pour les paiements
+  suivants sans flux supplémentaire).
+- **Dépendance** : bloquée par `backend-prompts-lot2.md` §10 (setup-intent, add par
+  `setupIntentId`) ; d'ici là, les comptes e2e sont inscrits avec une carte de test et le
+  tunnel gère `NO_SAVED_CARD`.
 
 ## Prérequis hors feature
 

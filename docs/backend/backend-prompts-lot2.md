@@ -327,3 +327,72 @@ Travail demandé :
   pour ce type) et par le calcul du prix ;
 - tests : valeurs renvoyées identiques à celles appliquées à la commande.
 ````
+
+---
+
+## 10. Carte de l'utilisateur enregistrée chez Stripe et utilisée à chaque paiement
+
+> Ajouté le 2026-10-14 (feature front 003). Décision : option A, Stripe Elements côté front. Le
+> numéro de carte ne transite jamais par le front ni par le backend.
+
+````text
+Objectif : que chaque paiement (POST /management/order/place, POST /order/retry-payment/{uuid},
+complément de POST /order/update) débite la carte que l'utilisateur a enregistrée, afin que les
+cartes de test Stripe décident de l'issue (4242 4242 4242 4242 accepté ; 4000 0000 0000 0341
+enregistrée puis refusée à chaque paiement ; 4000 0000 0000 9995 fonds insuffisants ;
+4000 0025 0000 3155 authentification exigée, donc refusée puisque les redirections sont
+interdites). Le front saisit la carte dans Stripe Elements (iframe Stripe) : le numéro complet
+n'arrive jamais au front ni au backend.
+
+Constat (commit 84dc038) :
+- StripePaymentAttemptProcessor confirme le PaymentIntent avec stripe.payment-method
+  (pm_card_visa) fixé dans application.properties : la carte de l'utilisateur n'est jamais
+  utilisée ;
+- OrderManagementServiceImp#validateUserBeforeProcessingPayment exige pourtant une BankCardEntity
+  (404 BANK_CARD_NOT_FOUND sinon), stockée avec le numéro chiffré en AES ; aucun client Stripe
+  (Customer) n'est créé.
+
+Travail demandé :
+1. Client Stripe par utilisateur : créer le Customer Stripe à la première demande (email et
+   nom, métadonnée userUuid), conserver son id (ex. UserEntity.stripeCustomerId, migration).
+2. Préparation de l'enregistrement : POST /api/v1/services/bank-card/setup-intent (USER/ADMIN)
+   crée un SetupIntent (customer, usage off_session, payment_method_types card) et renvoie
+   { clientSecret, publishableKey } ; la clé publiable vient de la configuration
+   (stripe.publishable-key=pk_test_…).
+3. Enregistrement : POST /api/v1/services/bank-card/add accepte désormais
+   { setupIntentId } (le SetupIntent doit appartenir au Customer de l'appelant et être
+   succeeded) ; le backend lit le PaymentMethod chez Stripe (brand, last4, exp_month,
+   exp_year, nom du titulaire), l'attache comme moyen par défaut du Customer et enregistre
+   stripePaymentMethodId, cardType, lastFourDigits, expiryDate (MM/YYYY), cardHolderName.
+   Une seule carte par utilisateur : une nouvelle carte remplace l'ancienne (détachée chez
+   Stripe). L'ancien corps avec cardNumber est retiré (ou rejeté en 400) : plus aucun numéro
+   complet ne doit être accepté ni stocké ; supprimer encryptedNumber (migration) une fois les
+   données existantes migrées ou purgées.
+4. GET /bank-card/get inchangé dans sa forme (maskedNumber = « **** **** **** » + last4) ;
+   PUT /bank-card/update met à jour titulaire et expiration chez Stripe aussi
+   (PaymentMethod.update billing_details.name, card.exp_month/exp_year) ; DELETE détache le
+   PaymentMethod chez Stripe.
+5. Paiement : StripePaymentAttemptProcessor crée le PaymentIntent avec customer et
+   payment_method de la carte de l'utilisateur, confirm=true, off_session=true ;
+   stripe.payment-method ne sert plus que de repli explicite pour les tests (profil test) ou
+   disparaît. Un refus (CardException, statut requires_payment_method ou requires_action) donne
+   PAYMENT_FAILED sur la commande comme aujourd'hui (place ne renvoie toujours pas 402), avec
+   le code de refus Stripe (decline_code) loggé, jamais le numéro.
+6. Sans carte enregistrée : garder 404 BANK_CARD_NOT_FOUND à place et à retry-payment
+   (le front propose alors « Ajouter une carte »), et l'ajouter au DTO d'erreur documenté dans
+   l'OpenAPI de place/quote ; le devis (quote) ne l'exige pas.
+7. Inscription : bankCardCreationRequestDto (numéro en clair) retiré de UserCreateRequestDto,
+   ou ignoré avec un warn ; la carte s'ajoute après l'inscription par le flux ci-dessus.
+8. Webhook : vérifier que payment_intent.succeeded / payment_failed retrouvent toujours la
+   commande (métadonnée orderUuid) avec le nouveau PaymentIntent.
+
+Tests :
+- unitaires du processeur (customer + payment_method transmis, off_session, refus mappé) ;
+- IT du flux carte avec Stripe mocké (WireMock ou stripe-mock) : setup-intent, add (SetupIntent
+  d'un autre Customer refusé en 403), update, delete, remplacement de carte ;
+- IT de commande : carte 4242 → PAID, PaymentMethod de refus → PAYMENT_FAILED puis
+  retry-payment avec une nouvelle carte → PAID ;
+- aucun log ni DTO ne contient de numéro complet ni de CVC.
+
+Mets à jour progress.md et l'OpenAPI (le front régénère ses types avec npm run gen:api).
+````

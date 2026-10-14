@@ -43,6 +43,7 @@ sont mis à jour).
 | quote, place | `USER_NOT_FOUND` (404) | 404 | `not-found` | message « profil introuvable », lien vers le support |
 | place | `NOT_ENOUGH_STOCK` (409) | 409 | `insufficient-stock` | retour au panier (`?issue=stock`), lignes relues et signalées |
 | place | `USER_NOT_ACTIVE` (403) | 403 | **+** `account-inactive` | message dédié |
+| place, retry | `BANK_CARD_NOT_FOUND` (404, aucune carte enregistrée) | 404 | **+** `no-saved-card` | « Ajouter une carte » vers `/account/card?returnTo=/checkout` |
 | status, retry, update, cancel | `ORDER_NOT_FOUND` (404) ou `ORDER_DOESNT_BELONGS_TO_USER` (403) | 404 | `not-found` | page « commande introuvable », sans révéler l'existence (le 403 est volontairement rendu en 404) |
 | retry | `NO_PREVIOUS_PAYMENT_ATTEMPT_FOUND` (404) | 404 | `not-found` | message « relance impossible », lien vers le détail |
 | retry | `PAYMENT_ALREADY_COMPLETED` (409) | 409 | **+** `payment-already-completed` | affiché comme payé, sondage arrêté |
@@ -86,8 +87,26 @@ formError?: FrontErrorCode, retryAfterSeconds? }`. Session absente → redirecti
 | `updateBankCard(formData)` | `BankCardUpdateInput` : `cardHolderName` (non vide), `expiryMonth` (1–12), `expiryYear` (4 chiffres), assemblés en `MM/YYYY`, refusé s'il est passé | `PUT /bank-card/update` (§D.4b) | `BANK_CARD_EXPIRED` (400) → **+** `card-expired` sur le champ expiration ; `BANK_CARD_NOT_FOUND` → `not-found` (état « aucune carte ») ; revalide `/account/card` |
 | `deleteBankCard()` | — (confirmation par `AlertDialog`) | `DELETE /bank-card/delete` (`204`) | `BANK_CARD_NOT_FOUND` → traité comme un succès (carte déjà absente) ; revalide `/account/card` |
 
-Aucune action d'ajout de carte (`POST /bank-card/add`) n'existe : aucun numéro de carte n'est
-saisi ni transmis (constitution V, FR-032).
+L'ajout et le remplacement de la carte ne sont pas des Server Actions : ils passent par Stripe
+Elements et les deux routes de la section 2 bis (constitution V v2.3.0, FR-032, research R21).
+
+## 2 bis. Carte enregistrée chez Stripe (après `backend-prompts-lot2.md` §10)
+
+| Méthode | Route | Entrée (Zod) | Sortie 2xx | Endpoint Spring |
+|---|---|---|---|---|
+| POST | `/api/bank-card/setup-intent` | — | `200 { clientSecret, publishableKey }` (`SetupIntentSchema`) | `POST /bank-card/setup-intent` |
+| POST | `/api/bank-card` | `BankCardAddBodySchema` : `{ setupIntentId }` (strict, regex `^seti_…`) | `201 BankCard` (masquée) | `POST /bank-card/add { setupIntentId }` |
+
+Règles :
+- USER, same-origin, `Cache-Control: no-store` ; jamais de numéro, de cryptogramme ni de
+  `clientSecret` dans un log (module `account.card`, seuls `setupIntentId` tronqué et le réseau
+  peuvent être loggués) ;
+- `403` si le `SetupIntent` n'appartient pas à l'appelant (rendu `forbidden`), `400` si le
+  `SetupIntent` n'est pas `succeeded` (rendu `invalid`) ;
+- entre l'iframe Stripe et Stripe, aucun appel ne passe par le site ; le navigateur appelle
+  `js.stripe.com` / `api.stripe.com`, autorisés par la CSP de `/account/card` uniquement ;
+- tant que §10 n'est pas livré par le backend, ces routes répondent `503 unavailable` (endpoint
+  absent, 404 backend) et « Ma carte » cache le formulaire d'ajout avec une explication.
 
 ## 3. Appels serveur (Server Components), sans route BFF
 

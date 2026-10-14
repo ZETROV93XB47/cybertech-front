@@ -95,6 +95,10 @@ description: "Task list for feature 003 — checkout, discounts, my orders, prof
 - [X] T032 [US1] Cart page (research R19): move `app/(shop)/cart/page.tsx` to `PageShell` / `PageHeader` (point left from 002 quickstart §5), add « Passer commande » to `features/cart/components/CartSummary.tsx` (`CHECKOUT_PATH` when signed in, `loginPath(CHECKOUT_PATH)` for a guest, hidden for an empty cart), read `?issue=` with `z.enum(CartIssue)` and show a banner (stock lines flagged with available quantity, empty cart message), texts in `features/cart/messages.ts`; existing cart tests stay green and new cases are added in `tests/unit/cart`
 - [X] T033 [US1] Run `tests/e2e/checkout.spec.ts` (T021) and the existing `cart.spec.ts` one by one (`--workers=1`), review screenshots of the checkout (each step open), the confirmation (pending, paid, failed) and the cart, fill quickstart §5 US1, commit `feat(checkout): single-page checkout priced by the backend quote`, then stop and report to the user (in French); Lighthouse desktop (constitution IX) on `/`, `/products`, one product page and `/cart`, `/checkout`, the confirmation, budgets LCP ≤ 2,5 s, CLS ≤ 0,1, TBT ≤ 200 ms, recorded in quickstart §5
 
+### US1 follow-up (decision of 2026-10-14)
+
+- [ ] T083 [US1] Payment step shows the saved card that will be charged (masked network and last 4 digits, read by `getBankCard` in `features/checkout/server/checkout-data.ts`, needs the read part of T066); without a card, « Valider la commande » is disabled with « Ajouter une carte » linking to `/account/card?returnTo=/checkout` (`CARD_RETURN_PARAM`), and a `no-saved-card` answer at placement shows the same link; « Paiement simulé » texts become « paiement de test » (FR-009); tests in `tests/unit/checkout/checkout-components.test.tsx`
+
 **Checkpoint**: an order can be placed and paid from the cart — MVP.
 
 ---
@@ -178,15 +182,15 @@ description: "Task list for feature 003 — checkout, discounts, my orders, prof
 
 ## Phase 7: User Story 5 - Gérer ma carte enregistrée (Priority: P3)
 
-**Goal**: « Ma carte » shows the masked card (holder, last 4 digits, expiry, network), edits holder and expiry (month and year, not past), deletes after confirmation; no card can be added and no card number is ever typed.
+**Goal**: « Ma carte » shows the masked card (holder, last 4 digits, expiry, network), adds or replaces it through Stripe Elements (the number never reaches the site, constitution V v2.3.0, research R21), edits holder and expiry (month and year, not past), deletes after confirmation. The backend charges this card at every payment, so Stripe test cards decide the outcome. Adding a card is blocked by `docs/backend/backend-prompts-lot2.md` §10.
 
-**Independent Test**: with an account owning a card, change the expiry, reload, then delete the card and see the « aucune carte » state (quickstart §3 US5).
+**Independent Test**: without a card, add 4242 4242 4242 4242, order and see « Payée »; replace it with 4000 0000 0000 0341, order and see « Paiement refusé »; change the expiry, then delete the card and see the « aucune carte » state (quickstart §3 US5).
 
 ### Tests for User Story 5 ⚠️
 
 - [ ] T063 [P] [US5] Tests in `tests/unit/account/bank-card.test.ts`: `BankCardSchema` (`maskedNumber` only, `expiryDate` `MM/YYYY`, `z.enum(BankCardType)`); `BankCardUpdateSchema` (`cardHolderName` « `trim()`, non vide », `expiryDate` « `MM/YYYY` (`@Pattern`) » and not before the current month in `SHOP_TIME_ZONE`); `getBankCard` (404 `BANK_CARD_NOT_FOUND` → `null`); `updateBankCard` action (400 `BANK_CARD_EXPIRED` → `card-expired` on the expiry field, `not-found` → no-card state) and `deleteBankCard` (204 and 404 both succeed) with MSW; nothing about the card logged
-- [ ] T064 [P] [US5] Component tests with jest-axe in `tests/unit/account/bank-card-panel.test.tsx`: masked number, holder, expiry and network shown, never a full number; edit form with month / year selects; `DeleteCardDialog` confirm and focus return; no-card state with `StateIllustration` explaining that adding a card is not offered; no input accepting a card number anywhere; expiry entered as month (`01`–`12`) and year (4 digits) selects assembled into `expiryDate` `MM/YYYY` (data-model §3)
-- [ ] T065 [P] [US5] E2E `tests/e2e/bank-card.spec.ts`: fixture adds a test card directly to the backend for the fresh account (test support only, `tests/e2e/support/bank-card.ts`, documented in quickstart §1; the front never does it); edit expiry → reload → kept; past expiry refused; delete → no-card state; axe on `/account/card`
+- [ ] T064 [P] [US5] Component tests with jest-axe in `tests/unit/account/bank-card-panel.test.tsx`: masked number, holder, expiry and network shown, never a full number; edit form with month / year selects; `DeleteCardDialog` confirm and focus return; no-card state with `StateIllustration` explaining that a card is needed to order, with « Ajouter une carte »; no input accepting a card number anywhere; expiry entered as month (`01`–`12`) and year (4 digits) selects assembled into `expiryDate` `MM/YYYY` (data-model §3)
+- [ ] T065 [P] [US5] E2E `tests/e2e/bank-card.spec.ts`: account registered with a test card (`registerUser(context, { withBankCard: true })`, test support only, until T088 covers the add flow); edit expiry → reload → kept; past expiry refused; delete → no-card state; axe on `/account/card`
 
 ### Implementation for User Story 5
 
@@ -195,6 +199,14 @@ description: "Task list for feature 003 — checkout, discounts, my orders, prof
 - [ ] T068 [US5] Add `updateBankCard` and `deleteBankCard` to `features/account/actions.ts`; T063 passes
 - [ ] T069 [US5] Create `features/account/components/BankCardPanel.tsx`, `DeleteCardDialog.tsx` and `app/(account)/account/card/page.tsx`; T064 passes; session expired on submit → form error inviting to sign in again, holder name kept, nothing about the card stored in the browser (FR-002), with a test in T064
 - [ ] T070 [US5] Run `tests/e2e/bank-card.spec.ts`, review screenshots (card, edit, no card), fill quickstart §5 US5, commit `feat(account): saved card page`, stop and report; Lighthouse desktop (constitution IX) on `/`, `/products`, one product page and `/account/card`, budgets LCP ≤ 2,5 s, CLS ≤ 0,1, TBT ≤ 200 ms, recorded in quickstart §5
+
+### Stripe card (decision of 2026-10-14, research R21) — blocked by `backend-prompts-lot2.md` §10
+
+- [ ] T084 [P] [US5] Route tests with MSW in `tests/unit/api/bff-bank-card-routes.test.ts`: `POST /api/bank-card/setup-intent` (`200 { clientSecret, publishableKey }`, backend 404 → `503 unavailable` while §10 is missing, `clientSecret` never logged); `POST /api/bank-card` (`BankCardAddBodySchema` « `{ setupIntentId }` strict, regex `^seti_[A-Za-z0-9]+$` »: a body carrying `cardNumber` or `cvc` → 400 without backend call; 201 masked card; 403 → `forbidden`; 400 → `invalid`)
+- [ ] T085 [US5] Add `SetupIntentSchema`, `BankCardAddBodySchema` to `lib/schemas/bank-card.ts`, `createSetupIntent` / `addBankCard` to `lib/api/endpoints/bank-card.ts`, `SETUP_INTENT_ID_PATTERN` to `lib/constants/account.ts`, `bankCardSetupIntent` / `bankCardAdd` to `BACKEND_PATHS`, then `app/api/bank-card/setup-intent/route.ts` and `app/api/bank-card/route.ts` (contracts §2 bis); T084 passes
+- [ ] T086 [US5] `npm install @stripe/stripe-js @stripe/react-stripe-js`; create `features/account/components/StripeCardForm.tsx` (client: setup intent from the BFF, `loadStripe(publishableKey)` loaded on demand, `Elements` + `PaymentElement` restricted to cards, appearance built from the theme tokens of `lib/theme/theme.config.ts`, `confirmSetup({ redirect: "if_required" })`, then `POST /api/bank-card`; Stripe errors translated by `stripeSetupErrorMessage` with the `StripeSetupError` enum; replacing an existing card asks for confirmation; `?returnTo=` checked with `safeCallbackPath` and followed after success) and wire it into `BankCardPanel`; component tests with `@stripe/react-stripe-js` mocked in `tests/unit/account/stripe-card-form.test.tsx` (no input of the site accepts a card number, error shown, previous card kept)
+- [ ] T087 [US5] CSP per path: add `STRIPE_CSP_SOURCES` (`https://js.stripe.com` script and frame, `https://api.stripe.com` connect) to the CSP of `/account/card` only, in `lib/security/csp.ts` and `proxy.ts`, with tests that other pages keep the strict CSP (`tests/unit/security`)
+- [ ] T088 [US5] E2E `tests/e2e/bank-card-stripe.spec.ts` (after backend §10): add 4242 4242 4242 4242 in the Stripe iframe → order → « Payée »; replace with 4000 0000 0000 0341 → order → « Paiement refusé » → replace with 4242 → « Relancer le paiement » → « Payée »; record every request sent to `localhost:3000` and assert none contains the card number or the CVC (SC-008); then switch `tests/e2e/checkout.spec.ts` and T065 to this flow where it fits; fill quickstart §5 US5, commit `feat(account): save the card with Stripe Elements`, stop and report
 
 **Checkpoint**: all five stories delivered.
 
@@ -234,7 +246,7 @@ description: "Task list for feature 003 — checkout, discounts, my orders, prof
 - **US2 (Phase 4)**: after US1 (the block lives in the cart summary and the checkout summary, and uses `useQuote` / `usePlaceOrder`)
 - **US3 (Phase 5)**: after Foundational; reuses `PaymentTracker` / `useOrderStatus` and the step components of US1 for retry and edit — best after US1; needs orders to exist (e2e fixture places them through the BFF)
 - **US4 (Phase 6)**: after Foundational; independent of US1–US3 except for the account shell (T050): if US3 is not done, create `AccountNav` and `app/(account)/account/layout.tsx` here
-- **US5 (Phase 7)**: after Foundational; same remark about the account shell
+- **US5 (Phase 7)**: after Foundational; same remark about the account shell; the Stripe card tasks T084–T088 also wait for `docs/backend/backend-prompts-lot2.md` §10, and T083 (US1 follow-up) needs the read part of T066
 - **Interface vivante (Phase 8)**: after the stories it decorates
 - **Polish (Phase 9)**: last
 
@@ -249,7 +261,7 @@ description: "Task list for feature 003 — checkout, discounts, my orders, prof
 - US2: T034–T036 in parallel; T037 then T038 → T039
 - US3: T041–T045 in parallel; T046–T048 in parallel; then T049 → T050 → T051–T053
 - US4: T055–T057 in parallel; T058–T059 in parallel; then T060 → T061
-- US5: T063–T065 in parallel; T066–T067 in parallel; then T068 → T069
+- US5: T063–T065 in parallel; T066–T067 in parallel; then T068 → T069; Stripe card T084 → T085 → T086 / T087 → T088 once backend §10 is delivered
 - US4 and US5 can be built in parallel with each other once the account shell exists
 - Phase 8: T072–T076 in parallel after T071
 

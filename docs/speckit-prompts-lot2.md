@@ -235,10 +235,11 @@ User stories (à prioriser) :
 4. Carte bancaire enregistrée (une par utilisateur) : voir la carte masquée (GET
    /bank-card/get, 404 = aucune carte), modifier le titulaire et l'expiration (PUT
    /bank-card/update, 400 BANK_CARD_EXPIRED), supprimer avec confirmation (DELETE
-   /bank-card/delete). Décision validée : **pas d'ajout de carte depuis le front** (POST
-   /bank-card/add exigerait de saisir le PAN, interdit par la constitution V v2.2.0 ; le
-   paiement est de toute façon simulé côté serveur) ; l'expliquer simplement dans l'état
-   « aucune carte ».
+   /bank-card/delete). Décision du 2026-10-14 (constitution V v2.3.0) : **ajout de carte
+   depuis le front via Stripe Elements** (SetupIntent, le numéro ne passe jamais par le front
+   ni le backend), carte utilisée par le backend à chaque paiement, ce qui permet de choisir
+   l'issue avec les cartes de test Stripe (docs/backend/backend-prompts-lot2.md §10) ; une
+   commande exige une carte enregistrée (404 BANK_CARD_NOT_FOUND).
 
 Pages privées sous /account/** protégées par proxy.ts et requireSession, réponses no-store,
 rejeu d'action après session expirée comme pour le panier. États vides et d'erreur illustrés
