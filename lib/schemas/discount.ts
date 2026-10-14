@@ -1,5 +1,6 @@
 /**
- * Active discount campaigns (`DiscountContext`), shown on the home page.
+ * Active discount campaigns (`DiscountContext`), shown on the home page, and the discount key
+ * typed by the user on the cart or the checkout (feature 003).
  *
  * Amounts are `BigDecimal` on the backend (JSON numbers); dates are `LocalDateTime` without a
  * time zone (`2026-11-27T00:00:00`), kept as strings and read as UTC when displayed.
@@ -10,6 +11,7 @@
 import { z } from "zod";
 
 import { assertNever } from "@/lib/assert-never";
+import { DISCOUNT_KEY_MAX_LENGTH, DISCOUNT_KEY_PATTERN } from "@/lib/constants/discount";
 import { DiscountCalculationType } from "@/lib/enums/discount-calculation-type";
 
 /** `DiscountContext`. */
@@ -26,6 +28,24 @@ export const ActiveDiscountSchema = z.object({
 
 /** An active discount campaign. */
 export type ActiveDiscount = z.infer<typeof ActiveDiscountSchema>;
+
+/**
+ * Discount key typed by the user or read back from the browser storage: trimmed, upper-cased,
+ * letters, digits and underscores only. The backend stays the only judge of its validity
+ * (`DISCOUNT_TYPE_NOT_ACTIVE`).
+ *
+ * @see specs/003-account-orders/data-model.md §3
+ */
+export const DiscountKeySchema = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .min(1)
+  .max(DISCOUNT_KEY_MAX_LENGTH)
+  .regex(DISCOUNT_KEY_PATTERN);
+
+/** A well-formed discount key. */
+export type DiscountKey = z.infer<typeof DiscountKeySchema>;
 
 /**
  * Tells whether a campaign is worth showing: the backend also returns a `NONE` campaign

@@ -20,24 +20,29 @@ export class BffError extends Error {
   public readonly status: number;
   /** Live stock sent with an `insufficient-stock` error. */
   public readonly availableStock: number | undefined;
+  /** Seconds to wait, sent with a `rate-limited` error. */
+  public readonly retryAfterSeconds: number | undefined;
 
   /**
    * @param code - Stable front error code.
    * @param status - HTTP status of the BFF response.
    * @param message - Technical message (English), never shown as is.
    * @param availableStock - Live stock, for `insufficient-stock` errors.
+   * @param retryAfterSeconds - Delay before retrying, for `rate-limited` errors.
    */
   public constructor(
     code: FrontErrorCode,
     status: number,
     message: string,
     availableStock?: number,
+    retryAfterSeconds?: number,
   ) {
     super(message);
     this.name = "BffError";
     this.code = code;
     this.status = status;
     this.availableStock = availableStock;
+    this.retryAfterSeconds = retryAfterSeconds;
   }
 }
 
@@ -52,8 +57,8 @@ async function toBffError(response: Response): Promise<BffError> {
   if (!body.success) {
     return new BffError(FrontErrorCode.UNKNOWN, response.status, "Unreadable BFF error body");
   }
-  const { code, message, availableStock } = body.data.error;
-  return new BffError(code, response.status, message, availableStock);
+  const { code, message, availableStock, retryAfterSeconds } = body.data.error;
+  return new BffError(code, response.status, message, availableStock, retryAfterSeconds);
 }
 
 /**
@@ -112,14 +117,17 @@ export async function bffGet<TSchema extends z.ZodType>(
  * @param method - HTTP method (`POST`, `PATCH`, `DELETE`).
  * @param schema - Expected body schema.
  * @param body - JSON body, if any.
+ * @param signal - Abort signal (TanStack Query cancels an outdated quote with it).
  * @returns The validated body.
  * @throws {BffError} On error responses, network failures or a body that breaks the contract.
+ * @throws {DOMException} `AbortError` when the request was cancelled through `signal`.
  */
 export async function bffSend<TSchema extends z.ZodType>(
   path: string,
   method: HttpMethod,
   schema: TSchema,
   body?: unknown,
+  signal?: AbortSignal,
 ): Promise<z.infer<TSchema>> {
   const headers: Record<string, string> = { [HTTP_HEADERS.ACCEPT]: JSON_CONTENT_TYPE };
   if (body !== undefined) {
@@ -131,8 +139,13 @@ export async function bffSend<TSchema extends z.ZodType>(
       method,
       headers,
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      ...(signal ? { signal } : {}),
     });
-  } catch {
+  } catch (error) {
+    // A cancelled request is not an outage: let the caller (TanStack Query) see the abort.
+    if (signal?.aborted) {
+      throw error;
+    }
     throw new BffError(FrontErrorCode.UNAVAILABLE, 0, "BFF unreachable");
   }
   if (!response.ok) {

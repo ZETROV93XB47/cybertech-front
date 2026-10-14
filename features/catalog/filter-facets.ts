@@ -251,7 +251,13 @@ export function buildFilterFacets(
 }
 
 /**
- * Builds the brand checkboxes: every brand of the fixed list, with its count when known.
+ * Builds the brand checkboxes, in the order of the `Brand` enum, with their count when known.
+ *
+ * With counts, a brand that would give no product and is not ticked is left out: since the
+ * LDLC catalog import the backend knows 43 brands, most of them absent from a given category,
+ * and 43 greyed checkboxes would bury the useful ones. A ticked brand always stays (greyed
+ * out only if it gives nothing), so that it can be unticked. Without counts every brand is
+ * listed, as nothing tells which ones are empty.
  *
  * @param data - Facet data of the page (`brandCounts`).
  * @param filters - Current filters.
@@ -259,10 +265,15 @@ export function buildFilterFacets(
  * @see specs/002-catalog-refresh/spec.md FR-004
  */
 export function buildBrandFilter(data: FacetData, filters: SearchFilters): BrandFilter {
+  const { brandCounts } = data;
   return {
-    values: Object.values(Brand).map((brand) => {
-      const count = data.brandCounts === null ? null : (data.brandCounts[brand] ?? 0);
-      return toFilterValue(brand, BRAND_LABELS[brand], count, filters.brands.includes(brand));
+    values: Object.values(Brand).flatMap((brand) => {
+      const isChecked = filters.brands.includes(brand);
+      const count = brandCounts === null ? null : (brandCounts[brand] ?? 0);
+      if (count === 0 && !isChecked) {
+        return [];
+      }
+      return [toFilterValue(brand, BRAND_LABELS[brand], count, isChecked)];
     }),
   };
 }

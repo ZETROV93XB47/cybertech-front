@@ -1,0 +1,82 @@
+"use client";
+
+/**
+ * Payment step of the checkout: the four methods accepted by the backend, without any card
+ * number field (payment is simulated server-side, constitution V).
+ *
+ * @see specs/003-account-orders/spec.md FR-009, FR-032
+ */
+import { CreditCard } from "lucide-react";
+import type { ReactNode } from "react";
+
+import { PaymentType } from "@/lib/enums/order";
+
+import { CHECKOUT_MESSAGES } from "../messages";
+
+/** Name shared by the radio buttons of the step. */
+const RADIO_NAME = "payment";
+
+/** Props of {@link PaymentStep}. */
+export interface PaymentStepProps {
+  readonly value: PaymentType | null;
+  readonly error: string | null;
+  readonly onChange: (value: PaymentType) => void;
+  readonly onSubmit: () => void;
+}
+
+/**
+ * Payment step form.
+ *
+ * @param props - Selection, error and handlers.
+ * @returns The form.
+ */
+export function PaymentStep({ value, error, onChange, onSubmit }: PaymentStepProps): ReactNode {
+  return (
+    <form
+      className="flex flex-col gap-4"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSubmit();
+      }}
+    >
+      <fieldset
+        className="grid gap-3 sm:grid-cols-2"
+        aria-describedby={error ? "payment-error" : "payment-hint"}
+      >
+        <legend className="mb-2 text-sm font-medium">{CHECKOUT_MESSAGES.paymentLegend}</legend>
+        {Object.values(PaymentType).map((type) => (
+          <label
+            key={type}
+            className="flex cursor-pointer items-center gap-3 rounded-card border border-border p-4 transition-colors duration-(--duration-fast) has-checked:border-brand-text"
+          >
+            <input
+              type="radio"
+              name={RADIO_NAME}
+              className="accent-brand"
+              checked={value === type}
+              onChange={() => {
+                onChange(type);
+              }}
+            />
+            <CreditCard aria-hidden className="size-5 text-brand-text" />
+            <span className="text-sm font-medium">{CHECKOUT_MESSAGES.paymentLabels[type]}</span>
+          </label>
+        ))}
+      </fieldset>
+      <p id="payment-hint" className="text-xs text-text-muted">
+        {CHECKOUT_MESSAGES.paymentSimulated}
+      </p>
+      {error && (
+        <p id="payment-error" className="text-sm text-rose">
+          {error}
+        </p>
+      )}
+      <button
+        type="submit"
+        className="cta-gradient h-11 self-start rounded-button px-6 font-medium"
+      >
+        {CHECKOUT_MESSAGES.continue}
+      </button>
+    </form>
+  );
+}

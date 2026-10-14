@@ -30,6 +30,13 @@ export const KEYCLOAK_TOKEN_PATH = "/protocol/openid-connect/token";
 /** Path of the OIDC RP-initiated logout endpoint, relative to the Keycloak issuer URL. */
 export const KEYCLOAK_LOGOUT_PATH = "/protocol/openid-connect/logout";
 
+/**
+ * Path of the Keycloak account console (password change), relative to the Keycloak issuer URL.
+ *
+ * @see specs/003-account-orders/research.md R17
+ */
+export const KEYCLOAK_ACCOUNT_PATH = "/account";
+
 /** OAuth 2.0 grant type used to renew an access token. */
 export const REFRESH_TOKEN_GRANT_TYPE = "refresh_token";
 

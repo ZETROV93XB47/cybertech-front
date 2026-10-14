@@ -87,7 +87,6 @@ const FRONT_CODE_BY_BACKEND_CODE = {
   [BackendErrorCode.ORDER_NOT_FOUND]: FrontErrorCode.NOT_FOUND,
   [BackendErrorCode.REVIEW_NOT_FOUND]: FrontErrorCode.NOT_FOUND,
   [BackendErrorCode.WISHLIST_NOT_FOUND]: FrontErrorCode.NOT_FOUND,
-  [BackendErrorCode.BANK_CARD_NOT_FOUND]: FrontErrorCode.NOT_FOUND,
   [BackendErrorCode.PAYMENT_NOT_FOUND]: FrontErrorCode.NOT_FOUND,
   [BackendErrorCode.DISCOUNT_CAMPAIGN_NOT_FOUND]: FrontErrorCode.NOT_FOUND,
   [BackendErrorCode.NO_PREVIOUS_PAYMENT_ATTEMPT_FOUND]: FrontErrorCode.NOT_FOUND,
@@ -103,20 +102,23 @@ const FRONT_CODE_BY_BACKEND_CODE = {
   [BackendErrorCode.NO_STRATEGY_FOUND]: FrontErrorCode.UNAVAILABLE,
   [BackendErrorCode.PAYMENT_PROCESSING_ERROR]: FrontErrorCode.UNAVAILABLE,
   [BackendErrorCode.ORDER_SUMMARY_REPORT_JOB_FAILED]: FrontErrorCode.UNAVAILABLE,
-  [BackendErrorCode.CANNOT_CANCEL_ORDER]: FrontErrorCode.UNKNOWN,
-  [BackendErrorCode.ORDER_DOESNT_BELONGS_TO_USER]: FrontErrorCode.UNKNOWN,
-  [BackendErrorCode.FAILED_UPDATING_ORDER]: FrontErrorCode.UNKNOWN,
-  [BackendErrorCode.ORDER_ALREADY_SHIPPED]: FrontErrorCode.UNKNOWN,
-  [BackendErrorCode.ORDER_NOT_FUNDED]: FrontErrorCode.UNKNOWN,
-  [BackendErrorCode.ORDER_REFUND_FAILED]: FrontErrorCode.UNKNOWN,
+  // An order of another user is presented as missing, without revealing that it exists.
+  [BackendErrorCode.ORDER_DOESNT_BELONGS_TO_USER]: FrontErrorCode.NOT_FOUND,
+  [BackendErrorCode.CANNOT_CANCEL_ORDER]: FrontErrorCode.ORDER_LOCKED,
+  [BackendErrorCode.ORDER_ALREADY_SHIPPED]: FrontErrorCode.ORDER_LOCKED,
+  [BackendErrorCode.ORDER_NOT_FUNDED]: FrontErrorCode.ORDER_LOCKED,
+  [BackendErrorCode.ORDER_REFUND_FAILED]: FrontErrorCode.REFUND_FAILED,
+  [BackendErrorCode.FAILED_UPDATING_ORDER]: FrontErrorCode.PAYMENT_FAILED,
+  [BackendErrorCode.PAYMENT_FAILED]: FrontErrorCode.PAYMENT_FAILED,
+  [BackendErrorCode.PAYMENT_ALREADY_COMPLETED]: FrontErrorCode.PAYMENT_ALREADY_COMPLETED,
+  [BackendErrorCode.DISCOUNT_TYPE_NOT_ACTIVE]: FrontErrorCode.DISCOUNT_INVALID,
+  [BackendErrorCode.USER_NOT_ACTIVE]: FrontErrorCode.ACCOUNT_INACTIVE,
+  [BackendErrorCode.BANK_CARD_EXPIRED]: FrontErrorCode.CARD_EXPIRED,
+  // `POST /order/place` needs a saved card (`validateUserBeforeProcessingPayment`).
+  [BackendErrorCode.BANK_CARD_NOT_FOUND]: FrontErrorCode.NO_SAVED_CARD,
   [BackendErrorCode.PRODUCT_ALREADY_IN_WISHLIST]: FrontErrorCode.UNKNOWN,
-  [BackendErrorCode.USER_NOT_ACTIVE]: FrontErrorCode.UNKNOWN,
   [BackendErrorCode.USER_NOT_AUTHOR_OF_REVIEW]: FrontErrorCode.UNKNOWN,
-  [BackendErrorCode.BANK_CARD_EXPIRED]: FrontErrorCode.UNKNOWN,
   [BackendErrorCode.COMMENT_POST_NOT_ALLOWED]: FrontErrorCode.UNKNOWN,
-  [BackendErrorCode.PAYMENT_ALREADY_COMPLETED]: FrontErrorCode.UNKNOWN,
-  [BackendErrorCode.PAYMENT_FAILED]: FrontErrorCode.UNKNOWN,
-  [BackendErrorCode.DISCOUNT_TYPE_NOT_ACTIVE]: FrontErrorCode.UNKNOWN,
   [BackendErrorCode.UNAUTHORIZED_CART_ACCESS]: FrontErrorCode.UNKNOWN,
   [BackendErrorCode.ORDER_NOT_REVIEWABLE]: FrontErrorCode.UNKNOWN,
   [BackendErrorCode.UNKNOWN_PRODUCT_CATEGORY]: FrontErrorCode.UNKNOWN,
@@ -133,6 +135,16 @@ const FRONT_CODE_BY_STATUS: Readonly<Record<number, FrontErrorCode>> = {
   [HTTP_STATUS.NOT_FOUND]: FrontErrorCode.NOT_FOUND,
   [HTTP_STATUS.CONFLICT]: FrontErrorCode.CONFLICT,
   [HTTP_STATUS.TOO_MANY_REQUESTS]: FrontErrorCode.RATE_LIMITED,
+};
+
+/**
+ * HTTP status relayed to the browser instead of the backend one, for the few codes whose status
+ * would leak information: a `403` on another user's order would reveal that the order exists.
+ *
+ * @see specs/003-account-orders/contracts/bff-routes.md §1.1
+ */
+const RELAYED_STATUS_BY_BACKEND_CODE: Readonly<Partial<Record<BackendErrorCode, number>>> = {
+  [BackendErrorCode.ORDER_DOESNT_BELONGS_TO_USER]: HTTP_STATUS.NOT_FOUND,
 };
 
 /**
@@ -207,8 +219,12 @@ export async function parseErrorResponse(
       requestId,
     });
   }
+  const relayedStatus =
+    body.data.errorCode === undefined
+      ? undefined
+      : RELAYED_STATUS_BY_BACKEND_CODE[body.data.errorCode];
   return new ApiError({
-    status: response.status,
+    status: relayedStatus ?? response.status,
     frontCode: toFrontErrorCode(body.data.errorCode, response.status),
     message: body.data.message,
     backendCode: body.data.errorCode,

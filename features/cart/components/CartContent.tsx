@@ -11,11 +11,13 @@ import type { ReactNode } from "react";
 import { StateIllustration } from "@/components/effects/StateIllustration";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CATALOG_PATH } from "@/lib/constants/routes";
+import type { CartIssue } from "@/lib/enums/cart";
 
 import { useCart } from "../hooks/useCart";
 import { usePruneUnavailableGuestLines } from "../hooks/usePruneUnavailableGuestLines";
 import { CART_MESSAGES } from "../messages";
 
+import { CartIssueBanner } from "./CartIssueBanner";
 import { CartLines } from "./CartLines";
 import { CartSummary } from "./CartSummary";
 
@@ -55,12 +57,19 @@ function CartSkeleton(): ReactNode {
   );
 }
 
+/** Props of {@link CartContent}. */
+export interface CartContentProps {
+  /** Problem met at checkout that sent the customer back here, if any. */
+  readonly issue: CartIssue | null;
+}
+
 /**
  * Cart page body.
  *
+ * @param props - Checkout issue to explain.
  * @returns Lines and summary, or the matching state.
  */
-export function CartContent(): ReactNode {
+export function CartContent({ issue }: CartContentProps): ReactNode {
   const { cart, isLoading, isError, isMutating, announcement, setQuantity, remove, clear } =
     useCart();
   const pruneNotice = usePruneUnavailableGuestLines(cart);
@@ -93,6 +102,7 @@ export function CartContent(): ReactNode {
       <p role="status" aria-live="polite" className="min-h-6 text-sm text-text-muted">
         {announcement || pruneNotice}
       </p>
+      {issue !== null && <CartIssueBanner issue={issue} />}
       {body}
     </div>
   );

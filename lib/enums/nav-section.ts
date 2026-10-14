@@ -14,6 +14,8 @@ export enum NavSection {
   COMPUTER = "computer",
   /** Catalog filtered on monitors, or a monitor product page. */
   MONITOR = "monitor",
+  /** Account pages (`/account/**`) and the checkout (`/checkout`). */
+  ACCOUNT = "account",
   /** Any other page (cart, sign-in, registration…): no link is current. */
   NONE = "none",
 }

@@ -22,4 +22,16 @@ export enum StorageKey {
    * @see specs/002-catalog-refresh/data-model.md §5
    */
   COMPARE = "ct_compare_v1",
+  /**
+   * `sessionStorage`: key of the discount campaign chosen on the cart or the checkout.
+   *
+   * @see specs/003-account-orders/research.md R7
+   */
+  DISCOUNT = "ct_discount_v1",
+  /**
+   * `sessionStorage`: checkout draft (step, shipping and payment choices), never the address.
+   *
+   * @see specs/003-account-orders/research.md R9
+   */
+  CHECKOUT = "ct_checkout_v1",
 }

@@ -29,7 +29,8 @@ describe("ProductSchema", () => {
   });
 
   it("rejects an unknown brand, a negative price and a non-UUID id", () => {
-    expect(ProductSchema.safeParse({ ...PRODUCT, brand: "APPLE" }).success).toBe(false);
+    expect(ProductSchema.safeParse({ ...PRODUCT, brand: "UNKNOWN_BRAND" }).success).toBe(false);
+    expect(ProductSchema.safeParse({ ...PRODUCT, brand: "APPLE" }).success).toBe(true);
     expect(ProductSchema.safeParse({ ...PRODUCT, price: -1 }).success).toBe(false);
     expect(ProductSchema.safeParse({ ...PRODUCT, uuid: "42" }).success).toBe(false);
   });

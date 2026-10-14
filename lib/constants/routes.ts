@@ -1,6 +1,7 @@
 /**
  * Page paths of the front, written once so links never drift from the `app/` tree.
  */
+import type { OrderRouteAction } from "@/lib/enums/order";
 
 /** Home page. */
 export const HOME_PATH = "/";
@@ -41,7 +42,31 @@ export const BFF_ROUTES = {
    * @see specs/002-catalog-refresh/contracts/bff-routes.md §1
    */
   compare: "/api/compare",
+  /**
+   * `POST` — backend quote of the account cart (USER).
+   *
+   * @see specs/003-account-orders/contracts/bff-routes.md §1
+   */
+  checkoutQuote: "/api/checkout/quote",
+  /** `POST` — places the order from the account cart (USER). */
+  checkoutPlace: "/api/checkout/place",
+  /** Prefix of the order routes; see {@link orderRoute}. */
+  orders: "/api/orders",
 } as const;
+
+/**
+ * Builds the BFF route of one order: `POST /api/orders/{uuid}` edits it, the actions are
+ * sub-resources.
+ *
+ * @param uuid - Order UUID.
+ * @param action - Sub-resource, omitted for the edit route.
+ * @returns The path `/api/orders/{uuid}` or `/api/orders/{uuid}/{action}`.
+ * @see specs/003-account-orders/contracts/bff-routes.md §1
+ */
+export function orderRoute(uuid: string, action?: OrderRouteAction): string {
+  const base = `${BFF_ROUTES.orders}/${encodeURIComponent(uuid)}`;
+  return action === undefined ? base : `${base}/${action}`;
+}
 
 /**
  * Builds the BFF route of one account cart line (`PATCH` quantity, `DELETE`).
@@ -55,3 +80,48 @@ export function cartItemRoute(productUuid: string): string {
 
 /** Registration page (`app/(auth)/register/page.tsx`). */
 export const REGISTER_PATH = "/register";
+
+/** Single-page checkout (`app/(account)/checkout/page.tsx`), private. */
+export const CHECKOUT_PATH = "/checkout";
+
+/**
+ * Builds the path of the confirmation page of a placed order.
+ *
+ * @param uuid - Order UUID.
+ * @returns The path `/checkout/confirmation/{uuid}`.
+ */
+export function checkoutConfirmationPath(uuid: string): string {
+  return `${CHECKOUT_PATH}/confirmation/${encodeURIComponent(uuid)}`;
+}
+
+/** Pages of the account area (`app/(account)/account/**`), private. */
+export const ACCOUNT_PATHS = {
+  /** Account root, redirected to the orders. */
+  root: "/account",
+  /** « Mes commandes ». */
+  orders: "/account/orders",
+  /** « Mon profil ». */
+  profile: "/account/profile",
+  /** « Ma carte ». */
+  card: "/account/card",
+} as const;
+
+/**
+ * Builds the path of an order detail page.
+ *
+ * @param uuid - Order UUID.
+ * @returns The path `/account/orders/{uuid}`.
+ */
+export function orderPath(uuid: string): string {
+  return `${ACCOUNT_PATHS.orders}/${encodeURIComponent(uuid)}`;
+}
+
+/**
+ * Builds the path of the edit page of an order.
+ *
+ * @param uuid - Order UUID.
+ * @returns The path `/account/orders/{uuid}/edit`.
+ */
+export function orderEditPath(uuid: string): string {
+  return `${orderPath(uuid)}/edit`;
+}

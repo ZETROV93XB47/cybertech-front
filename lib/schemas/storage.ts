@@ -1,6 +1,6 @@
 /**
  * Schemas of the data kept in the browser (guest cart, recently viewed, pending action, product
- * comparison).
+ * comparison, checkout draft).
  *
  * The browser content can be edited by the user, so it is validated on every read; invalid data
  * is discarded rather than trusted (constitution IV).
@@ -20,6 +20,9 @@ import { RECENTLY_VIEWED_MAX } from "@/lib/constants/catalog";
 import { COMPARE_MAX_PRODUCTS } from "@/lib/constants/compare";
 import { PendingActionType } from "@/lib/enums/cart";
 import { CategoryKey } from "@/lib/enums/category-key";
+import { CheckoutStep } from "@/lib/enums/checkout";
+import { PaymentType } from "@/lib/enums/order";
+import { ShippingProvider, ShippingType } from "@/lib/enums/shipping";
 
 /** Quantity of one cart line chosen in the UI. */
 export const CartQuantitySchema = z.int().min(CART_LINE_MIN_QUANTITY).max(CART_LINE_MAX_QUANTITY);
@@ -94,3 +97,26 @@ export const CompareSelectionSchema = z.object({
 
 /** Stored product comparison selection. */
 export type CompareSelection = z.infer<typeof CompareSelectionSchema>;
+
+/**
+ * Content of `ct_checkout_v1`: the non-personal choices of the checkout, restored after a
+ * forced sign-in so the customer only has to click « Valider la commande » again (never replayed
+ * automatically, FR-002).
+ *
+ * Strict on purpose: the address is personal data and is never kept in the browser; a stored
+ * value carrying any extra field (an address, for instance) is rejected and removed.
+ *
+ * @see specs/003-account-orders/data-model.md §4.3
+ * @see specs/003-account-orders/research.md R9
+ */
+export const CheckoutDraftSchema = z.strictObject({
+  step: z.enum(CheckoutStep),
+  shippingType: z.enum(ShippingType).optional(),
+  shippingProvider: z.enum(ShippingProvider).optional(),
+  paymentType: z.enum(PaymentType).optional(),
+  /** The address had been edited for this order: the checkout warns it was reset. */
+  hadCustomAddress: z.boolean(),
+});
+
+/** Stored checkout draft. */
+export type CheckoutDraft = z.infer<typeof CheckoutDraftSchema>;

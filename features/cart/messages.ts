@@ -55,6 +55,13 @@ export const CART_MESSAGES = {
   loadError: "On n'arrive pas à charger ton panier. Réessaie dans un instant.",
   guestHint: "Connecte-toi pour retrouver ton panier sur tous tes appareils.",
   deletedProductName: "Produit retiré du catalogue",
+  breadcrumb: "Panier",
+  checkout: "Passer commande",
+  checkoutGuestHint: "Tu te connectes, ton panier est conservé, et tu reprends ici ta commande.",
+  checkoutBlocked: "Ajuste les articles signalés pour passer commande.",
+  issueStock:
+    "Certains articles n'ont plus assez de stock pour ta commande : ajuste les quantités signalées, puis repasse commande.",
+  issueEmpty: "Ton panier a été vidé entre-temps : rien n'a été commandé.",
 } as const;
 
 /** Outcome messages of the cart actions, also read by the `aria-live` regions. */

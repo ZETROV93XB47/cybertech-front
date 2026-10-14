@@ -63,11 +63,11 @@ describe("Filters", () => {
     expect(within(gpu).getByRole("checkbox", { name: "RTX 5060 (0)" })).toBeDisabled();
   });
 
-  it("shows brand counts and disables a brand at 0", () => {
+  it("shows brand counts and leaves out an unticked brand at 0", () => {
     renderFilters(DATA);
     const brands = screen.getByRole("group", { name: "Marques" });
     expect(within(brands).getByRole("checkbox", { name: "Lenovo (12)" })).toBeEnabled();
-    expect(within(brands).getByRole("checkbox", { name: "Dell (0)" })).toBeDisabled();
+    expect(within(brands).queryByRole("checkbox", { name: "Dell (0)" })).toBeNull();
   });
 
   it("folds the values beyond 6 under a closed « Voir tout », open when a hidden one is ticked", () => {

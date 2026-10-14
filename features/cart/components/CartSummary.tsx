@@ -4,6 +4,7 @@
  * Summary of the cart page: item count, total (« estimé » for a visitor), and the clear button
  * with its confirmation dialog.
  */
+import Link from "next/link";
 import { useState, type ReactNode } from "react";
 
 import {
@@ -13,8 +14,12 @@ import {
   DialogFooter,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { PRIMARY_CTA_CLASS } from "@/components/layout/cta";
+import { loginPath } from "@/lib/auth/callback-url";
+import { CHECKOUT_PATH } from "@/lib/constants/routes";
 import { formatPrice } from "@/lib/format";
-import { CartSource } from "@/lib/enums/cart";
+import { CartLineStatus, CartSource } from "@/lib/enums/cart";
+import { cn } from "@/lib/utils";
 import type { CartView } from "@/lib/schemas/cart";
 
 import { CART_MESSAGES } from "../messages";
@@ -77,6 +82,46 @@ function ClearCartDialog({
 }
 
 /**
+ * « Passer commande »: the checkout for a signed-in user, the sign-in page coming back to the
+ * checkout for a visitor (the guest cart is merged on the way, as today). Disabled while a line
+ * is out of stock or gone, since the backend would refuse the order.
+ *
+ * @param props - Cart and busy state.
+ * @returns The call to action and its hint.
+ * @see specs/003-account-orders/spec.md FR-005
+ */
+function CheckoutButton({
+  cart,
+  disabled,
+}: {
+  readonly cart: CartView;
+  readonly disabled: boolean;
+}): ReactNode {
+  const isBlocked = cart.lines.some((line) => line.status !== CartLineStatus.OK);
+  const href = cart.source === CartSource.GUEST ? loginPath(CHECKOUT_PATH) : CHECKOUT_PATH;
+  if (isBlocked || disabled) {
+    return (
+      <div className="flex flex-col gap-2">
+        <button type="button" disabled className={cn(PRIMARY_CTA_CLASS, "opacity-40")}>
+          {CART_MESSAGES.checkout}
+        </button>
+        {isBlocked && <p className="text-xs text-text-muted">{CART_MESSAGES.checkoutBlocked}</p>}
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-2">
+      <Link href={href} className={PRIMARY_CTA_CLASS}>
+        {CART_MESSAGES.checkout}
+      </Link>
+      {cart.source === CartSource.GUEST && (
+        <p className="text-xs text-text-muted">{CART_MESSAGES.checkoutGuestHint}</p>
+      )}
+    </div>
+  );
+}
+
+/**
  * Cart summary.
  *
  * @param props - Cart, busy state and clear handler.
@@ -105,6 +150,7 @@ export function CartSummary({ cart, disabled, onClear }: CartSummaryProps): Reac
       {cart.source === CartSource.GUEST && (
         <p className="text-xs text-text-muted">{CART_MESSAGES.guestHint}</p>
       )}
+      <CheckoutButton cart={cart} disabled={disabled} />
       <button
         type="button"
         className={SECONDARY_BUTTON}

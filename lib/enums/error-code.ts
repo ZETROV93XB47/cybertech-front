@@ -92,4 +92,23 @@ export enum FrontErrorCode {
   RATE_LIMITED = "rate-limited",
   UNAVAILABLE = "unavailable",
   UNKNOWN = "unknown",
+  /** Discount key unknown, disabled or expired (`DISCOUNT_TYPE_NOT_ACTIVE`). */
+  DISCOUNT_INVALID = "discount-invalid",
+  /** Payment or complement refused (`PAYMENT_FAILED`, `FAILED_UPDATING_ORDER`). */
+  PAYMENT_FAILED = "payment-failed",
+  /** Retry asked on an order already paid (`PAYMENT_ALREADY_COMPLETED`). */
+  PAYMENT_ALREADY_COMPLETED = "payment-already-completed",
+  /** Order no longer editable or cancellable (shipped, being prepared, not funded). */
+  ORDER_LOCKED = "order-locked",
+  /** Cancellation accepted but the refund failed (`ORDER_REFUND_FAILED`). */
+  REFUND_FAILED = "refund-failed",
+  /** Account disabled (`USER_NOT_ACTIVE`). */
+  ACCOUNT_INACTIVE = "account-inactive",
+  /** Saved card expiry in the past (`BANK_CARD_EXPIRED`). */
+  CARD_EXPIRED = "card-expired",
+  /**
+   * No saved card on the account (`BANK_CARD_NOT_FOUND`): the backend refuses to place an order
+   * without one, and the « Ma carte » page shows its empty state.
+   */
+  NO_SAVED_CARD = "no-saved-card",
 }

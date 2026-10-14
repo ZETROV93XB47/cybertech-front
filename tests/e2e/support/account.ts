@@ -9,7 +9,28 @@ const BACKEND_URL = process.env.E2E_BACKEND_URL ?? "http://localhost:8081";
 
 const PASSWORD = "Passw0rd!";
 
-export async function registerUser(context: BrowserContext): Promise<string> {
+/**
+ * Saved card of the test users who place orders: the backend refuses `POST /order/place`
+ * without one (`BANK_CARD_NOT_FOUND`), and the front never adds a card (constitution V). Stripe
+ * test number, sent to the backend only, by the test itself.
+ */
+const TEST_BANK_CARD = {
+  cardHolderName: "Camille Testeur",
+  cardNumber: "4242424242424242",
+  expiryDate: "12/2030",
+  cardType: "VISA",
+} as const;
+
+/** Options of {@link registerUser}. */
+export interface RegisterOptions {
+  /** Registers the user with a saved card (needed to place an order). */
+  readonly withBankCard?: boolean;
+}
+
+export async function registerUser(
+  context: BrowserContext,
+  { withBankCard = false }: RegisterOptions = {},
+): Promise<string> {
   const email = `e2e.cart.${Date.now()}.${Math.floor(Math.random() * 1_000)}@example.com`;
   const response = await context.request.post(`${BACKEND_URL}/api/v1/services/user/register`, {
     headers: { "X-API-VERSION": "1.0" },
@@ -26,6 +47,7 @@ export async function registerUser(context: BrowserContext): Promise<string> {
       zipCode: "75001",
       country: "France",
       password: PASSWORD,
+      ...(withBankCard ? { bankCardCreationRequestDto: TEST_BANK_CARD } : {}),
     },
   });
   expect(response.status()).toBe(201);

@@ -1471,7 +1471,7 @@ export interface components {
             /** Format: double */
             priceMax?: number;
             category?: string;
-            brands?: ("ASUS" | "HP" | "LENOVO" | "DELL" | "AORUS" | "MSI" | "ACER" | "TOSHIBA" | "ALIENWARE" | "MICROSOFT" | "ALTYK" | "GIGABYTE" | "SAMSUNG")[];
+            brands?: ("ASUS" | "HP" | "LENOVO" | "DELL" | "AORUS" | "MSI" | "ACER" | "TOSHIBA" | "ALIENWARE" | "MICROSOFT" | "ALTYK" | "GIGABYTE" | "SAMSUNG" | "LG" | "AOC" | "IIYAMA" | "BENQ" | "PHILIPS" | "VIEWSONIC" | "EIZO" | "CORSAIR" | "LDLC" | "XIAOMI" | "APPLE" | "GARMIN" | "HUAWEI" | "AMAZFIT" | "WITHINGS" | "GOOGLE" | "POLAR" | "SUUNTO" | "COROS" | "FITBIT" | "MOTOROLA" | "ONEPLUS" | "OPPO" | "HONOR" | "NOTHING" | "SONY" | "CROSSCALL" | "REALME" | "FAIRPHONE" | "NOKIA")[];
             attributes?: {
                 [key: string]: string[];
             };
@@ -1734,7 +1734,7 @@ export interface components {
             name: string;
             price: number;
             /** @enum {string} */
-            brand: "ASUS" | "HP" | "LENOVO" | "DELL" | "AORUS" | "MSI" | "ACER" | "TOSHIBA" | "ALIENWARE" | "MICROSOFT" | "ALTYK" | "GIGABYTE" | "SAMSUNG";
+            brand: "ASUS" | "HP" | "LENOVO" | "DELL" | "AORUS" | "MSI" | "ACER" | "TOSHIBA" | "ALIENWARE" | "MICROSOFT" | "ALTYK" | "GIGABYTE" | "SAMSUNG" | "LG" | "AOC" | "IIYAMA" | "BENQ" | "PHILIPS" | "VIEWSONIC" | "EIZO" | "CORSAIR" | "LDLC" | "XIAOMI" | "APPLE" | "GARMIN" | "HUAWEI" | "AMAZFIT" | "WITHINGS" | "GOOGLE" | "POLAR" | "SUUNTO" | "COROS" | "FITBIT" | "MOTOROLA" | "ONEPLUS" | "OPPO" | "HONOR" | "NOTHING" | "SONY" | "CROSSCALL" | "REALME" | "FAIRPHONE" | "NOKIA";
             category: string;
             /** Format: int32 */
             stock?: number;
@@ -1852,7 +1852,7 @@ export interface components {
             name?: string;
             price?: number;
             /** @enum {string} */
-            brand: "ASUS" | "HP" | "LENOVO" | "DELL" | "AORUS" | "MSI" | "ACER" | "TOSHIBA" | "ALIENWARE" | "MICROSOFT" | "ALTYK" | "GIGABYTE" | "SAMSUNG";
+            brand: "ASUS" | "HP" | "LENOVO" | "DELL" | "AORUS" | "MSI" | "ACER" | "TOSHIBA" | "ALIENWARE" | "MICROSOFT" | "ALTYK" | "GIGABYTE" | "SAMSUNG" | "LG" | "AOC" | "IIYAMA" | "BENQ" | "PHILIPS" | "VIEWSONIC" | "EIZO" | "CORSAIR" | "LDLC" | "XIAOMI" | "APPLE" | "GARMIN" | "HUAWEI" | "AMAZFIT" | "WITHINGS" | "GOOGLE" | "POLAR" | "SUUNTO" | "COROS" | "FITBIT" | "MOTOROLA" | "ONEPLUS" | "OPPO" | "HONOR" | "NOTHING" | "SONY" | "CROSSCALL" | "REALME" | "FAIRPHONE" | "NOKIA";
             category?: string;
             photos?: string[];
             /** Format: int32 */

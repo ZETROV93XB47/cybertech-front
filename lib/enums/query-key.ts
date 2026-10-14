@@ -15,4 +15,10 @@ export enum QueryKey {
   COMPARE_PRODUCTS = "compare-products",
   /** Comparison view of the modal. */
   COMPARE = "compare",
+  /** Backend quote of the account cart for a shipping choice and a discount key. */
+  QUOTE = "quote",
+  /** Status of an order, polled by the confirmation page. */
+  ORDER_STATUS = "order-status",
+  /** Product search of the order edit form. */
+  ORDER_SEARCH = "order-search",
 }

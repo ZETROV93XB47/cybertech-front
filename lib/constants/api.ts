@@ -96,6 +96,38 @@ export const BACKEND_PATHS = {
   cartRemove: `${API_BASE_PATH}/cart/remove`,
   /** `DELETE` — empties the cart. */
   cartClear: `${API_BASE_PATH}/cart/clear`,
+  /**
+   * `POST` — prices the caller's server cart for a shipping choice and a discount key, without
+   * creating anything (USER, 60 req/min).
+   *
+   * @see docs/backend/api-map.md §7, §D.27
+   */
+  orderQuote: `${API_BASE_PATH}/management/order/quote`,
+  /**
+   * `POST` — turns the server cart into an order, empties the cart and starts the server-side
+   * payment (USER, 30 req/min, never 402, no idempotency key).
+   *
+   * @see docs/backend/api-map.md §7, §D.8
+   */
+  orderPlace: `${API_BASE_PATH}/management/order/place`,
+  /** `POST` — edits an order not shipped yet; full list of lines (§D.9). */
+  orderUpdate: `${API_BASE_PATH}/management/order/update`,
+  /** `POST` — cancels an order (`{ orderUuid }`, §D.9b). */
+  orderCancel: `${API_BASE_PATH}/management/order/cancel`,
+  /** `GET` — paginated orders of the caller, `status` (repeated), `page`, `size`, `sort`. */
+  orderMine: `${API_BASE_PATH}/management/order/mine`,
+  /** `GET` — one order of the caller. Append the order UUID. */
+  orderGet: `${API_BASE_PATH}/management/order/get`,
+  /** `GET` — status of one order of the caller, for polling. Append the order UUID. */
+  orderStatus: `${API_BASE_PATH}/management/order/status`,
+  /** `POST` — retries the payment of an order after `PAYMENT_FAILED`. Append the order UUID. */
+  orderRetryPayment: `${API_BASE_PATH}/management/order/retry-payment`,
+  /** `GET` — saved card of the caller, masked (404 when none). */
+  bankCardGet: `${API_BASE_PATH}/bank-card/get`,
+  /** `PUT` — holder name and expiry of the saved card. */
+  bankCardUpdate: `${API_BASE_PATH}/bank-card/update`,
+  /** `DELETE` — deletes the saved card. */
+  bankCardDelete: `${API_BASE_PATH}/bank-card/delete`,
 } as const;
 
 /** Query parameter names used by backend endpoints. */
@@ -106,6 +138,10 @@ export const BACKEND_QUERY_PARAMS = {
   page: "page",
   /** Page size (Spring pageable). */
   size: "size",
+  /** Sort of a Spring pageable (`property,direction`). */
+  sort: "sort",
+  /** Order status filter of `GET /management/order/mine`, repeated for several statuses. */
+  status: "status",
 } as const;
 
 /** Header set by some local proxies with the browser IP, used when `X-Forwarded-For` is absent. */

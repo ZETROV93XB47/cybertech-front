@@ -14,7 +14,7 @@ export const SITE_MESSAGES = {
   homeNavLink: "Accueil",
   catalogLink: "Catalogue",
   homeLink: "Accueil de cybertech",
-  footerNote: "Projet pédagogique — les commandes ne sont pas encore ouvertes.",
+  footerNote: "Projet pédagogique — le paiement est simulé, aucun débit réel n'est fait.",
 } as const;
 
 /** Generic states shared by every page. */
@@ -30,4 +30,8 @@ export const COMMON_MESSAGES = {
   goToCatalog: "Voir le catalogue",
   /** Accessible name of the close buttons of dialogs and panels. */
   close: "Fermer",
+  /** Accessible name of the breadcrumb navigation. */
+  breadcrumb: "Fil d'Ariane",
+  /** First step of every breadcrumb. */
+  breadcrumbHome: "Accueil",
 } as const;

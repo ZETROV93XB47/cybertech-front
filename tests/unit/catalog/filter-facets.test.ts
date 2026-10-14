@@ -149,29 +149,31 @@ describe("buildFilterFacets", () => {
 });
 
 describe("buildBrandFilter", () => {
-  it("lists every brand in enum order with its count, 0 when absent", () => {
+  it("lists the brands with products in enum order, keeps a ticked empty brand", () => {
     const { values } = buildBrandFilter(WITH_COUNTS, {
       ...EMPTY_SEARCH_FILTERS,
       brands: [Brand.HP],
     });
-    expect(values.map(({ value }) => value)).toEqual(Object.values(Brand));
-    expect(values[Object.values(Brand).indexOf(Brand.LENOVO)]).toMatchObject({
+    const listed = values.map(({ value }) => value);
+    // Filter values are typed as plain strings: compare through string-typed brand names.
+    const lenovo: string = Brand.LENOVO;
+    const hp: string = Brand.HP;
+    expect(listed).toEqual(Object.values(Brand).filter((brand) => listed.includes(brand)));
+    expect(values.find(({ value }) => value === lenovo)).toMatchObject({
       count: 12,
       isDisabled: false,
     });
-    expect(values[Object.values(Brand).indexOf(Brand.HP)]).toMatchObject({
+    expect(values.find(({ value }) => value === hp)).toMatchObject({
       count: 0,
       isChecked: true,
       isDisabled: false,
     });
-    expect(values[Object.values(Brand).indexOf(Brand.DELL)]).toMatchObject({
-      count: 0,
-      isDisabled: true,
-    });
+    expect(listed).not.toContain(Brand.DELL);
   });
 
   it("has no counts without the facets endpoint", () => {
     const { values } = buildBrandFilter(WITHOUT_COUNTS, EMPTY_SEARCH_FILTERS);
+    expect(values.map(({ value }) => value)).toEqual(Object.values(Brand));
     expect(values.every(({ count, isDisabled }) => count === null && !isDisabled)).toBe(true);
   });
 });

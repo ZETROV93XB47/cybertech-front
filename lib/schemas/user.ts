@@ -20,3 +20,18 @@ export const CurrentUserSchema = z.object({
 
 /** The signed-in user. */
 export type CurrentUser = z.infer<typeof CurrentUserSchema>;
+
+/**
+ * `UserResponseDto` for the profile page and the checkout prefill (feature 003): adds the user
+ * name and the one-line address (`"street, zip city, country"`, split by `parseFlatAddress`).
+ * The phone is never returned by the backend.
+ *
+ * @see specs/003-account-orders/data-model.md §2.5
+ */
+export const UserProfileSchema = CurrentUserSchema.extend({
+  username: z.string().min(1),
+  address: z.string().nullable().optional(),
+});
+
+/** Profile of the signed-in user. */
+export type UserProfile = z.infer<typeof UserProfileSchema>;

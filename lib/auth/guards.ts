@@ -97,3 +97,20 @@ export async function requireSession(callbackPath: string): Promise<void> {
     redirect(loginPath(callbackPath));
   }
 }
+
+/**
+ * Returns the access token of a private Server Component, or sends the user to the sign-in
+ * page when the session can no longer be renewed (the private layout already checked it, but
+ * the refresh token may expire in between).
+ *
+ * @param callbackPath - Path to come back to after sign-in.
+ * @returns The access token.
+ * @see specs/003-account-orders/research.md R1
+ */
+export async function getAccessTokenOrRedirect(callbackPath: string): Promise<string> {
+  try {
+    return await getAccessTokenOrThrow();
+  } catch {
+    redirect(loginPath(callbackPath));
+  }
+}

@@ -57,3 +57,15 @@ export enum GuestCartLimit {
   /** More than `CART_LINE_MAX_QUANTITY` units of one product. */
   MAX_QUANTITY = "max-quantity",
 }
+
+/**
+ * Problem met when placing an order that sends the customer back to the cart (`/cart?issue=`).
+ *
+ * @see specs/003-account-orders/research.md R10
+ */
+export enum CartIssue {
+  /** A line no longer has enough stock (`NOT_ENOUGH_STOCK`). */
+  STOCK = "stock",
+  /** The server cart was emptied meanwhile (`CART_IS_EMPTY`). */
+  EMPTY = "empty",
+}

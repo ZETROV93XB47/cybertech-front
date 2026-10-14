@@ -19,3 +19,9 @@ export const PENDING_ACTION_STORAGE_KEY = StorageKey.PENDING_ACTION;
 
 /** `sessionStorage` key of the product comparison selection. */
 export const COMPARE_STORAGE_KEY = StorageKey.COMPARE;
+
+/** `sessionStorage` key of the chosen discount campaign. */
+export const DISCOUNT_STORAGE_KEY = StorageKey.DISCOUNT;
+
+/** `sessionStorage` key of the checkout draft. */
+export const CHECKOUT_DRAFT_STORAGE_KEY = StorageKey.CHECKOUT;

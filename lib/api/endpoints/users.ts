@@ -15,7 +15,12 @@ import { HttpMethod } from "@/lib/enums/http-method";
 import { maskEmail } from "@/lib/log-safety";
 import { createModuleLogger } from "@/lib/logger";
 import type { UserCreateRequest } from "@/lib/schemas/register";
-import { CurrentUserSchema, type CurrentUser } from "@/lib/schemas/user";
+import {
+  CurrentUserSchema,
+  UserProfileSchema,
+  type CurrentUser,
+  type UserProfile,
+} from "@/lib/schemas/user";
 
 /** `201` body of `POST /user/register` (a `Map` on the backend side). */
 const RegisteredUserSchema = z.object({
@@ -66,4 +71,17 @@ export async function registerUser(
  */
 export async function getMe(accessToken: string): Promise<CurrentUser> {
   return backendFetch(BACKEND_PATHS.userMe, { schema: CurrentUserSchema, accessToken });
+}
+
+/**
+ * Reads the profile of the signed-in user with the fields of the profile page and of the
+ * checkout prefill (user name, one-line address). Never cached: private data.
+ *
+ * @param accessToken - Keycloak access token; never logged.
+ * @returns The profile.
+ * @throws {ApiError} `UNAUTHENTICATED`, `NOT_FOUND` (`USER_NOT_FOUND`) or `UNAVAILABLE`.
+ * @see specs/003-account-orders/contracts/bff-routes.md §3
+ */
+export async function getProfile(accessToken: string): Promise<UserProfile> {
+  return backendFetch(BACKEND_PATHS.userMe, { schema: UserProfileSchema, accessToken });
 }

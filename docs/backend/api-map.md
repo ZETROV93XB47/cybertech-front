@@ -1,8 +1,9 @@
 # Cartographie de l'API backend cybertech
 
-> Source : repo backend `cybertech-dev-develop_cybertech`, branche `develop_back`, commit `7623204` (lu en lecture seule le 2026-10-13), mis à jour après les commits backend `0b4a600` (client Keycloak front) et `d50e661` (`GET /user/me`, `GET /product/availability`, codes d'erreur machine), puis revérifié le 2026-10-13 au commit `a833e58` (seul changement de code : `ad38902`, 409 `USER_ALREADY_EXISTS` à l'inscription) ; `npm run gen:api` ne produit aucun écart sur `lib/api/schema.d.ts`.
+> Source : repo backend `cybertech-dev-develop_cybertech`, branche `develop_back`, commit `7623204` (lu en lecture seule le 2026-10-13), mis à jour après les commits backend `0b4a600` (client Keycloak front) et `d50e661` (`GET /user/me`, `GET /product/availability`, codes d'erreur machine), puis revérifié le 2026-10-13 au commit `a833e58` (seul changement de code : `ad38902`, 409 `USER_ALREADY_EXISTS` à l'inscription), puis **revérifié le 2026-10-14 au commit `84dc038`** (lecture du diff `a833e58..84dc038` : `254d0ec` détail du prix d'une commande, `e0b93b4` remise conservée à la modification, `9728d0b` `GET /shipping/options`, `26043a5` retrait de `POST /admin/management/order/place/auto`, `a8b83ae` `POST /management/order/quote`, `3a3a62c` facettes, `ecc76e1` / `84dc038` nouvelles marques et catégories du catalogue LDLC ; enum `ErrorCode` inchangé). `npm run gen:api` au 2026-10-14 : seul écart sur `lib/api/schema.d.ts`, l'enum `Brand` élargi (§D.10).
+> **Version vérifiée : backend `84dc038`, le 2026-10-14.**
 > Abréviation des chemins : `{pkg}` = `src/main/java/com/novatech/cybertech`, `{ctrl}` = `{pkg}/api/controllers/implementation`, `{res}` = `src/main/resources`.
-> Contrat OpenAPI de référence : `docs/openapi/openapi.yaml` du backend (généré par springdoc, 64 opérations) et `/v3/api-docs` à l'exécution.
+> Contrat OpenAPI de référence : `docs/openapi/openapi.yaml` du backend (généré par springdoc, 68 opérations au commit `84dc038`) et `/v3/api-docs` à l'exécution.
 
 ## 0. Conventions transverses
 
@@ -92,8 +93,8 @@ Controller : `{ctrl}/UserManagementController.java` (base `/api/v1/services/user
 |---|---|---|---|---|---|---|---|---|---|
 | POST | `/api/v1/services/user/register` | `UserManagementController#register` (:111) | **Public** | — | `UserCreateRequestDto` (§D.1) | `201` `{ "id": uuid, "email": string, "username": string }` (`Map`) | 201, 400, 409 `USER_ALREADY_EXISTS`, 429 (5 req/min/IP), 500 (échec Keycloak) | — | Saga Keycloak + DB. `bankCardCreationRequestDto` optionnel. Depuis `ad38902` : email déjà pris → 409 `USER_ALREADY_EXISTS` ; homonyme (username `prenom.nom` déjà pris) → nouvel essai avec suffixe numérique, jusqu'à 5 fois. |
 | GET | `/api/v1/services/user/get/{userUuid}` | `#getUserByUuid` (:81) | USER ou ADMIN ; USER limité à **son propre** profil | path `userUuid` (UUID) | — | `UserResponseDto` (§D.20) | 200, 401, 403, 404 | — | Le front ne connaît pas l'UUID local après un login Keycloak (voir §11 « GET /me manquant »). |
-| GET | `/api/v1/services/user/me` | `UserManagementController#getMe` | USER ou ADMIN | — | — | `UserResponseDto` (§D.20) | 200, 401 `AUTHENTICATION_REQUIRED`, 404 `USER_NOT_FOUND` | — | Profil de l'appelant résolu par le `sub` du JWT. **À utiliser pour obtenir l'UUID local et le profil.** |
-| PATCH | `/api/v1/services/user/me` | `#updateMe` (:147) | USER ou ADMIN | — | `UserSelfUpdateRequestDto` (§D.3) | `UserResponseDto` | 200, 400, 401, 404 | — | Utilisateur résolu par le `sub` du JWT (pas d'IDOR). Pas d'email ni mot de passe modifiables. |
+| GET | `/api/v1/services/user/me` | `UserManagementController#getMe` (:146) | USER ou ADMIN | — | — | `UserResponseDto` (§D.20) | 200, 401 `AUTHENTICATION_REQUIRED`, 404 `USER_NOT_FOUND` | — | Profil de l'appelant résolu par le `sub` du JWT. **À utiliser pour obtenir l'UUID local et le profil.** |
+| PATCH | `/api/v1/services/user/me` | `#updateMe` (:158) | USER ou ADMIN | — | `UserSelfUpdateRequestDto` (§D.3) | `UserResponseDto` | 200, 400, 401, 404 | — | Utilisateur résolu par le `sub` du JWT (pas d'IDOR). Pas d'email ni mot de passe modifiables. |
 | GET | `/api/v1/services/user/ok` | `#healthCheck` (:135) | Authentifié | — | — | `200` chaîne `"Hello Guys !!! 😁🔥🔥🔥"` | 200, 401 | — | Ping de debug JWT. |
 
 ---
@@ -118,7 +119,7 @@ Recherche vide (tous champs `null`) = liste de tout le catalogue : **confirmé �
 |---|---|---|---|---|---|---|---|---|
 | GET | `/api/v1/services/product-category-schemas/{categoryKey}` | `ProductCategorySchemaController#getByCategoryKey` (:33) | Public | path `categoryKey` (ex. `COMPUTER`, `MONITOR`) | — | `ProductCategorySchemaResponseDto` (§D.13) | 200, 404/400 `UNKNOWN_PRODUCT_CATEGORY` | `jsonSchema` = JSON Schema **en chaîne** décrivant `attributes` → utile pour générer filtres et fiches techniques. |
 
-Catégories seedées au démarrage : `COMPUTER` (« Computers »), `MONITOR` (« Monitors ») (`{pkg}/config/ProductCategorySchemaInitializer.java:53-54`). **Aucun endpoint public ne liste les catégories** (seul `GET /admin/product-category-schemas/get/all`, ADMIN).
+Catégories seedées au démarrage : `COMPUTER` (« Computers »), `MONITOR` (« Monitors ») et, depuis `ecc76e1` / `84dc038` (catalogue LDLC), `DESKTOP` (« Desktop computers »), `SMARTPHONE` (« Smartphones »), `SMARTWATCH` (« Smartwatches ») (`{pkg}/config/ProductCategorySchemaInitializer.java`, `seedIfMissing`). **Aucun endpoint public ne liste les catégories** (seul `GET /admin/product-category-schemas/get/all`, ADMIN).
 
 ## 5. Remises
 
@@ -126,13 +127,14 @@ Catégories seedées au démarrage : `COMPUTER` (« Computers »), `MONITOR` («
 |---|---|---|---|---|---|---|---|
 | GET | `/api/v1/services/discounts/active` | `DiscountController#getActiveCampaigns` (:44) | Public | — | `DiscountContext[]` (§D.15) | 200 | Expose le record interne `DiscountContext`. Campagnes `enabled` dont la fenêtre `[startsAt, endsAt]` contient maintenant ; **inclut `NO_DISCOUNT`** (type `NONE`), à masquer dans l'UI. |
 
-Règles de prix appliquées à `POST /order/place` (`OrderPriceCalculationServiceImp`, `strategy/discount/*`, `*ShippingProviderService`) :
+Règles de prix appliquées à `POST /order/place` et, à l'identique, à `POST /order/quote` (même requête de prix construite par `OrderPricingUtils.cartPriceRequest`) (`OrderPriceCalculationServiceImp`, `strategy/discount/*`, `*ShippingProviderService`) :
 
 1. `base` = Σ `unitPrice × quantity` (arrondi 2 décimales, HALF_UP).
 2. `NO_DISCOUNT` → remise 0. Sinon la campagne doit exister, être `enabled` et dans sa fenêtre, sinon **400 `DISCOUNT_TYPE_NOT_ACTIVE`** (clé inconnue comprise).
 3. `base < minOrderAmount` → remise 0, **sans erreur** : la commande passe au plein tarif.
 4. `PERCENTAGE` : `base × percentage / 100` ; `FIXED_AMOUNT` : `min(fixedAmount, base)` ; `BUY_ONE_GET_ONE_FREE` : Σ par ligne `floor(quantity / 2) × unitPrice` ; chaque fois plafonné à `maxDiscountAmount` s'il est défini.
-5. `total = max(0, base − remise) + port`. **Frais de port** (exposés par aucun endpoint) : DHL et FEDEX identiques, `STANDARD` = 15 €, `EXPRESS` = 25 €.
+5. `total = max(0, base − remise) + port`. **Frais de port** exposés par `GET /shipping/options` (§7b, depuis `9728d0b`) : DHL et FEDEX identiques, `STANDARD` = 15 €, `EXPRESS` = 25 € (vérifié à l'exécution le 2026-10-14).
+6. Les conditions de la campagne (type, pourcentage, montant fixe, minimum, plafond) sont **figées sur la commande** au moment de la commande (`DiscountTermsSnapshot`, depuis `e0b93b4`) et réappliquées par `POST /order/update`, même si la campagne a été modifiée, désactivée ou a expiré depuis. Commande antérieure sans instantané : conditions actuelles de la campagne si elle est encore active, sinon aucune remise, puis figées à cette première modification.
 
 Campagnes créées au démarrage si absentes (`DiscountCampaignInitializer`) : `NO_DISCOUNT` (activée), `BLACK_FRIDAY` 20 %, `WINTER_SALES` 15 %, `SPRING_SALES` 10 %, `BUY_ONE_GET_ONE_FREE` (désactivées par défaut). Constaté en local le 2026-10-13 : `NO_DISCOUNT` et `BLACK_FRIDAY` (20 %) actives.
 
@@ -153,18 +155,18 @@ Controller : `{ctrl}/CartManagementController.java` (base `/api/v1/services/cart
 
 ## 7. Commandes
 
-Controller : `{ctrl}/OrderManagementController.java` (base `/api/v1/services/management/order`). Rate limit `POST /place*` : **30 req/min**.
+Controller : `{ctrl}/OrderManagementController.java` (base `/api/v1/services/management/order`). Rate limit `POST /place*` : **30 req/min** ; `POST /quote` : **60 req/min**, compartiment propre (`RateLimitFilter`, politique `order.quote`).
 
 | Méthode | Chemin | Controller#méthode | Auth | Params | Body | Réponse | Codes HTTP | Pagination | Notes |
 |---|---|---|---|---|---|---|---|---|---|
-| POST | `/api/v1/services/management/order/place` | `#placeOrder` (:44) | USER/ADMIN | — | `OrderPlacingRequestDto` (§D.8) | `201` `OrderResponseDto` (§D.17) | 201, 400 (`DISCOUNT_TYPE_NOT_ACTIVE` compris), 403 `USER_NOT_ACTIVE`, 409 `CART_IS_EMPTY`/`NOT_ENOUGH_STOCK`, 500 | — | Convertit le **panier serveur** en commande, **vide le panier** et **déclenche le paiement Stripe côté serveur** (PaymentIntent confirmé avec le moyen de paiement configuré, voir analysis §6). **Ne renvoie jamais 402** : un paiement refusé ou une panne Stripe donnent quand même 201 (stock libéré, commande à relancer par `retry-payment`) ; l'issue se lit par polling de `/status/{uuid}`. `totalAmount` inclut remise et frais de port. |
-| POST | `/api/v1/services/management/order/quote` | `#quote` (:53) | USER/ADMIN | — | `OrderQuoteRequestDto` (§D.27) | `OrderQuoteResponseDto` (§D.27) | 200, 400, 403 | — | Chiffre le **panier serveur** de l'appelant sans rien créer : sous-total, remise (`discountApplied` faux sous `minOrderAmount`), frais de port, total = `max(0, sous-total − remise) + port`. Livré au commit backend `a8b83ae` (feature 003). |
-| GET | `/api/v1/services/management/order/status/{uuid}` | `#getOrderStatusByUuid` (:96) | USER/ADMIN, propriétaire | path `uuid` | — | `OrderStatusDto` (§D.18) | 200, 403, 404 | — | Prévu pour le **polling** de la page de confirmation. |
-| GET | `/api/v1/services/management/order/get/{uuid}` | `#getOrderByUuid` (:84) | USER/ADMIN, propriétaire | path `uuid` | — | `OrderResponseDto` | 200, 403, 404 | — | — |
-| GET | `/api/v1/services/management/order/mine` | `#getMyOrders` (:119) | USER/ADMIN | query `status` (multi, `OrderStatus`), `page`, `size` (20), `sort` (`createdAt,desc`) | — | `PagedModel<OrderResponseDto>` | 200, 400 | Query | — |
-| POST | `/api/v1/services/management/order/update` | `#updateOrder` (:60) | USER/ADMIN, propriétaire | — | `OrderUpdateRequestDto` (§D.9) | `OrderResponseDto` | 200, 400, 402 `PAYMENT_FAILED` (complément refusé), 403, 404, 409 `ORDER_ALREADY_SHIPPED`/`NOT_ENOUGH_STOCK`/`ORDER_NOT_FUNDED` | — | Possible tant que la commande n'est pas expédiée (fenêtre de grâce `cybertech.shipping.grace-period=30m` après paiement). Complément / remboursement partiel automatique. Le total est recalculé avec la remise d'origine de la commande (corrigé au commit backend `e0b93b4`, §E 23). |
-| POST | `/api/v1/services/management/order/cancel` | `#cancelOrder` (:52) | USER/ADMIN, propriétaire | — | `OrderCancellationRequestDto` (§D.9b) | `200` `OrderResponseDto` | 200, 403, 404, 409 `CANNOT_CANCEL_ORDER`/`ORDER_REFUND_FAILED` | — | Refusé dès `AWAITING_SHIPPING` (`OrderCancellationTransactionalDelegateImp.java:76-77`). Annuler une commande déjà annulée = no-op. |
-| POST | `/api/v1/services/management/order/retry-payment/{uuid}` | `#retryPayment` (:67) | USER/ADMIN, propriétaire | path `uuid` | — | `OrderResponseDto` | 200, 402, 404 `NO_PREVIOUS_PAYMENT_ATTEMPT_FOUND`, 409 `PAYMENT_ALREADY_COMPLETED`, 422 | — | Après `PAYMENT_FAILED`. |
+| POST | `/api/v1/services/management/order/place` | `#placeOrder` (:47) | USER/ADMIN | — | `OrderPlacingRequestDto` (§D.8) | `201` `OrderResponseDto` (§D.17) | 201, 400 (`DISCOUNT_TYPE_NOT_ACTIVE` compris), 401, 403 `USER_NOT_ACTIVE`, 404 `USER_NOT_FOUND`, 409 `CART_IS_EMPTY` (panier absent ou vide ; c'était 404 `CART_NOT_FOUND` avant `a8b83ae`)/`NOT_ENOUGH_STOCK`, 429, 500 | — | Convertit le **panier serveur** en commande, **vide le panier** et **déclenche le paiement Stripe côté serveur** (PaymentIntent confirmé avec le moyen de paiement configuré, voir analysis §6). **Ne renvoie jamais 402** : un paiement refusé ou une panne Stripe donnent quand même 201 (stock libéré, commande à relancer par `retry-payment`) ; l'issue se lit par polling de `/status/{uuid}`. `totalAmount` inclut remise et frais de port. |
+| POST | `/api/v1/services/management/order/quote` | `#quote` (:54) | USER/ADMIN | — | `OrderQuoteRequestDto` (§D.27) | `OrderQuoteResponseDto` (§D.27) | 200, 400 (validation, `DISCOUNT_TYPE_NOT_ACTIVE` pour une clé inconnue ou inactive), 401, 403 `ACCESS_DENIED` (rôle), 404 `USER_NOT_FOUND`, 409 `CART_IS_EMPTY` (panier absent ou vide), 429 `TOO_MANY_REQUESTS` | — | Chiffre le **panier serveur** de l'appelant (lignes et prix courants lus côté serveur, jamais dans le body) sans rien créer (ni commande, ni réservation de stock, ni paiement) : sous-total, remise (`discountApplied` faux sans campagne ou sous `minOrderAmount`), frais de port, total = `max(0, sous-total − remise) + port` — égal au total de la commande passée juste après avec les mêmes options. **Ne vérifie ni le stock ni `USER_NOT_ACTIVE`** : ces erreurs n'apparaissent qu'au `place`. Livré au commit backend `a8b83ae` (feature 003). |
+| GET | `/api/v1/services/management/order/status/{uuid}` | `#getOrderStatusByUuid` (:106) | USER/ADMIN, propriétaire | path `uuid` | — | `OrderStatusDto` (§D.18) | 200, 403, 404 | — | Prévu pour le **polling** de la page de confirmation. |
+| GET | `/api/v1/services/management/order/get/{uuid}` | `#getOrderByUuid` (:94) | USER/ADMIN, propriétaire | path `uuid` | — | `OrderResponseDto` | 200, 403, 404 | — | — |
+| GET | `/api/v1/services/management/order/mine` | `#getMyOrders` (:129) | USER/ADMIN | query `status` (multi, `OrderStatus`), `page`, `size` (20), `sort` (`createdAt,desc`) | — | `PagedModel<OrderResponseDto>` | 200, 400 | Query | — |
+| POST | `/api/v1/services/management/order/update` | `#updateOrder` (:70) | USER/ADMIN, propriétaire | — | `OrderUpdateRequestDto` (§D.9) | `OrderResponseDto` | 200, 400, 402 `PAYMENT_FAILED` (complément refusé), 403, 404, 409 `ORDER_ALREADY_SHIPPED`/`NOT_ENOUGH_STOCK`/`ORDER_NOT_FUNDED` | — | Possible tant que la commande n'est pas expédiée (fenêtre de grâce `cybertech.shipping.grace-period=30m` après paiement). Complément / remboursement partiel automatique. Le total est recalculé avec la remise d'origine de la commande et ses conditions figées (§5 règle 6, commit backend `e0b93b4`, §E 23) ; la remise retombe à 0 si le nouveau sous-total passe sous le minimum de la campagne. La clé de remise n'est pas modifiable. Le détail du prix (§D.17) est réécrit à chaque modification. |
+| POST | `/api/v1/services/management/order/cancel` | `#cancelOrder` (:61) | USER/ADMIN, propriétaire | — | `OrderCancellationRequestDto` (§D.9b) | `200` `OrderResponseDto` | 200, 403, 404, 409 `CANNOT_CANCEL_ORDER`/`ORDER_REFUND_FAILED` | — | Refusé dès `AWAITING_SHIPPING` (`OrderCancellationTransactionalDelegateImp.java:76-77`). Annuler une commande déjà annulée = no-op. |
+| POST | `/api/v1/services/management/order/retry-payment/{uuid}` | `#retryPayment` (:77) | USER/ADMIN, propriétaire | path `uuid` | — | `OrderResponseDto` | 200, 402, 404 `NO_PREVIOUS_PAYMENT_ATTEMPT_FOUND`, 409 `PAYMENT_ALREADY_COMPLETED`, 422 | — | Après `PAYMENT_FAILED`. |
 
 Cycle de vie `OrderStatus` (`{pkg}/entities/enums/OrderStatus.java`) : `CREATED → AWAITING_PAYMENT → (PAYMENT_FAILED | PAID) → AWAITING_SHIPPING → SHIPPED → DELIVERED`, + `RETURNED`, `CANCELED`, `REFUNDED`.
 
@@ -308,7 +310,7 @@ Même forme que D.5 (`cartItemAddRequestDtos`), sémantique **remplacement compl
 | `shippingType` | enum `STANDARD` \| `EXPRESS` | req |
 | `shippingProvider` | enum `DHL` \| `FEDEX` | req |
 | `shippingStreet`, `shippingCity`, `shippingZipCode`, `shippingCountry` | string | req, `@NotBlank` |
-| `discountKey` | string | `@NotBlank`, défaut `"NO_DISCOUNT"` (`CyberTechAppConstants.java:39`) ; **ne pas envoyer `null`** (Jackson écraserait le défaut → 400) ; clé inconnue/inactive → 400 |
+| `discountKey` | string | `@NotBlank`, défaut `"NO_DISCOUNT"` (`CyberTechAppConstants.java:39`). **Champ omis → `NO_DISCOUNT`** (garanti depuis `a8b83ae` : constructeur sans argument `@JsonCreator`) ; **`null` explicite ou chaîne vide → 400 `INVALID_REQUEST`** ; clé inconnue/inactive → 400 `DISCOUNT_TYPE_NOT_ACTIVE` |
 
 ### D.9 `OrderUpdateRequestDto` — `request/order/OrderUpdateRequestDto.java`
 `uuid` (req), `paymentType`, `shippingType`, `shippingProvider` (req, enums ci-dessus), `shippingStreet|City|ZipCode|Country` (req, `@NotBlank`), `itemUpdateRequestDtoList` (req, `@NotEmpty`, `@Valid`, éléments `{ productUuid: UUID req, quantity: int @Min(1) req }`).
@@ -323,7 +325,7 @@ Même forme que D.5 (`cartItemAddRequestDtos`), sémantique **remplacement compl
 | `priceMin` | number | optionnel, **`@Min(100)`** (impossible de filtrer sous 100) |
 | `priceMax` | number | optionnel, `@Max(1000000)` |
 | `category` | string | optionnel (clé de catégorie, ex. `COMPUTER`) |
-| `brands` | `Brand[]` | optionnel ; `Brand` = `ASUS, HP, LENOVO, DELL, AORUS, MSI, ACER, TOSHIBA, ALIENWARE, MICROSOFT, ALTYK, GIGABYTE, SAMSUNG` |
+| `brands` | `Brand[]` | optionnel ; `Brand` (`entities/enums/Brand.java`, 43 valeurs au commit `84dc038`) = `ASUS, HP, LENOVO, DELL, AORUS, MSI, ACER, TOSHIBA, ALIENWARE, MICROSOFT, ALTYK, GIGABYTE, SAMSUNG` + depuis `ecc76e1` (écrans, montres) `LG, AOC, IIYAMA, BENQ, PHILIPS, VIEWSONIC, EIZO, CORSAIR, LDLC, XIAOMI, APPLE, GARMIN, HUAWEI, AMAZFIT, WITHINGS, GOOGLE, POLAR, SUUNTO, COROS, FITBIT` + depuis `84dc038` (tours, smartphones) `MOTOROLA, ONEPLUS, OPPO, HONOR, NOTHING, SONY, CROSSCALL, REALME, FAIRPHONE, NOKIA`. ⚠️ `lib/enums/brand.ts` du front ne connaît que les 13 premières (voir §E 29). |
 | `attributes` | `Record<string, string[]>` | optionnel (match `attributes.<k>.keyword`) |
 | `numericRanges` | `Record<string, { min?: number, max?: number }>` | optionnel |
 | `page` | integer | optionnel, `@Min(0)`, défaut 0 |
@@ -384,17 +386,19 @@ Même forme que D.5 (`cartItemAddRequestDtos`), sémantique **remplacement compl
 |---|---|
 | `uuid`, `userUuid` | UUID |
 | `orderDate` | LocalDate (jour seulement) |
+| `createdAt` | LocalDateTime (date **et heure** de la commande, même source que `orderDate`) — depuis `254d0ec` |
 | `status` | `OrderStatus` |
-| `totalAmount` | number |
+| `totalAmount` | number, toujours présent |
 | `refundedAmount` | number (dérivé) |
+| `currency` | string ISO 4217 (`EUR`), toujours présent |
 | `shippingAddress` | string (adresse **aplatie**) |
 | `orderItems[]` | `{ orderItemUuid, productUuid, productName, quantity, unitPrice, lineItemTotalPrice }` |
-| `subtotalAmount`, `discountAmount`, `shippingCost` | number, `null` sur les commandes antérieures au détail (commit backend `e0b93b4` et suivants) |
-| `discountKey`, `discountCalculationType` | string, `DiscountCalculationType` (`null` idem) |
-| `shippingType`, `shippingProvider` | enums de §D.8 |
-| `currency` | ISO 4217 |
+| `subtotalAmount`, `discountAmount`, `shippingCost` | number \| **`null`** sur les commandes passées avant le commit backend `254d0ec` (jusqu'à leur première modification par `POST /order/update`, qui les renseigne) |
+| `discountCalculationType` | `DiscountCalculationType` (`NONE` \| `PERCENTAGE` \| `FIXED_AMOUNT` \| `BUY_ONE_GET_ONE_FREE`) \| **`null`** dans le même cas (lu dans l'instantané `discountTerms`, figé à la première modification) |
+| `discountKey` | string, **jamais `null`** (colonne `NOT NULL` ; `NO_DISCOUNT` sans remise) |
+| `shippingType`, `shippingProvider` | enums de §D.8, jamais `null` |
 
-Invariant : `totalAmount = max(0, subtotalAmount − discountAmount) + shippingCost`. Absents : statut de paiement, numéro de suivi.
+Invariant (quand le détail est présent) : `totalAmount = max(0, subtotalAmount − discountAmount) + shippingCost`. `discountAmount = 0` si le minimum de la campagne n'est pas atteint. Absents : statut de paiement, numéro de suivi. Sources : `OrderResponseDto.java`, `OrderMapper.java` (`currency` ← `totalAmount.currencyCode`, `createdAt` ← `orderDate`, `discountCalculationType` ← `discountTerms.calculationType`).
 
 ### D.18 `OrderStatusDto`
 `{ uuid: UUID, status: OrderStatus }`.
@@ -426,10 +430,10 @@ Invariant : `totalAmount = max(0, subtotalAmount − discountAmount) + shippingC
 `totalHits` (long, = `page.totalElements` de `/search`), `brands` (`FacetValueDto[]` : `value`, `count`), `price` (`RangeFacetDto` : `min`, `max`, `null` sans produit), `attributes` (`Map<clé, FacetValueDto[]>`, présent seulement avec une catégorie, chaque attribut texte du schéma est une clé, liste éventuellement vide), `numericAttributes` (`Map<clé, RangeFacetDto>`, idem). Schéma Zod front : `lib/schemas/facets.ts`.
 
 ### D.27 `OrderQuoteRequestDto` / `OrderQuoteResponseDto` — `request/order/`, `response/order/`
-Requête : `shippingType` (req), `shippingProvider` (req), `discountKey` (défaut `NO_DISCOUNT`). Réponse : `subtotalAmount`, `discountKey`, `discountCalculationType`, `discountAmount` (0 si non appliquée), `discountApplied`, `minOrderAmount` (nullable), `shippingCost`, `totalAmount`, `currency` (ISO 4217, `EUR`).
+Requête : `shippingType` (req, `@NotNull`), `shippingProvider` (req, `@NotNull`), `discountKey` (`@NotBlank`, omis → `NO_DISCOUNT` ; `null` explicite → 400, comme §D.8). **Pas de lignes ni d'adresse** : le panier serveur fait foi. Réponse : `subtotalAmount` (number), `discountKey` (string), `discountCalculationType` (`NONE` pour `NO_DISCOUNT`), `discountAmount` (number, 0 si non appliquée), `discountApplied` (boolean, **toujours présent** — primitif Java), `minOrderAmount` (number \| `null` si la campagne n'en a pas), `shippingCost` (number), `totalAmount` (number), `currency` (ISO 4217, `EUR`). `discountApplied = calculationType ≠ NONE && (minOrderAmount == null || subtotal ≥ minOrderAmount)`.
 
 ### D.28 `ShippingOptionResponseDto` — `response/shipping/ShippingOptionResponseDto.java`
-`provider` (`DHL` \| `FEDEX`), `type` (`STANDARD` \| `EXPRESS`), `cost` (décimal), `currency` (ISO 4217).
+`provider` (`DHL` \| `FEDEX`), `type` (`STANDARD` \| `EXPRESS`), `cost` (décimal, 2 décimales), `currency` (ISO 4217, `EUR`). Liste triée par transporteur puis par coût ; un transporteur sans service branché n'est pas listé ; filtre sur un transporteur indisponible → liste vide. Réponse réelle au 2026-10-14 : DHL/FEDEX × STANDARD 15.00 / EXPRESS 25.00 EUR. Pas de délai de livraison (voir §F).
 
 ## E. Incohérences et points faibles relevés
 
@@ -449,7 +453,7 @@ Requête : `shippingType` (req), `shippingProvider` (req), `discountKey` (défau
 | 12 | `PATCH /cart/update/{cartUuid}` exige l'UUID du panier alors que les autres opérations panier se basent sur le JWT. | `CartManagementController.java:40` | Lire `cartUuid` via `GET /cart/get` avant ; impossible si panier inexistant (`cartUuid=null`) → utiliser `/cart/add`. |
 | 13 | Panier inexistant renvoyé comme objet aux champs `null` (pas 404, pas `items: []`). | `CartServiceImp.java:180,197-199` | Schéma Zod `nullable()` + normalisation. |
 | 14 | `UserResponseDto` : `address` aplatie et `birthDate` en `java.util.Date`, alors que l'entrée est structurée (`street/city/...`) et en `LocalDateTime`. | `UserResponseDto.java` vs `UserCreateRequestDto.java` | Formulaire « mon profil » impossible à pré-remplir champ par champ. |
-| 15 | `OrderResponseDto` sans devise, frais de port, remise ; `orderDate` sans heure. | `OrderResponseDto.java` | Récapitulatif de commande incomplet. |
+| 15 | ~~`OrderResponseDto` sans devise, frais de port, remise ; `orderDate` sans heure.~~ **Corrigé (`254d0ec`)** : `currency`, `createdAt` (date + heure) et détail du prix (§D.17). | `OrderResponseDto.java` | Détail `null` sur les commandes anciennes : n'afficher que `totalAmount`. |
 | 16 | `DiscountController` expose le record interne `DiscountContext`. | `DiscountController.java:44-46` | Acceptable ; schéma à figer. |
 | 17 | Versioning double (`/v1` + en-tête `X-API-VERSION`). | `application.properties` | Envoyer `X-API-VERSION: 1.0` explicitement depuis le BFF. |
 | 18 | `application.frontend.url=http://localhost:4200` (port Angular) utilisé dans les liens d'emails. | `application.properties` | Liens d'email cassés avec Next.js (port 3000) → à corriger côté backend. |
@@ -459,10 +463,13 @@ Requête : `shippingType` (req), `shippingProvider` (req), `discountKey` (défau
 | 22 | Le prompt initial décrit PostgreSQL et un JWT maison : le code utilise **MySQL** et **Keycloak**. | `pom.xml`, `application.properties`, `SecurityConfig.java` | La doc et le docker-compose du front suivent le code. |
 | 23 | ~~`POST /order/update` recalcule le total avec `NO_DISCOUNT`.~~ | — | **Corrigé** : une commande modifiée garde la remise avec laquelle elle a été passée (commit backend `e0b93b4`). |
 | 24 | ~~`OrderResponseDto` ne contient ni `discountKey`, ni montant de remise, ni frais de port.~~ | — | **Corrigé** côté backend : détail du total ajouté (§D.17), `null` sur les commandes anciennes ; une commande modifiée garde sa remise (commit `e0b93b4`). |
-| 25 | Frais de port (15 € / 25 €) codés dans `DHLShippingProviderService` et `FedexShippingProviderService`, exposés par aucun endpoint. | `*ShippingProviderService.java` | Le tunnel ne peut afficher qu'un port « estimé » à partir d'une constante front alignée, signalée comme telle. |
+| 25 | ~~Frais de port (15 € / 25 €) exposés par aucun endpoint.~~ **Corrigé (`9728d0b`)** : `GET /shipping/options` (§7b), calculé par la même méthode que le `shippingCost` facturé. | `ShippingOptionServiceImp.java` | Lire les frais sur l'endpoint ; plus de constante front de prix de port. |
 | 26 | `POST /order/place` ne renvoie jamais 402 : l'échec de paiement n'est visible que dans le statut. | `OrderManagementServiceImp#placeOrder` | La page de confirmation doit sonder `/status/{uuid}` et proposer `retry-payment`. |
-| 27 | Un `minOrderAmount` non atteint annule la remise sans erreur. | `OrderPriceCalculationServiceImp#computeDiscount` | Le front doit le signaler lui-même avant l'envoi. |
+| 27 | Un `minOrderAmount` non atteint annule la remise sans erreur. | `OrderPriceCalculationServiceImp#computeDiscount` | Signalé par `POST /order/quote` (`discountApplied = false`, `minOrderAmount`) : le tunnel l'affiche avant l'envoi. |
 | 28 | ~~`POST /admin/management/order/place/auto` déclare `consumes = application/json` sans body.~~ | — | **Corrigé** : endpoint retiré au commit backend `26043a5`. |
+| 29 | ~~L'enum `Brand` passe de 13 à 43 valeurs (`ecc76e1`, `84dc038`, catalogue LDLC) alors que `lib/enums/brand.ts` n'en avait que 13.~~ | `entities/enums/Brand.java` | **Corrigé côté front** (feature 003, T001) : 43 marques et libellés ; le filtre Marque n'affiche plus que les marques présentes quand les compteurs sont connus. |
+| 30 | `POST /order/quote` ne contrôle ni le stock ni le statut du compte : `NOT_ENOUGH_STOCK` et `USER_NOT_ACTIVE` n'apparaissent qu'au `POST /order/place`. Un panier serveur vide donne 409 `CART_IS_EMPTY` (devis comme commande). | `OrderManagementServiceImp#quote`, `OrderPricingUtils#requireCartItems` | Le tunnel doit traiter ces erreurs au `place` même après un devis réussi. |
+| 31 | Catégories `DESKTOP`, `SMARTPHONE`, `SMARTWATCH` ajoutées au seed (`ecc76e1`, `84dc038`), toujours sans endpoint public de liste. | `ProductCategorySchemaInitializer.java` | La liste codée en dur côté front est à compléter (hors feature 003). |
 
 ---
 
@@ -471,7 +478,7 @@ Requête : `shippingType` (req), `shippingProvider` (req), `discountKey` (défau
 | Besoin front | Endpoint proposé (backend) | Contournement possible aujourd'hui |
 |---|---|---|
 | ~~Profil de l'utilisateur connecté~~ | **Fait** : `GET /api/v1/services/user/me` | — |
-| Liste publique des catégories | `GET /api/v1/services/product-category-schemas` | Liste codée en dur (`COMPUTER`, `MONITOR`). |
+| Liste publique des catégories | `GET /api/v1/services/product-category-schemas` | Liste codée en dur (`COMPUTER`, `MONITOR`, `DESKTOP`, `SMARTPHONE`, `SMARTWATCH` au commit `84dc038`). |
 | ~~Disponibilité / stock produit~~ | **Fait** : `GET /api/v1/services/product/availability` | — |
 | Tri du catalogue (prix, nouveautés) | param `sort` sur `/product/search` | Aucun (pertinence ES uniquement). |
 | ~~Facettes (marques, plages de prix, attributs avec compteurs)~~ | **Fait** : `POST /api/v1/services/product/search/facets` (§3) | Repli front sans compteurs si l'endpoint manque (feature 002). |

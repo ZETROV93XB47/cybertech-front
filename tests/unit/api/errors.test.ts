@@ -42,7 +42,22 @@ describe("toFrontErrorCode — one case per row of contracts/errors.md", () => {
     [BackendErrorCode.USER_ALREADY_EXISTS, 409, FrontErrorCode.ALREADY_EXISTS],
     [BackendErrorCode.TOO_MANY_REQUESTS, 429, FrontErrorCode.RATE_LIMITED],
     [BackendErrorCode.APPLICATION_ERROR, 500, FrontErrorCode.UNAVAILABLE],
-    [BackendErrorCode.PAYMENT_FAILED, 402, FrontErrorCode.UNKNOWN],
+    [BackendErrorCode.PRODUCT_ALREADY_IN_WISHLIST, 409, FrontErrorCode.UNKNOWN],
+    // Feature 003 (specs/003-account-orders/data-model.md §1).
+    [BackendErrorCode.DISCOUNT_TYPE_NOT_ACTIVE, 400, FrontErrorCode.DISCOUNT_INVALID],
+    [BackendErrorCode.PAYMENT_FAILED, 402, FrontErrorCode.PAYMENT_FAILED],
+    [BackendErrorCode.FAILED_UPDATING_ORDER, 422, FrontErrorCode.PAYMENT_FAILED],
+    [BackendErrorCode.PAYMENT_ALREADY_COMPLETED, 409, FrontErrorCode.PAYMENT_ALREADY_COMPLETED],
+    [BackendErrorCode.ORDER_ALREADY_SHIPPED, 409, FrontErrorCode.ORDER_LOCKED],
+    [BackendErrorCode.CANNOT_CANCEL_ORDER, 409, FrontErrorCode.ORDER_LOCKED],
+    [BackendErrorCode.ORDER_NOT_FUNDED, 409, FrontErrorCode.ORDER_LOCKED],
+    [BackendErrorCode.ORDER_REFUND_FAILED, 409, FrontErrorCode.REFUND_FAILED],
+    [BackendErrorCode.USER_NOT_ACTIVE, 403, FrontErrorCode.ACCOUNT_INACTIVE],
+    [BackendErrorCode.BANK_CARD_EXPIRED, 400, FrontErrorCode.CARD_EXPIRED],
+    [BackendErrorCode.ORDER_NOT_FOUND, 404, FrontErrorCode.NOT_FOUND],
+    [BackendErrorCode.ORDER_DOESNT_BELONGS_TO_USER, 403, FrontErrorCode.NOT_FOUND],
+    [BackendErrorCode.BANK_CARD_NOT_FOUND, 404, FrontErrorCode.NO_SAVED_CARD],
+    [BackendErrorCode.NO_PREVIOUS_PAYMENT_ATTEMPT_FOUND, 404, FrontErrorCode.NOT_FOUND],
   ])("%s (%i) → %s", (code, status, expected) => {
     expect(toFrontErrorCode(code, status)).toBe(expected);
   });
@@ -62,6 +77,12 @@ describe("toFrontErrorCode — one case per row of contracts/errors.md", () => {
 });
 
 describe("parseErrorResponse", () => {
+  it("relays another user's order as a 404, without revealing it exists", async () => {
+    const error = await parseErrorResponse(errorResponse(403, "ORDER_DOESNT_BELONGS_TO_USER"));
+    expect(error.status).toBe(404);
+    expect(error.frontCode).toBe(FrontErrorCode.NOT_FOUND);
+  });
+
   it("keeps field errors of a validation failure", async () => {
     const error = await parseErrorResponse(
       errorResponse(400, "INVALID_REQUEST", {
