@@ -3,7 +3,8 @@
  *
  * Server Component: only the availability badge, the add-to-cart button, the wishlist heart and,
  * on the catalog results, the « Comparer » checkbox run on the client. The whole card is clickable
- * through the title link stretched over it, so there is a single tab stop per product.
+ * through the title link stretched over it; the heart, the « Comparer » checkbox and the
+ * add-to-cart button sit above that link and keep their own tab stops.
  *
  * @see specs/001-catalog-auth-cart/spec.md annex « Composants »
  */
