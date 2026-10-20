@@ -14,7 +14,7 @@ export const SITE_MESSAGES = {
   homeNavLink: "Accueil",
   catalogLink: "Catalogue",
   homeLink: "Accueil de cybertech",
-  footerNote: "Projet pédagogique — le paiement est simulé, aucun débit réel n'est fait.",
+  footerNote: "Projet pédagogique — paiements en mode test, aucun débit réel n'est fait.",
 } as const;
 
 /** Generic states shared by every page. */

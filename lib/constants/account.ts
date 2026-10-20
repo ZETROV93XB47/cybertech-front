@@ -34,3 +34,29 @@ export const CARD_EXPIRY_PATTERN = /^(0[1-9]|1[0-2])\/[0-9]{4}$/;
  * @see BankCardMapper#toResponseDto (backend)
  */
 export const CARD_LAST_DIGITS_PATTERN = /(\d{4})\s*$/;
+
+/**
+ * Card number accepted by the « Ajouter une carte » form once spaces are removed: 13 to 19
+ * digits (`@Size` and `@Pattern` of `BankCardCreationRequestDto`).
+ *
+ * @see BankCardCreationRequestDto#cardNumber (backend)
+ */
+export const CARD_NUMBER_PATTERN = /^\d{13,19}$/;
+
+/** Most digits of a card number, used to stop typing beyond them. */
+export const CARD_NUMBER_MAX_DIGITS = 19;
+
+/** Digits per group when a card number is shown while typing (`1111 1111 1111 1111`). */
+export const CARD_NUMBER_GROUP_SIZE = 4;
+
+/** Longest card holder name accepted (column length of the backend). */
+export const CARD_HOLDER_MAX_LENGTH = ADDRESS_FIELD_MAX_LENGTH;
+
+/** Years offered by the expiry year select, from the current year on. */
+export const CARD_EXPIRY_YEARS_AHEAD = 15;
+
+/** Months of a year, for the expiry month select. */
+export const MONTHS_PER_YEAR = 12;
+
+/** Card number that pays on the backend (`docs/test-cards.md`): only 1s. */
+export const PAYING_TEST_CARD = "1111 1111 1111 1111";

@@ -450,3 +450,60 @@ Tests :
 
 Mets à jour progress.md et l'OpenAPI (le front régénère ses types avec npm run gen:api).
 ````
+
+---
+
+## 12. Suppression de la carte sans effet et ajout d'une deuxième carte en 500
+
+````text
+Objectif : que « Supprimer ma carte » et « Remplacer ma carte » du front fonctionnent.
+
+Constat (front, e2e du 2026-10-20, backend f582c3a) :
+1. DELETE /bank-card/delete répond 204 mais la carte reste : GET /bank-card/get la renvoie
+   toujours. BankCardManagementServiceImp#deleteBankCard appelle
+   bankCardRepository.delete(bankCard) alors que UserEntity garde sa référence
+   (@OneToOne(mappedBy = "userEntity", cascade = CascadeType.ALL, orphanRemoval = true)) :
+   au flush, la cascade depuis l'utilisateur géré annule la suppression (cas classique JPA :
+   entité supprimée encore référencée par un parent en cascade PERSIST/MERGE).
+2. POST /bank-card/add avec une carte déjà enregistrée lève IllegalStateException, qui finit
+   dans le gestionnaire générique RuntimeException : 500 au lieu d'un 409 fonctionnel.
+
+Travail demandé :
+- deleteBankCard : détacher la carte de l'utilisateur (user.setBankCardEntity(null), laisser
+  orphanRemoval supprimer la ligne, ou supprimer puis dissocier dans la même transaction) ;
+  vérifier qu'après 204, GET /bank-card/get répond 404 BANK_CARD_NOT_FOUND.
+- addBankCard avec une carte existante : exception fonctionnelle dédiée (ex.
+  BankCardAlreadyExistsException) → 409, errorCode BANK_CARD_ALREADY_EXISTS (ajouter à
+  ErrorCode et à l'OpenAPI).
+- Optionnel : PUT /bank-card/replace (même corps que /add) qui supprime et ajoute dans une seule
+  transaction, pour qu'un échec ne laisse jamais le compte sans carte ; le front l'utilisera à
+  la place de « delete puis add ».
+
+Tests :
+- IT : add → delete → get = 404 → add d'une nouvelle carte = 201 ; add sur une carte existante
+  = 409 BANK_CARD_ALREADY_EXISTS ; (si replace) replace = 200 et ancienne carte absente, replace
+  avec un numéro invalide = 400 et ancienne carte conservée.
+- Aucun numéro complet dans les logs ni les DTO.
+
+Mets à jour progress.md et l'OpenAPI (le front régénère ses types avec npm run gen:api).
+````
+
+---
+
+## 13. Liste de mes avis
+
+````text
+Objectif : que le client puisse retrouver, modifier et supprimer ses avis depuis « Mes avis »
+(feature 004 du front), et pas seulement juste après leur publication.
+
+Constat : ReviewManagementController expose get/{uuid}, create, update/{uuid}, delete/{uuid},
+product/{productUuid} (public) et reviewable, mais aucune liste des avis de l'appelant.
+
+Travail demandé :
+- GET /review/mine (USER) paginé (page, size 10 par défaut, sort createdAt,desc) :
+  PagedModel<MyReviewDto> avec uuid, productUuid, productName, orderUuid, rating, comment,
+  createdAt, updatedAt ; uniquement les avis de l'appelant (keycloakId du JWT).
+- OpenAPI et tests d'intégration (seulement mes avis, pagination, tri, 401 sans jeton).
+
+Mets à jour progress.md et l'OpenAPI.
+````

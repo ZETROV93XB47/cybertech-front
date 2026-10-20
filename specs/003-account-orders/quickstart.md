@@ -341,11 +341,42 @@ Vérifié le 2026-10-20 (T055–T062) : backend `f582c3a` sur 8081, front de l'u
 
 ### US5 — Ma carte enregistrée
 
-À remplir.
+Vérifié le 2026-10-20 (T063–T070, T084–T088) : backend `f582c3a` sur 8081, front de
+l'utilisateur sur 3000.
+
+- Contrôles : `typecheck` OK, `lint` 0 warning, `test` 902 tests verts (90 fichiers) ;
+  non-régression `checkout.spec.ts` 4 OK.
+- E2E :
+  - `bank-card-add.spec.ts` : la première moitié passe (sans carte → « Ajouter une carte »
+    depuis le tunnel → 1111… → retour au tunnel → commande « Payée ») ; le remplacement échoue ;
+  - `bank-card.spec.ts` : modification du titulaire et de l'expiration gardée au
+    rechargement OK, expiration passée refusée OK ; la suppression échoue.
+- **Défaut backend** (prompt §12 de `docs/backend/backend-prompts-lot2.md`) :
+  `DELETE /bank-card/delete` répond 204 mais la carte reste (l'utilisateur garde sa référence
+  en cascade : la suppression JPA est annulée au flush) ; ajouter une deuxième carte donne 500
+  (`IllegalStateException`). Le front relit désormais la carte après une suppression et avant
+  un remplacement : il dit « la suppression n'a pas abouti » ou « ton ancienne carte est
+  toujours enregistrée » au lieu d'un faux succès, et n'ajoute rien. Les deux e2e passeront
+  quand le §12 sera livré.
+- Sécurité vérifiée par les tests unitaires : aucun log ne contient le numéro, ses 4 derniers
+  chiffres, le titulaire ni l'expiration ; aucune réponse ne contient le numéro ; rien n'est
+  écrit dans le stockage du navigateur ; aucune dépendance ni origine Stripe.
+- Captures relues : `screenshots/us5/` (carte enregistrée, formulaire de remplacement,
+  dialogue de suppression) ; correctifs : derniers chiffres sur une ligne, mois et année sur
+  leur propre rangée, mention « paiements en mode test » dans le pied de page.
+- Lighthouse : pages publiques inchangées par la story (mesurées en US4) ; « Ma carte » est
+  privée.
 
 | # | Résultat | Commentaire |
 |---|---|---|
-| 47–51 | à remplir | |
+| 47 | OK | numéro masqué, titulaire, expiration, réseau ; jamais le numéro complet |
+| 48 | OK | expiration passée refusée sur le champ |
+| 49 | OK | titulaire et expiration gardés au rechargement |
+| 50 | KO backend | suppression sans effet (§12), le front le dit |
+| 51 | OK | état « aucune carte » illustré, « Ajouter une carte » (vu depuis le tunnel) |
+| 51 bis | OK | 1111… ajoutée, masquée ; le numéro n'apparaît que dans `POST /api/bank-card` |
+| 51 ter | KO backend | remplacement impossible tant que la suppression est sans effet (§12) |
+| 51 quater | OK | numéro trop court et expiration passée refusés sans envoi |
 
 ### US6 — Ma wishlist
 

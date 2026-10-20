@@ -36,6 +36,26 @@ describe("buildCsp", () => {
   });
 });
 
+describe("card page (feature 003 US5, T087)", () => {
+  it("never allows a third-party payment origin: the card only goes through the BFF", () => {
+    for (const isDevelopment of [false, true]) {
+      const csp = buildCsp({ ...BASE, isDevelopment });
+      expect(csp.toLowerCase()).not.toContain("stripe");
+      expect(directive(csp, "frame-src")).not.toMatch(/https?:/);
+    }
+  });
+
+  it("ships no Stripe package", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const manifest = JSON.parse(await readFile("package.json", "utf8")) as {
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+    };
+    const names = Object.keys({ ...manifest.dependencies, ...manifest.devDependencies });
+    expect(names.filter((name) => name.includes("stripe"))).toEqual([]);
+  });
+});
+
 describe("generateNonce", () => {
   it("returns a different base64 value each time", () => {
     const first = generateNonce();

@@ -60,6 +60,13 @@ export const BFF_ROUTES = {
   wishlistIds: "/api/wishlist/ids",
   /** Prefix of the wishlist item routes; see {@link wishlistItemRoute}. */
   wishlist: "/api/wishlist",
+  /**
+   * `POST` — saves a test card typed in « Ajouter une carte », replacing the current one when
+   * asked (USER). The number is never logged nor sent back.
+   *
+   * @see specs/003-account-orders/contracts/bff-routes.md §2 bis
+   */
+  bankCard: "/api/bank-card",
 } as const;
 
 /**

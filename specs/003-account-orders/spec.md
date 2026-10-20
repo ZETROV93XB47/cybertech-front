@@ -71,6 +71,13 @@ son profil et sa carte enregistrée à jour.
   loggué, stocké ni réaffiché par le front. Cartes de test uniquement : `1111 1111 1111 1111`
   paie, tout autre numéro est refusé au paiement. Sans carte enregistrée, le tunnel invite à en
   ajouter une avant de valider.
+- Décisions (2026-10-20, avant US5) : (1) le réseau de la carte est déduit du numéro pendant la
+  saisie (4 → Visa ; 51–55 et 2221–2720 → Mastercard ; 34, 37 → American Express ; 6011,
+  644–649, 65 → Discover ; sinon « Autre », donc `1111…` → « Autre ») et reste modifiable dans
+  une liste ; (2) remplacer une carte = confirmation, puis suppression de l'ancienne et ajout de
+  la nouvelle par le BFF ; si l'ajout échoue après la suppression, la réponse le dit et la page
+  explique clairement qu'il faut ressaisir la carte (état « aucune carte »), jamais une perte
+  silencieuse.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -658,6 +665,10 @@ panier ; recharger : un seul produit reste, cœur plein sur sa carte.
   périmètre.
 - **Carte de l'utilisateur chez Stripe** : abandonnée par le backend le 2026-10-14
   (`ae1d263`) ; plus de dépendance : `POST /bank-card/add` reçoit la carte saisie.
+- **Remplacement atomique de la carte** (optionnelle) : le backend refuse une deuxième carte
+  (`IllegalStateException`, rendue en 500 générique) ; le BFF supprime puis ajoute, avec le
+  risque d'un compte sans carte si l'ajout échoue entre les deux (signalé à l'utilisateur). Un
+  endpoint backend « remplacer » transactionnel supprimerait ce risque.
 
 - **Détail structuré de `NOT_ENOUGH_STOCK`** : **livré** par le backend `f582c3a`
   (`backend-prompts-lot2.md` §11, `details.items`). La modification de commande signale

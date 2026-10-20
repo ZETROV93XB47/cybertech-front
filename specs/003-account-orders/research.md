@@ -257,8 +257,12 @@ décision du 2026-10-14). Backend vérifié au commit `84dc038` le 2026-10-14
   contraintes que `BankCardCreationRequestDto` : numéro `^\d{13,19}$` après retrait des
   espaces, expiration future) puis appelle `POST /bank-card/add` et renvoie la carte masquée.
   Remplacer = confirmation, puis `DELETE /bank-card/delete` suivi de l'ajout (le backend refuse
-  une deuxième carte) ; si l'ajout échoue après la suppression, le message le dit et invite à
-  ressaisir. Le numéro vit seulement dans l'état du formulaire jusqu'à l'envoi, puis est
+  une deuxième carte) ; si l'ajout échoue après la suppression, la réponse porte
+  `cardRemoved: true` et la page dit que l'ancienne carte est supprimée et invite à ressaisir
+  (décision du 2026-10-20). Sans `replace`, le BFF lit d'abord la carte et répond `409 conflict`
+  si elle existe (le backend lèverait une `IllegalStateException` rendue en 500 générique). Le
+  réseau est déduit du numéro (table de préfixes documentée dans `features/account/card-network.ts`)
+  et reste modifiable : la sélection du client n'est plus écrasée par la saisie. Le numéro vit seulement dans l'état du formulaire jusqu'à l'envoi, puis est
   effacé ; jamais loggué (le logger du BFF ne reçoit ni le corps ni le numéro, seulement le
   réseau et le résultat), jamais en `sessionStorage`, jamais dans une réponse. Champs avec
   `autoComplete="off"` et `inputMode="numeric"`. Le tunnel affiche la carte enregistrée et,

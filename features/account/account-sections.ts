@@ -2,12 +2,12 @@
  * Sections of the account area, shared by the side navigation of `/account/**` (`AccountNav`)
  * and the header account menu (`AccountMenu`), so both always list the same pages.
  *
- * Only sections whose page exists are listed: « Ma carte » (US5) adds its entry here when its
- * page lands, and appears in both places at once.
+ * Only sections whose page exists are listed; « Ma carte » joined with US5 and appears in both
+ * places at once.
  *
  * @see specs/003-account-orders/tasks.md T050, T061, T098
  */
-import { Heart, Package, UserRound, type LucideIcon } from "lucide-react";
+import { CreditCard, Heart, Package, UserRound, type LucideIcon } from "lucide-react";
 
 import { ACCOUNT_PATHS } from "@/lib/constants/routes";
 
@@ -25,12 +25,13 @@ export interface AccountSection {
 
 /**
  * Sections, in display order. Also the items of the header account menu
- * (`ACCOUNT_MENU_ITEMS`): add the card entry here in US5.
+ * (`ACCOUNT_MENU_ITEMS`).
  */
 export const ACCOUNT_SECTIONS: readonly AccountSection[] = [
   { href: ACCOUNT_PATHS.orders, label: ACCOUNT_NAV_MESSAGES.orders, icon: Package },
   { href: ACCOUNT_PATHS.wishlist, label: ACCOUNT_NAV_MESSAGES.wishlist, icon: Heart },
   { href: ACCOUNT_PATHS.profile, label: ACCOUNT_NAV_MESSAGES.profile, icon: UserRound },
+  { href: ACCOUNT_PATHS.card, label: ACCOUNT_NAV_MESSAGES.card, icon: CreditCard },
 ];
 
 /** Items of the header account menu: the account sections, in the same order. */

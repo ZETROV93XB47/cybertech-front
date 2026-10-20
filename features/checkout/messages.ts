@@ -56,7 +56,7 @@ export const CHECKOUT_MESSAGES = {
     [PaymentType.GOOGLE_PAY]: "Google Pay",
   } satisfies Record<PaymentType, string>,
   paymentTest:
-    "Paiement de test : la carte enregistrée sur ton compte est débitée en mode test Stripe, aucun numéro n'est saisi ici.",
+    "Paiement de test : la carte enregistrée sur ton compte est débitée, aucun numéro n'est saisi ici. Une carte 1111 1111 1111 1111 paie, toute autre est refusée.",
   chooseOption: "Choisis une option pour continuer.",
   awaitingCart: "On récupère ton panier…",
 } as const;
