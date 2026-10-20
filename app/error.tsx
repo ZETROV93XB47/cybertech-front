@@ -27,7 +27,13 @@ export interface ErrorPageProps {
  */
 export default function ErrorPage({ error, reset }: ErrorPageProps): ReactNode {
   useEffect(() => {
-    clientLogger.error("Page rendering failed", { digest: error.digest });
+    // Name and message only: they come from the code, never from the user's data. A browser
+    // error has no digest, so without them the cause would be invisible.
+    clientLogger.error("Page rendering failed", {
+      digest: error.digest,
+      name: error.name,
+      message: error.message,
+    });
   }, [error]);
 
   return (
