@@ -40,10 +40,18 @@ export function AccountNav(): ReactNode {
                 href={href}
                 aria-current={isCurrent ? "page" : undefined}
                 className={cn(
-                  "flex items-center gap-3 rounded-button border-l-2 border-transparent px-3 py-2.5 text-sm text-text-muted transition-colors duration-(--duration-fast) hover:bg-surface-2 hover:text-text",
-                  isCurrent && "border-gold bg-surface-2 font-medium text-text",
+                  "relative flex items-center gap-3 rounded-button px-3 py-2.5 text-sm text-text-muted transition-colors duration-(--duration-fast) hover:bg-surface-2 hover:text-text",
+                  isCurrent && "bg-surface-2 font-medium text-text",
                 )}
               >
+                {/* Inset accent pill: a border on a rounded corner bends and glows unevenly. */}
+                <span
+                  aria-hidden
+                  className={cn(
+                    "absolute inset-y-2 left-1 w-1 rounded-full bg-gold transition-opacity duration-(--duration-fast)",
+                    isCurrent ? "opacity-100" : "opacity-0",
+                  )}
+                />
                 <Icon aria-hidden className={cn("size-4", isCurrent && "text-gold")} />
                 {label}
               </Link>
