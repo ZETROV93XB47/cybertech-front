@@ -122,19 +122,17 @@ Source : `BankCardResponseDto` (§D.21) : `uuid`, `cardHolderName` (min 1), `mas
 (`z.enum(BankCardType)`), `userUuid`. `404 BANK_CARD_NOT_FOUND` → « aucune carte » (pas une
 erreur).
 
-### 2.6 bis Enregistrement Stripe (R21, après `backend-prompts-lot2.md` §10)
+### 2.6 bis Ajout de carte (R21 révisée)
 
-- `SetupIntentSchema` (`lib/schemas/bank-card.ts`) : réponse de `POST /bank-card/setup-intent`,
-  `{ clientSecret: string min 1, publishableKey: string commençant par `pk_test_` ou `pk_live_` }`.
-  Le `clientSecret` n'est jamais loggé.
-- `BankCardAddBodySchema` : corps de `POST /api/bank-card` et de `POST /bank-card/add`,
-  `{ setupIntentId: string, regex `SETUP_INTENT_ID_PATTERN` (`^seti_[A-Za-z0-9]+$`) }` ;
-  strict : tout autre champ (numéro, cryptogramme) est refusé.
+- `BankCardAddBodySchema` (`lib/schemas/bank-card.ts`) : corps de `POST /api/bank-card` et de
+  `POST /bank-card/add` (`BankCardCreationRequestDto`), strict : `cardHolderName` (trim, non
+  vide, ≤ `ADDRESS_FIELD_MAX_LENGTH`), `cardNumber` (espaces retirés, `CARD_NUMBER_PATTERN`
+  `^\d{13,19}$`), `expiryDate` (`CARD_EXPIRY_PATTERN`, mois non passé), `cardType`
+  (`z.enum(BankCardType)`), `replace` optionnel. Aucun cryptogramme.
 - `FrontErrorCode.NO_SAVED_CARD` (`BANK_CARD_NOT_FOUND`) : à la validation de commande, le
   tunnel propose « Ajouter une carte » ; sur « Ma carte », c'est l'état « aucune carte ».
-- Refus de Stripe à l'enregistrement : code d'erreur Stripe (`card_declined`,
-  `incorrect_cvc`, `expired_card`, `processing_error`, autre) traduit en français par
-  `stripeSetupErrorMessage` (enum `StripeSetupError`), affiché sous le champ Stripe.
+- Erreurs d'ajout : `400` → erreurs de champ ; carte déjà présente sans `replace` → `409
+  conflict` ; `CARD_EXPIRED` → erreur sur l'expiration.
 
 ### 2.7 Campagnes actives
 
@@ -324,8 +322,9 @@ Règles lues dans le backend (`OrderManagementServiceImp`,
 | `CARD_EXPIRY_PATTERN` | `/^(0[1-9]\|1[0-2])\/[0-9]{4}$/` | `lib/constants/account.ts` | `@Pattern` §D.4b |
 | `KEYCLOAK_ACCOUNT_PATH` | `"/account"` | `lib/constants/auth.ts` | R17, ajouté à `AUTH_KEYCLOAK_ISSUER` |
 | `PICKUP_PLACEHOLDER` | entrée d'affichage grisée | `lib/constants/checkout.ts` | R8, clarification Q2 |
-| `SETUP_INTENT_ID_PATTERN` | `/^seti_[A-Za-z0-9]+$/` | `lib/constants/account.ts` | forme des identifiants `SetupIntent` de Stripe (R21) |
-| `STRIPE_CSP_SOURCES` | `{ script: ["https://js.stripe.com"], frame: ["https://js.stripe.com"], connect: ["https://api.stripe.com"] }` | `lib/constants/security.ts` | origines exigées par Stripe Elements, ajoutées à la CSP de `/account/card` seulement (constitution, contraintes) |
+| `CARD_NUMBER_PATTERN` | `/^\d{13,19}$/` | `lib/constants/account.ts` | `@Pattern` de `BankCardCreationRequestDto` (R21 révisée) |
+| ~~`SETUP_INTENT_ID_PATTERN`~~ (abandonné) | `/^seti_[A-Za-z0-9]+$/` | `lib/constants/account.ts` | forme des identifiants `SetupIntent` de Stripe (R21) |
+| ~~`STRIPE_CSP_SOURCES`~~ (abandonné) | `{ script: ["https://js.stripe.com"], frame: ["https://js.stripe.com"], connect: ["https://api.stripe.com"] }` | `lib/constants/security.ts` | origines exigées par Stripe Elements, ajoutées à la CSP de `/account/card` seulement (constitution, contraintes) |
 | `WISHLIST_PAGE_SIZE` | 20 | `lib/constants/wishlist.ts` | `DEFAULT_PAGE_SIZE_WISHLIST` du backend (R22) |
 | `WISHLIST_IDS_MAX` | 100 | `lib/constants/wishlist.ts` | `spring.data.web.pageable.max-page-size` (R22) |
 | `WISHLIST_SORT` | `"createdAt,desc"` | `lib/constants/wishlist.ts` | défaut du backend |

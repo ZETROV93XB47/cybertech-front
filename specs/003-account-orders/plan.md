@@ -15,8 +15,8 @@ carte enregistrée masquée. Approche : Server Components pour toutes les lectur
 (`no-store`, jeton de l'utilisateur), un îlot client pour le tunnel et la modification de
 commande (TanStack Query pour le devis annulable et le sondage du statut), Server Actions pour
 profil et carte, six nouvelles routes BFF, pages privées gardées par `proxy.ts` puis par le
-layout. Seules dépendances ajoutées : `@stripe/stripe-js` et `@stripe/react-stripe-js`, pour
-l'ajout de carte par Stripe Elements sur « Ma carte » (R21, constitution V v2.3.0). Aucun montant calculé par le front (le montant
+layout. Aucune dépendance ajoutée : la carte s'ajoute dans un formulaire de « Ma carte » envoyé au
+backend par le BFF (R21 révisée, constitution V v3.0.0). Aucun montant calculé par le front (le montant
 manquant pour un minimum de commande est une différence informative de deux valeurs du
 devis). Décisions : [research.md](./research.md).
 
@@ -25,8 +25,7 @@ devis). Décisions : [research.md](./research.md).
 **Language/Version**: TypeScript 5.x strict, Node 24 LTS, React 19.3, Next.js 16.4 (App Router)
 — inchangé
 
-**Primary Dependencies**: celles du lot 1 et de la 002, plus `@stripe/stripe-js` et
-`@stripe/react-stripe-js` (R21) : zod 4.6, @tanstack/react-query
+**Primary Dependencies**: celles du lot 1 et de la 002 : zod 4.6, @tanstack/react-query
 5.104, next-auth 5 beta, tailwindcss 4.3, radix-ui (Dialog, AlertDialog, RadioGroup, Select),
 motion 14.1, sonner, pino, openapi-typescript
 
@@ -46,8 +45,7 @@ tunnel et « Mes commandes » ; nouveaux montants affichés < 1 s après un chan
 issue du paiement < 15 s dans 95 % des cas (SC-005)
 
 **Constraints**: backend en lecture seule ; paiement Stripe en mode test côté serveur, avec une
-carte enregistrée obligatoire (débit de la carte de l'utilisateur après `backend-prompts-lot2.md`
-§10) ; place sans clé
+carte enregistrée obligatoire (son numéro décide de l'issue, backend `ae1d263`) ; place sans clé
 d'idempotence ; devis limité à 60 req/min, place à 30 req/min ; adresse du profil aplatie et
 téléphone jamais renvoyé ; moyen de paiement absent de `OrderResponseDto` ; aucun devis pour
 une commande existante ; délais de livraison pas encore fournis par le backend
@@ -66,7 +64,7 @@ modification, carte, redirection `/account`), 1 page modifiée (panier), en-têt
 | II. App Router | Lectures en Server Components ; `"use client"` limité à `CheckoutFlow`, `DiscountBlock`, `PaymentTracker`, `OrderEditForm`, dialogues de confirmation ; pages privées gardées par `proxy.ts` **et** `requireSession` dans `app/(account)/layout.tsx` (R1) | ✅ |
 | III. BFF | Navigateur → `/api/checkout/*`, `/api/orders/*`, Server Actions ; jeton ajouté côté serveur ; jamais d'appel direct à Spring | ✅ |
 | IV. Session et tokens | Aucun jeton côté client ; `sessionStorage` limité à une clé de réduction et à des choix de livraison/paiement ; l'adresse n'est pas stockée côté navigateur (R9) | ✅ |
-| V. Contrat d'API | Schémas Zod depuis les DTO, comparés à `schema.d.ts` (test de type) ; montants affichés = devis ou commande du backend ; l'exception « montant estimé » n'est plus utilisée dans le tunnel ; montant manquant = différence informative non facturée (R6) ; v2.3.0 : carte saisie uniquement dans Stripe Elements, le site ne voit qu'un identifiant Stripe (R21, FR-032) | ✅ |
+| V. Contrat d'API | Schémas Zod depuis les DTO, comparés à `schema.d.ts` (test de type) ; montants affichés = devis ou commande du backend ; l'exception « montant estimé » n'est plus utilisée dans le tunnel ; montant manquant = différence informative non facturée (R6) ; v3.0.0 : carte saisie dans le seul formulaire « Ajouter une carte », envoyée au backend par le BFF, numéro jamais loggué, stocké ni réaffiché (R21, FR-032) | ✅ |
 | VI. Configuration | Aucune nouvelle variable ; URL de la console de compte dérivée de `AUTH_KEYCLOAK_ISSUER` | ✅ |
 | VII. Tests | Unitaires (vues, adresse, devis, sondage, mapping d'erreurs, composants + axe) ; 5 parcours Playwright (commande, réduction, commandes, profil, carte) | ✅ |
 | VIII. Accessibilité | Indicateur d'étape, `aria-live` pour montants et statuts, option grisée annoncée, `AlertDialog` pour annuler/supprimer, erreurs reliées aux champs, frise lisible par les lecteurs d'écran, reduced-motion | ✅ |
@@ -113,10 +111,9 @@ app/
 │       ├── orders/[uuid]/page.tsx           + détail, frise, actions (R13, R15)
 │       ├── orders/[uuid]/edit/page.tsx      + OrderEditForm (R14)
 │       ├── profile/page.tsx                 + ProfileForm (R17)
-│       └── card/page.tsx                    + BankCardPanel, StripeCardForm (R17, R21)
+│       └── card/page.tsx                    + BankCardPanel, AddCardForm (R17, R21)
 └── api/
-    ├── bank-card/route.ts                   + POST { setupIntentId } (R21)
-    ├── bank-card/setup-intent/route.ts      + POST (R21)
+    ├── bank-card/route.ts                   + POST carte de test (R21)
     ├── checkout/quote/route.ts              + POST
     ├── checkout/place/route.ts              + POST
     └── orders/[uuid]/
@@ -198,7 +195,7 @@ lib/ schemas/wishlist.ts + · api/endpoints/wishlist.ts + · constants/wishlist.
 | Détail | RSC → `getOrder(uuid)` ; client → `POST /api/orders/{uuid}/cancel` | `GET /order/get/{uuid}`, `POST /order/cancel` | no-store |
 | Modification | RSC → `getOrder` ; client → `GET /api/search`, `POST /api/orders/{uuid}` | `POST /product/search`, `POST /order/update` | no-store |
 | Profil | RSC → `getMe` ; Server Action `updateProfile` | `GET /user/me`, `PATCH /user/me` | no-store |
-| Carte | RSC → `getBankCard` ; Server Actions `updateBankCard`, `deleteBankCard` ; client → `POST /api/bank-card/setup-intent`, Stripe Elements, `POST /api/bank-card` | `GET /bank-card/get`, `PUT /bank-card/update`, `DELETE /bank-card/delete`, `POST /bank-card/setup-intent`, `POST /bank-card/add` (§10) | no-store |
+| Carte | RSC → `getBankCard` ; Server Actions `updateBankCard`, `deleteBankCard` ; client → `POST /api/bank-card` (formulaire) | `GET /bank-card/get`, `PUT /bank-card/update`, `DELETE /bank-card/delete`, `POST /bank-card/add` | no-store |
 | Tunnel – carte débitée | RSC → `getBankCard` | `GET /bank-card/get` | no-store |
 
 Détail : [contracts/bff-routes.md](./contracts/bff-routes.md).
@@ -216,9 +213,9 @@ Détail : [contracts/bff-routes.md](./contracts/bff-routes.md).
    ajout de produits, relance depuis le détail.
 4. **US4 Profil (P2)** : affichage, découpage de l'adresse, Server Action, lien de mot de
    passe ; le tunnel préremplit déjà l'adresse depuis US1 (découpage livré en US1).
-5. **US5 Carte (P3)** : affichage masqué, ajout et remplacement par Stripe Elements (après
-   `backend-prompts-lot2.md` §10), modification, suppression, état « aucune carte » qui invite à
-   ajouter une carte ; parcours e2e avec les cartes de test Stripe (paiement accepté puis
+5. **US5 Carte (P3)** : affichage masqué, ajout et remplacement par le formulaire du site (R21
+   révisée), modification, suppression, état « aucune carte » qui invite à
+   ajouter une carte ; parcours e2e avec les cartes de test du backend (paiement accepté puis
    refusé et relancé).
 6. **Phase « Interface vivante et cohérente »** (`docs/speckit-prompts-lot2.md` §6) : audit
    avec captures, animations orchestrées par surface, tests par niveau d'effet, axe, longues

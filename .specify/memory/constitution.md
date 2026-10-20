@@ -68,18 +68,26 @@ la gestion des erreurs reste en un seul endroit.
   backend telles que documentées dans `docs/backend/api-map.md`, avec un test unitaire par
   règle ; il n'est jamais envoyé au backend ; il cède la place au montant renvoyé par le
   backend dès que celui-ci est connu.
-- Aucun numéro de carte bancaire complet (PAN) ni cryptogramme ne transite par le front (ni par
-  le BFF, ni par le backend) : une carte se saisit **uniquement dans le champ hébergé par
-  Stripe** (Stripe Elements, iframe chargée depuis `js.stripe.com`), qui l'envoie directement à
-  Stripe ; le front ne reçoit et ne transmet qu'un identifiant Stripe (`SetupIntent`,
-  `PaymentMethod`) et n'affiche que la carte masquée renvoyée par le backend. Aucun champ du
-  front hors de Stripe Elements n'accepte un numéro de carte.
+- Carte bancaire (projet portfolio, cartes de test uniquement) : un numéro de carte se saisit
+  dans **un seul formulaire du site**, « Ajouter une carte » sur « Ma carte », et part
+  directement au backend par le BFF (`POST /api/bank-card` → `POST /bank-card/add`), qui le
+  chiffre (AES/GCM) et n'en garde que les 4 derniers chiffres. Le numéro MUST n'être jamais
+  loggué (navigateur, BFF), jamais stocké côté front (ni storage, ni cookie, ni cache, ni état
+  conservé après l'envoi), jamais renvoyé ni réaffiché en clair : le front n'affiche que la
+  carte masquée renvoyée par le backend. Le corps envoyé est validé par un schéma Zod strict
+  (mêmes contraintes que `BankCardCreationRequestDto`) ; aucun autre champ du site n'accepte un
+  numéro de carte ; aucun cryptogramme n'est demandé (le backend n'en a pas). L'interface MUST
+  dire qu'il s'agit de cartes de test (backend `docs/test-cards.md` : un numéro composé
+  uniquement de 1 paie, tout autre numéro est refusé) et inviter à ne jamais saisir une vraie
+  carte.
 
 **Pourquoi** : le backend est la source de vérité ; une divergence de contrat doit échouer
 bruyamment à la frontière, pas silencieusement dans l'UI. Une estimation honnête et testée
-vaut mieux qu'un total découvert après la commande ; un PAN qui ne passe jamais par le front ne
-peut pas y fuiter (PCI-DSS) : avec Stripe Elements, le site reste dans le périmètre le plus
-léger (SAQ A) tout en laissant l'utilisateur enregistrer sa propre carte.
+vaut mieux qu'un total découvert après la commande. Le backend a abandonné l'enregistrement
+de la carte chez Stripe (commit backend `ae1d263`, 2026-10-14) : il reçoit le numéro et décide
+de l'issue du paiement en mode test Stripe. Le site ne traite que des cartes de test, mais il
+applique au numéro les règles d'une donnée sensible (jamais loggué, stocké ni réaffiché) pour
+que ce chemin ne devienne jamais une fuite.
 
 ### VI. Configuration
 
@@ -250,9 +258,7 @@ pouvoir casser l'esthétique ni l'accessibilité.
   culpabilisant.
 - En-têtes de sécurité dans `next.config` (CSP avec nonce, `frame-ancestors 'none'`,
   Referrer-Policy, Permissions-Policy). Aucune donnée privée dans une page statique ou ISR.
-  Seules origines tierces autorisées pour le paiement : celles exigées par Stripe Elements
-  (`js.stripe.com` en script et en frame, `api.stripe.com` en connexion), sur les seules pages
-  qui l'utilisent.
+  Aucune origine tierce n'est autorisée pour le paiement : la carte ne passe que par le BFF.
 
 ## Workflow et portes qualité
 
@@ -274,4 +280,4 @@ pouvoir casser l'esthétique ni l'accessibilité.
   MINOR pour un principe ou une section ajouté ou nettement étendu, PATCH pour une
   clarification ou une correction de forme.
 
-**Version**: 2.3.0 | **Ratified**: 2026-10-13 | **Last Amended**: 2026-10-14
+**Version**: 3.0.0 | **Ratified**: 2026-10-13 | **Last Amended**: 2026-10-20

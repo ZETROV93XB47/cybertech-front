@@ -34,9 +34,9 @@ son profil et sa carte enregistrée à jour.
 - **Commande** : la commande est créée à partir du panier du serveur, qui est vidé ; le
   paiement passe par Stripe en mode test côté serveur ; l'issue du paiement ne se lit que dans
   le statut de la commande. **Une commande exige une carte enregistrée sur le compte**
-  (404 `BANK_CARD_NOT_FOUND` sinon, constaté le 2026-10-14). Aujourd'hui le backend débite
-  toujours la même carte de test fixée dans sa configuration ; la demande backend
-  `backend-prompts-lot2.md` §10 lui fait débiter la carte de l'utilisateur.
+  (404 `BANK_CARD_NOT_FOUND` sinon, constaté le 2026-10-14). Depuis le commit backend
+  `ae1d263`, le numéro de la carte enregistrée décide de l'issue : un numéro composé uniquement
+  de 1 paie, tout autre numéro est refusé (backend `docs/test-cards.md`).
 - **Détail d'une commande** : sous-total, remise et sa clé, frais de port, type et
   transporteur ; ces champs sont vides sur les commandes passées avant leur ajout.
 - **Profil** : l'adresse est renvoyée **en une seule ligne** (« rue, code postal ville,
@@ -64,11 +64,13 @@ son profil et sa carte enregistrée à jour.
 - Q: Que peut-on changer aux articles d'une commande non expédiée ? → A: Les quantités, le
   retrait de lignes (au moins une ligne doit rester) et l'ajout de produits depuis une
   recherche dans la commande ; l'adresse, la livraison et le paiement restent modifiables.
-- Décision (2026-10-14, après la vérification de US1, constitution V v2.3.0) : le site permet
-  d'ajouter sa carte, saisie uniquement dans le champ hébergé par Stripe (Stripe Elements) ; le
-  backend l'enregistre chez Stripe et la débite à chaque paiement, si bien que les cartes de
-  test Stripe décident de l'issue (4242 4242 4242 4242 acceptée, 4000 0000 0000 0341 refusée au
-  paiement…). Sans carte enregistrée, le tunnel invite à en ajouter une avant de valider.
+- Décision (2026-10-14, après la vérification de US1, constitution V v2.3.0) : carte ajoutée
+  par Stripe Elements. **Remplacée le 2026-10-20** (constitution V v3.0.0), le backend ayant
+  abandonné l'enregistrement Stripe (`ae1d263`) : la carte s'ajoute dans un formulaire du site
+  (« Ma carte »), envoyée au backend par le BFF, qui la chiffre ; le numéro n'est jamais
+  loggué, stocké ni réaffiché par le front. Cartes de test uniquement : `1111 1111 1111 1111`
+  paie, tout autre numéro est refusé au paiement. Sans carte enregistrée, le tunnel invite à en
+  ajouter une avant de valider.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -276,18 +278,18 @@ supprimer.
 - La carte est affichée masquée (4 derniers chiffres), avec titulaire, expiration et réseau.
 - Je peux modifier le titulaire et la date d'expiration, ou supprimer la carte après
   confirmation.
-- J'ajoute ou je remplace ma carte dans un champ sécurisé fourni par Stripe : le numéro ne
-  passe jamais par le site. Une carte refusée par Stripe à l'enregistrement est expliquée.
+- J'ajoute ou je remplace ma carte dans le formulaire « Ajouter une carte » (titulaire,
+  numéro, expiration, réseau) ; l'interface rappelle qu'il s'agit de cartes de test
+  (`1111 1111 1111 1111` paie, tout autre numéro est refusé au paiement).
 - Une seule carte par compte : en ajouter une nouvelle remplace l'ancienne, après
   confirmation.
 - Cette carte est débitée à chaque commande et à chaque relance de paiement.
 
-**Why this priority**: sans carte, aucune commande n'est possible ; P3 tant que le backend
-n'a pas livré l'enregistrement Stripe (`backend-prompts-lot2.md` §10), les comptes existants
-gardant leur carte.
+**Why this priority**: sans carte, aucune commande n'est possible ; P3 car les comptes de test
+reçoivent une carte à l'inscription.
 
-**Independent Test**: sans carte, ajouter la carte de test 4242 4242 4242 4242, la voir
-masquée, commander et voir « Payée » ; la remplacer par 4000 0000 0000 0341, commander et voir
+**Independent Test**: sans carte, ajouter la carte de test 1111 1111 1111 1111, la voir
+masquée, commander et voir « Payée » ; la remplacer par 4242 4242 4242 4242, commander et voir
 « Paiement refusé » ; modifier l'expiration, puis supprimer la carte et voir l'état « aucune
 carte ».
 
@@ -301,11 +303,13 @@ carte ».
    s'affiche.
 4. **Given** aucune carte, **When** il ouvre « Ma carte », **Then** un état illustré explique
    qu'une carte est nécessaire pour commander et propose « Ajouter une carte ».
-5. **Given** le formulaire d'ajout, **When** le client saisit une carte de test valide dans le
-   champ Stripe et enregistre, **Then** la carte masquée s'affiche et aucun numéro complet n'a
-   été envoyé au site.
-6. **Given** une carte refusée par Stripe à l'enregistrement, **When** il enregistre, **Then**
-   un message explique le refus et la carte précédente (s'il y en avait une) est conservée.
+5. **Given** le formulaire d'ajout, **When** le client saisit une carte de test valide et
+   enregistre, **Then** la carte masquée s'affiche, le formulaire est vidé et le numéro n'est
+   ni réaffiché ni conservé dans le navigateur.
+6. **Given** un numéro invalide (moins de 13 chiffres, lettres) ou une expiration passée,
+   **When** il enregistre, **Then** l'erreur est affichée sur le champ et rien n'est envoyé ;
+   **Given** une carte déjà enregistrée, **When** il en ajoute une autre, **Then** le
+   remplacement est confirmé d'abord.
 7. **Given** une carte enregistrée qui refuse les paiements, **When** il commande, **Then** la
    confirmation affiche « Paiement refusé » ; après avoir remplacé la carte, « Relancer le
    paiement » fait passer la commande à « Payée ».
@@ -521,10 +525,11 @@ panier ; recharger : un seul produit reste, cœur plein sur sa carte.
 - **FR-031**: « Ma carte » MUST afficher la carte enregistrée masquée (titulaire, 4 derniers
   chiffres, expiration, réseau) et permettre de modifier titulaire et expiration (mois et
   année, non passée) ou de supprimer la carte après confirmation.
-- **FR-032**: L'ajout ou le remplacement de la carte MUST se faire uniquement dans le champ
-  hébergé par Stripe (Stripe Elements) ; le site MUST ne recevoir et ne transmettre qu'un
-  identifiant Stripe, jamais le numéro ni le cryptogramme ; un refus de Stripe MUST être
-  expliqué et laisser la carte précédente en place ; remplacer une carte MUST être confirmé.
+- **FR-032**: L'ajout ou le remplacement de la carte MUST se faire dans le seul formulaire
+  « Ajouter une carte » de « Ma carte » (titulaire, numéro 13 à 19 chiffres, expiration
+  `MM/AAAA` non passée, réseau), envoyé au backend par le BFF ; le numéro MUST n'être jamais
+  loggué, stocké côté front ni réaffiché (constitution V v3.0.0) ; l'interface MUST rappeler
+  qu'il s'agit de cartes de test ; remplacer une carte MUST être confirmé.
   L'état « aucune carte » MUST expliquer qu'une carte est nécessaire pour commander.
 
 **Wishlist**
@@ -569,8 +574,8 @@ panier ; recharger : un seul produit reste, cœur plein sur sa carte.
 - **Statut de commande** : Créée, En attente de paiement, Payée, Paiement refusé, En
   préparation, Expédiée, Livrée, Annulée, Remboursée, Retournée.
 - **Carte enregistrée** : titulaire, numéro masqué, expiration (mois/année), réseau ; une
-  au plus par utilisateur ; enregistrée chez Stripe (le site ne connaît que son identifiant)
-  et débitée à chaque paiement.
+  au plus par utilisateur ; numéro chiffré par le backend (le site n'en connaît que les 4
+  derniers chiffres) et débité à chaque paiement.
 
 - **Wishlist** : liste de produits mis de côté par un client, chacun avec sa date d'ajout ;
   un produit au plus une fois.
@@ -594,9 +599,9 @@ panier ; recharger : un seul produit reste, cœur plein sur sa carte.
 - **SC-007**: Aucune violation d'accessibilité détectée par l'audit automatique sur le
   panier, chaque étape du tunnel, la confirmation, « Mes commandes », le détail, le profil et
   la carte ; tout le parcours de commande est utilisable au clavier seul.
-- **SC-008**: Aucun numéro de carte complet ni cryptogramme n'est jamais saisi hors du champ
-  Stripe, affiché, ni transmis par le site (navigateur → BFF → backend), vérifiable dans les
-  requêtes du site.
+- **SC-008**: Le numéro de carte complet n'apparaît que dans la requête d'ajout
+  (`POST /api/bank-card`) : jamais dans une autre requête, une réponse, le HTML, le stockage du
+  navigateur ni un log du BFF, vérifiable dans les requêtes du site et les logs.
 - **SC-009**: Budgets de performance du lot 1 tenus sur le panier, le tunnel et « Mes
   commandes ».
 
@@ -606,10 +611,8 @@ panier ; recharger : un seul produit reste, cœur plein sur sa carte.
 ## Assumptions
 
 - La cible reste le navigateur de bureau (constitution IX).
-- Le paiement se fait en mode test Stripe côté serveur, sans redirection (une carte exigeant
-  3-D Secure est donc refusée) ; tant que le backend n'a pas livré `backend-prompts-lot2.md`
-  §10, il débite sa carte de test de configuration et les comptes de test sont inscrits avec
-  une carte.
+- Le paiement se fait en mode test Stripe côté serveur, sans redirection ; le numéro de la
+  carte enregistrée décide de l'issue (que des 1 : payée ; sinon : refusée).
 - Les délais de livraison seront des valeurs fixes fournies par le backend (configuration),
   sans calcul ni jours fériés ; tant qu'ils ne sont pas livrés, les délais indicatifs du front,
   déjà utilisés par la fiche produit, prennent le relais.
@@ -643,9 +646,8 @@ panier ; recharger : un seul produit reste, cœur plein sur sa carte.
   modification avant de l'enregistrer.
 - **Suppression de compte** et **suivi de livraison** : absents (`api-map.md` §F), hors
   périmètre.
-- **Carte de l'utilisateur chez Stripe** (bloquante pour l'ajout de carte de US5 et pour un
-  paiement refusé selon la carte) : client Stripe, `SetupIntent`, enregistrement et débit de
-  la carte de l'utilisateur — `backend-prompts-lot2.md` §10, `api-map.md` §E 32.
+- **Carte de l'utilisateur chez Stripe** : abandonnée par le backend le 2026-10-14
+  (`ae1d263`) ; plus de dépendance : `POST /bank-card/add` reçoit la carte saisie.
 
 - **État de la wishlist par produit** (non bloquante) : aucun endpoint ne dit si un produit
   est dans ma wishlist ; le front lit la première page de `GET /wishlist/my-wishlist` à la

@@ -219,7 +219,8 @@ décision du 2026-10-14). Backend vérifié au commit `84dc038` le 2026-10-14
   les champs, `revalidatePath` après succès. Téléphone : envoyé seulement s'il est saisi. Lien
   « Changer de mot de passe » : `KEYCLOAK_ACCOUNT_URL` dérivée de `AUTH_KEYCLOAK_ISSUER` +
   `/account` (constante serveur). Suppression de carte : `AlertDialog` puis action. L'ajout
-  et le remplacement de la carte passent par Stripe Elements (R21), pas par une Server Action.
+  et le remplacement de la carte passent par la route BFF `POST /api/bank-card` (R21), pas par
+  une Server Action.
 - **Rationale** : formulaires simples, fonctionnent sans JavaScript, aucun état client à
   synchroniser ; pas de TanStack pour des données lues une fois.
 
@@ -248,37 +249,26 @@ décision du 2026-10-14). Backend vérifié au commit `84dc038` le 2026-10-14
   avec `StateIllustration`. Version statique quand `useEffectiveEffects()` est réduit ou
   désactivé ; tests par niveau d'effet comme en 002.
 
-## R21 — Carte de l'utilisateur : Stripe Elements et SetupIntent (décision du 2026-10-14)
+## R21 — Carte de l'utilisateur : formulaire du site, envoyée au backend (révisée le 2026-10-20)
 
-- **Decision** : l'ajout ou le remplacement de la carte se fait sur « Ma carte » avec Stripe
-  Elements (`@stripe/stripe-js` + `@stripe/react-stripe-js`, composant `PaymentElement` limité
-  aux cartes). Flux :
-  1. le client ouvre le formulaire → `POST /api/bank-card/setup-intent` (BFF, USER) →
-     backend `POST /bank-card/setup-intent` → `{ clientSecret, publishableKey }` (la clé
-     publiable vient du backend : aucune variable d'environnement front ajoutée) ;
-  2. `loadStripe(publishableKey)` (chargé à la demande, uniquement sur cette page), puis
-     `stripe.confirmSetup({ elements, redirect: "if_required" })` : le numéro part de l'iframe
-     Stripe directement chez Stripe ;
-  3. succès → `POST /api/bank-card { setupIntentId }` (BFF) → backend `POST /bank-card/add` →
-     carte masquée renvoyée ; refus Stripe (`setup_intent_unexpected_state`,
-     `card_declined`…) → message traduit, carte précédente conservée.
-  La CSP n'autorise `js.stripe.com` (script, frame) et `api.stripe.com` (connect) que sur
-  `/account/card` (`proxy.ts` construit la CSP par chemin). Le tunnel ne saisit jamais de
-  carte : l'étape paiement affiche la carte enregistrée (lue par `getBankCard` côté serveur)
-  et, sans carte, bloque la validation avec un lien « Ajouter une carte » vers
-  `/account/card?returnTo=/checkout` (chemin relatif vérifié par `safeCallbackPath`).
-- **Rationale** : constitution V v2.3.0 (aucun PAN par le front, le BFF ni le backend, SAQ A) ;
-  le backend débite cette carte à chaque paiement (`backend-prompts-lot2.md` §10), donc les
-  cartes de test Stripe décident de l'issue (4242… acceptée, 4000 0000 0000 0341 refusée au
-  paiement, 4000 0000 0000 9995 fonds insuffisants, 4000 0025 0000 3155 refusée faute de
-  3-D Secure).
-- **Alternatives considered** : saisir le numéro dans un champ du site et le traduire en jeton
-  de test côté backend (PAN en clair dans le front et le backend, contraire à la constitution) ;
-  Stripe Checkout hébergé (redirection hors du site, pas d'enregistrement pour les paiements
-  suivants sans flux supplémentaire).
-- **Dépendance** : bloquée par `backend-prompts-lot2.md` §10 (setup-intent, add par
-  `setupIntentId`) ; d'ici là, les comptes e2e sont inscrits avec une carte de test et le
-  tunnel gère `NO_SAVED_CARD`.
+- **Decision** : « Ajouter une carte » sur « Ma carte » est un formulaire du site (titulaire,
+  numéro, expiration `MM/AAAA`, réseau `BankCardType`) envoyé par `fetch` à la route BFF
+  `POST /api/bank-card` (USER), qui valide le corps avec `BankCardAddBodySchema` (strict, mêmes
+  contraintes que `BankCardCreationRequestDto` : numéro `^\d{13,19}$` après retrait des
+  espaces, expiration future) puis appelle `POST /bank-card/add` et renvoie la carte masquée.
+  Remplacer = confirmation, puis `DELETE /bank-card/delete` suivi de l'ajout (le backend refuse
+  une deuxième carte) ; si l'ajout échoue après la suppression, le message le dit et invite à
+  ressaisir. Le numéro vit seulement dans l'état du formulaire jusqu'à l'envoi, puis est
+  effacé ; jamais loggué (le logger du BFF ne reçoit ni le corps ni le numéro, seulement le
+  réseau et le résultat), jamais en `sessionStorage`, jamais dans une réponse. Champs avec
+  `autoComplete="off"` et `inputMode="numeric"`. Le tunnel affiche la carte enregistrée et,
+  sans carte, renvoie vers `/account/card?returnTo=/checkout` (`safeCallbackPath`).
+- **Rationale** : le backend a abandonné le flux Stripe (`ae1d263`, propriétaire sans compte
+  Stripe) et attend le numéro ; constitution V v3.0.0 (cartes de test uniquement, numéro traité
+  comme donnée sensible). Aucune dépendance npm ni origine tierce n'est ajoutée.
+- **Alternatives considered** : Stripe Elements (v2.3.0, abandonné : plus d'endpoint
+  `setup-intent`) ; carte seulement à l'inscription (aucun moyen de remplacer une carte
+  refusée, le scénario « refusé puis relancé » devient impossible).
 
 ## R22 — Wishlist : un cœur par produit, une lecture partagée (US6, ajoutée le 2026-10-14)
 

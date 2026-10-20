@@ -26,14 +26,11 @@ Routes BFF : [contracts/](./contracts/). Modèle : [data-model.md](./data-model.
    - compte B : sans adresse, pour vérifier le préremplissage vide ;
    - compte C : avec une carte enregistrée (US5).
 4. **Carte enregistrée** : **une commande exige une carte** (404 `BANK_CARD_NOT_FOUND` sinon).
-   Tant que le backend n'a pas livré `backend-prompts-lot2.md` §10, les comptes qui commandent
-   sont inscrits avec une carte de test (`registerUser(context, { withBankCard: true })` dans les
-   e2e, ou `bankCardCreationRequestDto` à l'inscription) et le backend débite toujours sa carte
-   de configuration. Après §10, la carte s'ajoute sur « Ma carte » par Stripe Elements (décision
-   du 2026-10-14, constitution V v2.3.0) et les cartes de test Stripe décident de l'issue :
-   `4242 4242 4242 4242` acceptée, `4000 0000 0000 0341` enregistrée puis refusée au paiement,
-   `4000 0000 0000 9995` fonds insuffisants, `4000 0025 0000 3155` refusée faute de
-   3-D Secure ; expiration future et cryptogramme quelconque.
+   Les comptes e2e qui commandent sont inscrits avec la carte `1111111111111111`
+   (`registerUser(context, { withBankCard: true })`). Depuis le backend `ae1d263`, le numéro
+   décide de l'issue : que des 1 → payée, tout autre numéro (`4242…`, `0000…`) → refusée. La
+   carte s'ajoute sur « Ma carte » dans le formulaire du site (constitution V v3.0.0).
+
 5. **Connexion** : elle ne fonctionne que sur le port 3000, seule redirect URI du client
    Keycloak `cybertech-front-client`. Si un `next dev` tourne déjà, le réutiliser, sinon en
    lancer un.
@@ -139,9 +136,9 @@ Parcours attendus :
 | 49 | Modifier titulaire et expiration, recharger | Valeurs à jour | Test indépendant US5 |
 | 50 | Supprimer (confirmation) | État « aucune carte » | US5-3 |
 | 51 | Compte sans carte | État illustré : une carte est nécessaire pour commander, « Ajouter une carte » | US5-4, FR-032 |
-| 51 bis | Ajouter 4242… dans le champ Stripe (après §10) | Carte masquée affichée ; dans l'onglet Réseau, aucune requête vers le site ne contient le numéro ni le cryptogramme | US5-5, SC-008 |
-| 51 ter | Carte 4000 0000 0000 0341, commander | Confirmation « Paiement refusé » ; remplacer par 4242 puis « Relancer le paiement » → « Payée » | US5-7, FR-014 |
-| 51 quater | Carte refusée à l'enregistrement (`4000 0000 0000 0002`) | Message de refus, carte précédente conservée | US5-6 |
+| 51 bis | Ajouter 1111 1111 1111 1111 dans « Ajouter une carte » | Carte masquée affichée ; dans l'onglet Réseau, aucune requête vers le site ne contient le numéro ni le cryptogramme | US5-5, SC-008 |
+| 51 ter | Carte 4242 4242 4242 4242, commander | Confirmation « Paiement refusé » ; remplacer par 1111… puis « Relancer le paiement » → « Payée » | US5-7, FR-014 |
+| 51 quater | Numéro de 12 chiffres ou expiration passée | Message de refus, carte précédente conservée | US5-6 |
 
 ### US6 — Ma wishlist
 

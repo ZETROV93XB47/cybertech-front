@@ -94,23 +94,21 @@ formError?: FrontErrorCode, retryAfterSeconds? }`. Session absente → redirecti
 L'ajout et le remplacement de la carte ne sont pas des Server Actions : ils passent par Stripe
 Elements et les deux routes de la section 2 bis (constitution V v2.3.0, FR-032, research R21).
 
-## 2 bis. Carte enregistrée chez Stripe (après `backend-prompts-lot2.md` §10)
+## 2 bis. Ajout de la carte (R21 révisée)
 
 | Méthode | Route | Entrée (Zod) | Sortie 2xx | Endpoint Spring |
 |---|---|---|---|---|
-| POST | `/api/bank-card/setup-intent` | — | `200 { clientSecret, publishableKey }` (`SetupIntentSchema`) | `POST /bank-card/setup-intent` |
-| POST | `/api/bank-card` | `BankCardAddBodySchema` : `{ setupIntentId }` (strict, regex `^seti_…`) | `201 BankCard` (masquée) | `POST /bank-card/add { setupIntentId }` |
+| POST | `/api/bank-card` | `BankCardAddBodySchema` : `{ cardHolderName, cardNumber, expiryDate, cardType, replace?: boolean }` (strict) | `201 BankCard` (masquée) | `replace` → `DELETE /bank-card/delete` puis `POST /bank-card/add` |
 
 Règles :
-- USER, same-origin, `Cache-Control: no-store` ; jamais de numéro, de cryptogramme ni de
-  `clientSecret` dans un log (module `account.card`, seuls `setupIntentId` tronqué et le réseau
-  peuvent être loggués) ;
-- `403` si le `SetupIntent` n'appartient pas à l'appelant (rendu `forbidden`), `400` si le
-  `SetupIntent` n'est pas `succeeded` (rendu `invalid`) ;
-- entre l'iframe Stripe et Stripe, aucun appel ne passe par le site ; le navigateur appelle
-  `js.stripe.com` / `api.stripe.com`, autorisés par la CSP de `/account/card` uniquement ;
-- tant que §10 n'est pas livré par le backend, ces routes répondent `503 unavailable` (endpoint
-  absent, 404 backend) et « Ma carte » cache le formulaire d'ajout avec une explication.
+- USER, same-origin, `Cache-Control: no-store` ;
+- le corps n'est **jamais** loggué ni mis en cache ; le log `account.card` ne porte que le
+  réseau, `replace` et le résultat (jamais titulaire, numéro, 4 derniers chiffres, expiration) ;
+- corps invalide → `400 invalid` avec les erreurs de champ, sans appel backend ;
+- `400` backend → `invalid` ; carte expirée → `card-expired` ; carte déjà présente sans
+  `replace` → `409 conflict` ;
+- la réponse ne contient que la carte masquée (`maskedNumber`, réseau, expiration), jamais le
+  numéro reçu.
 
 ## 3. Appels serveur (Server Components), sans route BFF
 
