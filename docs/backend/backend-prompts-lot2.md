@@ -332,6 +332,10 @@ Travail demandé :
 
 ## 10. Carte de l'utilisateur enregistrée chez Stripe et utilisée à chaque paiement
 
+> **Abandonné le 2026-10-14** par le propriétaire (commit backend `ae1d263` : la carte saisie est
+> de nouveau chiffrée par le backend, un numéro composé de 1 paie). Ne pas envoyer ; le front
+> suit la constitution v3.0.0 (formulaire « Ajouter une carte » du site).
+
 > Ajouté le 2026-10-14 (feature front 003). Décision : option A, Stripe Elements côté front. Le
 > numéro de carte ne transite jamais par le front ni par le backend.
 
@@ -393,6 +397,56 @@ Tests :
 - IT de commande : carte 4242 → PAID, PaymentMethod de refus → PAYMENT_FAILED puis
   retry-payment avec une nouvelle carte → PAID ;
 - aucun log ni DTO ne contient de numéro complet ni de CVC.
+
+Mets à jour progress.md et l'OpenAPI (le front régénère ses types avec npm run gen:api).
+````
+
+---
+
+## 11. Détail structuré de `NOT_ENOUGH_STOCK`
+
+````text
+Objectif : que le front signale précisément la ligne en rupture (« Il n'en reste que 1 ») au
+panier, au tunnel de commande et à la modification d'une commande, sans lire le texte libre
+du message d'erreur.
+
+Constat : NOT_ENOUGH_STOCK (409) ne porte l'information que dans ErrorResponseDto.message, en
+texte libre, et sous deux formes différentes :
+- StockServiceImp#lockAndReserveProduct (place, update, retry) :
+  « Not enough stock for product <uuid>: requested=3, available=1 » ;
+- CartStockValidator#validateStockAvailability (panier) :
+  « Not enough stock for product <nom>. Available: 2 » (le nom, pas l'UUID ; pas la quantité
+  demandée).
+Or ErrorResponseDto documente que message « est lisible par un humain et peut changer » et que
+seul errorCode est un discriminant stable : le front ne peut donc pas savoir quelle ligne est
+en cause. Aujourd'hui, en modification de commande, il signale toutes les lignes ajoutées ou
+augmentées ; au panier, il n'affiche qu'un message général.
+
+Travail demandé :
+1. NotEnoughStockException porte des données structurées : productUuid (UUID), requested
+   (int), available (int, jamais négatif : max(0, stock - reservedStock)). Tous les lancers
+   (StockServiceImp, CartStockValidator et les autres s'il y en a) les fournissent ; le
+   message texte peut rester pour les logs.
+2. ErrorResponseDto gagne un champ optionnel details, absent (JsonInclude NON_NULL) pour les
+   autres erreurs. Pour NOT_ENOUGH_STOCK :
+     "details": { "items": [ { "productUuid": "…", "requested": 3, "available": 1 } ] }
+   Une liste, pour pouvoir signaler plusieurs lignes en une réponse : si la vérification
+   s'arrête aujourd'hui à la première ligne en défaut, la liste en contient une seule, c'est
+   acceptable ; si elle peut tout vérifier avant de lever (place, update), lister toutes les
+   lignes en défaut est préférable.
+3. ErrorManagementController#handleNotEnoughStockException remplit details ; le statut 409 et
+   errorCode NOT_ENOUGH_STOCK ne changent pas (rétrocompatible pour le front actuel).
+4. Aucune donnée personnelle dans details (UUID produit et quantités seulement).
+5. OpenAPI : schéma ErrorResponseDto avec details documenté (StockShortageDto : productUuid,
+   requested, available) et exemple sur POST /cart/add, PUT /cart/update (si présent),
+   POST /management/order/place, /update et /retry-payment.
+
+Tests :
+- unitaires : chaque lanceur fournit productUuid, requested et available corrects (available à
+  0 quand le stock réservé dépasse le stock) ;
+- IT : panier (ajout au-delà du stock), place (stock épuisé entre l'ajout au panier et la
+  commande), update (quantité augmentée au-delà du stock) → 409, errorCode NOT_ENOUGH_STOCK,
+  details.items[0] attendu ; une autre erreur (ex. 404 PRODUCT_NOT_FOUND) n'a pas de details.
 
 Mets à jour progress.md et l'OpenAPI (le front régénère ses types avec npm run gen:api).
 ````
