@@ -1,8 +1,8 @@
 // @vitest-environment node
 /**
- * `POST /api/bank-card` (feature 003 US5, T084): strict body, existing-card refusal, replacement
- * (delete then add, `cardRemoved` when the add fails after the delete), masked answer, and no
- * card data in any log or response.
+ * `POST /api/bank-card` (feature 003 US5, T084): strict body, existing-card refusal (backend
+ * `409 BANK_CARD_ALREADY_EXISTS`), replacement through `PUT /bank-card/replace` (`cardKept` when
+ * it fails), masked answer, and no card data in any log or response.
  *
  * @see specs/003-account-orders/contracts/bff-routes.md §2 bis
  */
@@ -42,44 +42,49 @@ const SAVED = {
 /** Backend calls recorded by {@link mockBackend}. */
 interface Calls {
   readonly adds: unknown[];
-  deletes: number;
+  readonly replaces: unknown[];
 }
 
 /**
- * Mocks the card endpoints.
+ * Answer of a mocked card write.
  *
- * @param options - Whether a card exists and how `add` answers.
+ * @param status - HTTP status to answer (`successStatus` means success).
+ * @param successStatus - Status of a successful write.
+ * @param code - Backend error code of a failure.
+ * @returns The saved card or the error body.
+ */
+function answer(status: number, successStatus: number, code: string): Response {
+  return status === successStatus
+    ? HttpResponse.json(SAVED, { status })
+    : HttpResponse.json(errorBody(code, status), { status });
+}
+
+/**
+ * Mocks the card endpoints as the backend behaves since `ea5f708`: a second add is a 409, the
+ * replacement is atomic.
+ *
+ * @param options - Whether a card exists and how `add` and `replace` answer.
  * @returns The recorded calls.
  */
 function mockBackend(options: {
   hasCard: boolean;
   addStatus?: number;
   addCode?: string;
-  /** The delete answers 204 but the card stays (backend defect, prompt 12). */
-  deleteIgnored?: boolean;
+  replaceStatus?: number;
 }): Calls {
-  const calls: Calls = { adds: [], deletes: 0 };
-  const { hasCard, addStatus = 201, addCode = "INVALID_REQUEST", deleteIgnored = false } = options;
-  let present = hasCard;
+  const calls: Calls = { adds: [], replaces: [] };
+  const { hasCard, addStatus = 201, addCode = "INVALID_REQUEST", replaceStatus = 200 } = options;
   server.use(
-    http.get(`${API}/bank-card/get`, () =>
-      present
-        ? HttpResponse.json(SAVED)
-        : HttpResponse.json(errorBody("BANK_CARD_NOT_FOUND", 404), { status: 404 }),
-    ),
-    http.delete(`${API}/bank-card/delete`, () => {
-      calls.deletes += 1;
-      if (!present) {
-        return HttpResponse.json(errorBody("BANK_CARD_NOT_FOUND", 404), { status: 404 });
-      }
-      present = deleteIgnored;
-      return new HttpResponse(null, { status: 204 });
-    }),
     http.post(`${API}/bank-card/add`, async ({ request }) => {
       calls.adds.push(await request.json());
-      return addStatus === 201
-        ? HttpResponse.json(SAVED, { status: 201 })
-        : HttpResponse.json(errorBody(addCode, addStatus), { status: addStatus });
+      if (hasCard) {
+        return answer(409, 201, "BANK_CARD_ALREADY_EXISTS");
+      }
+      return answer(addStatus, 201, addCode);
+    }),
+    http.put(`${API}/bank-card/replace`, async ({ request }) => {
+      calls.replaces.push(await request.json());
+      return answer(replaceStatus, 200, "INVALID_REQUEST");
     }),
   );
   return calls;
@@ -148,40 +153,31 @@ describe("POST /api/bank-card", () => {
     expect(text).not.toContain(HOLDER);
   });
 
-  it("refuses to add a second card without replace (409 conflict, no add)", async () => {
+  it("relays the backend refusal of a second card without replace (409 conflict)", async () => {
     const calls = mockBackend({ hasCard: true });
     const response = await POST(post(BODY));
     expect(response.status).toBe(409);
-    expect(((await response.json()) as { error: { code: string } }).error.code).toBe("conflict");
-    expect(calls.adds).toHaveLength(0);
+    const { error } = (await response.json()) as { error: { code: string; cardKept?: boolean } };
+    expect(error.code).toBe("conflict");
+    expect(error.cardKept).toBeUndefined();
+    expect(calls.replaces).toHaveLength(0);
   });
 
-  it("replaces: deletes the current card, then adds the new one", async () => {
+  it("replaces through PUT /bank-card/replace, without add nor replace flag", async () => {
     const calls = mockBackend({ hasCard: true });
     const response = await POST(post({ ...BODY, replace: true }));
     expect(response.status).toBe(201);
-    expect(calls.deletes).toBe(1);
-    expect(calls.adds[0]).not.toHaveProperty("replace");
+    expect(calls.adds).toHaveLength(0);
+    expect(calls.replaces[0]).toEqual({ ...BODY, cardNumber: NUMBER });
+    expect(await response.text()).not.toContain(NUMBER);
   });
 
-  it("says cardRemoved when the add fails after the old card was deleted", async () => {
-    mockBackend({ hasCard: true, addStatus: 400 });
+  it("says cardKept when the replacement fails", async () => {
+    mockBackend({ hasCard: true, replaceStatus: 400 });
     const response = await POST(post({ ...BODY, replace: true }));
     expect(response.status).toBe(400);
-    const { error } = (await response.json()) as { error: { code: string; cardRemoved?: boolean } };
-    expect(error).toMatchObject({ code: "invalid", cardRemoved: true });
-  });
-
-  it("says cardKept and adds nothing when the old card survives its deletion", async () => {
-    const calls = mockBackend({ hasCard: true, deleteIgnored: true });
-    const response = await POST(post({ ...BODY, replace: true }));
-    expect(response.status).toBe(409);
-    const { error } = (await response.json()) as {
-      error: { code: string; cardKept?: boolean; cardRemoved?: boolean };
-    };
-    expect(error).toMatchObject({ code: "conflict", cardKept: true });
-    expect(error.cardRemoved).toBeUndefined();
-    expect(calls.adds).toHaveLength(0);
+    const { error } = (await response.json()) as { error: { code: string; cardKept?: boolean } };
+    expect(error).toMatchObject({ code: "invalid", cardKept: true });
   });
 
   it("maps a backend 400 to invalid and a past expiry refused by the backend to card-expired", async () => {

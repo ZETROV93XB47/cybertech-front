@@ -99,7 +99,7 @@ Elements et les deux routes de la section 2 bis (constitution V v2.3.0, FR-032, 
 
 | Méthode | Route | Entrée (Zod) | Sortie 2xx | Endpoint Spring |
 |---|---|---|---|---|
-| POST | `/api/bank-card` | `BankCardAddBodySchema` : `{ cardHolderName, cardNumber, expiryDate, cardType, replace?: boolean }` (strict) | `201 { maskedNumber, expiryDate, cardType }` (`AddedCardSchema`, sans UUID ni titulaire) | `replace` → `DELETE /bank-card/delete` puis `POST /bank-card/add` |
+| POST | `/api/bank-card` | `BankCardAddBodySchema` : `{ cardHolderName, cardNumber, expiryDate, cardType, replace?: boolean }` (strict) | `201 { maskedNumber, expiryDate, cardType }` (`AddedCardSchema`, sans UUID ni titulaire) | sans `replace` : `POST /bank-card/add` ; avec `replace` : `PUT /bank-card/replace` (backend `ea5f708`) |
 
 Règles :
 - USER, same-origin, `Cache-Control: no-store` ;
@@ -107,10 +107,10 @@ Règles :
   réseau, `replace` et le résultat (jamais titulaire, numéro, 4 derniers chiffres, expiration) ;
 - corps invalide → `400 invalid` avec les erreurs de champ, sans appel backend ;
 - `400` backend → `invalid` ; carte expirée → `card-expired` ; carte déjà présente sans
-  `replace` → `409 conflict` (vérifiée par `GET /bank-card/get` avant l'ajout : le backend
-  répondrait un 500 générique) ;
-- `replace` : si l'ajout échoue après la suppression, l'erreur relayée porte
-  `error.cardRemoved: true` (le compte n'a plus de carte ; la page le dit) ;
+  `replace` → `409 conflict` (`BANK_CARD_ALREADY_EXISTS` du backend, relayé tel quel) ;
+- `replace` : le backend valide la nouvelle carte puis échange les deux dans une seule
+  transaction ; en cas d'échec l'ancienne carte reste, et l'erreur relayée porte
+  `error.cardKept: true` (la page le dit, sauf erreur de champ ou session expirée) ;
 - la réponse ne contient que la carte masquée (`maskedNumber`, réseau, expiration), jamais le
   numéro reçu.
 

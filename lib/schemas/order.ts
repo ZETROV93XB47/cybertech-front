@@ -70,6 +70,10 @@ export const OrderResponseSchema = z.object({
   shippingProvider: z.enum(ShippingProvider),
   shippingCost: AmountSchema.nullable(),
   shippingAddress: z.string(),
+  /** Indicative earliest delivery day; null or absent on orders placed before estimates existed. */
+  estimatedDeliveryFrom: z.iso.date().nullish(),
+  /** Indicative latest delivery day; null or absent on orders placed before estimates existed. */
+  estimatedDeliveryTo: z.iso.date().nullish(),
   orderItems: z.array(OrderItemSchema).min(1),
 });
 

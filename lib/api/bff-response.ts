@@ -22,9 +22,7 @@ const INVALID_BODY_MESSAGE = "Invalid request body";
 export interface ErrorDetails {
   /** Live stock to show in « Il n'en reste que N ». */
   readonly availableStock?: number;
-  /** The previous saved card was deleted before the new one failed (card replacement). */
-  readonly cardRemoved?: true;
-  /** The backend acknowledged the deletion of the saved card but the card is still there. */
+  /** A card replacement failed and the previous card is still saved. */
   readonly cardKept?: true;
 }
 
@@ -64,7 +62,6 @@ export function jsonError(error: unknown, details?: ErrorDetails): NextResponse 
         ? {}
         : { retryAfterSeconds: apiError.retryAfterSeconds }),
       ...(details?.availableStock === undefined ? {} : { availableStock: details.availableStock }),
-      ...(details?.cardRemoved ? { cardRemoved: true as const } : {}),
       ...(details?.cardKept ? { cardKept: true as const } : {}),
       ...(apiError.stockShortages ? { stockShortages: [...apiError.stockShortages] } : {}),
     },

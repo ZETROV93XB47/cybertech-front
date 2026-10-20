@@ -22,6 +22,19 @@ export const ORDER_STATUS_POLL_INTERVAL_MS = 2_000;
 export const ORDER_STATUS_POLL_TIMEOUT_MS = 60_000;
 
 /**
+ * After a payment retry, how long a `PAYMENT_FAILED` read is still taken for the previous
+ * attempt rather than the new one.
+ *
+ * The backend charges the retry synchronously but moves the order to `PAID` only when the Stripe
+ * webhook comes back (about 2 s locally); in between, the status endpoint can still answer the
+ * `PAYMENT_FAILED` of the declined attempt (observed 2026-10-21, `bank-card-add.spec.ts`). Ten
+ * seconds covers that window several times over; a genuine new refusal is shown once it ends.
+ *
+ * @see docs/backend/backend-prompts-lot2.md §14
+ */
+export const RETRY_STALE_FAILURE_GRACE_MS = 10_000;
+
+/**
  * Statuses that end the polling of the confirmation page: every status once the payment
  * attempt is over (only `CREATED` and `AWAITING_PAYMENT` keep it going).
  */

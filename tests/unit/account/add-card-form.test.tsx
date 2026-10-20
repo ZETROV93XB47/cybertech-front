@@ -65,12 +65,28 @@ describe("add card form", () => {
 });
 
 describe("addCardFailure", () => {
-  it("says explicitly that the previous card is gone", () => {
+  it("says explicitly that the previous card is kept after a failed replacement", () => {
     const outcome = addCardFailure(
-      new BffError(FrontErrorCode.INVALID, 400, "refused", undefined, undefined, undefined, true),
+      new BffError(FrontErrorCode.UNAVAILABLE, 503, "down", undefined, undefined, undefined, true),
     );
     expect(outcome).toMatchObject({ status: CardFormStatus.ERROR });
-    expect(outcome.formError).toMatch(/ancienne carte a été supprimée/);
+    expect(outcome.formError).toMatch(/ancienne carte est toujours enregistrée/);
+  });
+
+  it("points to the field rather than the kept card when the expiry is refused", () => {
+    const outcome = addCardFailure(
+      new BffError(
+        FrontErrorCode.CARD_EXPIRED,
+        400,
+        "expired",
+        undefined,
+        undefined,
+        undefined,
+        true,
+      ),
+    );
+    expect(outcome.fieldErrors).toBeDefined();
+    expect(outcome.formError).not.toMatch(/ancienne carte/);
   });
 
   it("asks to type the number again after a session expiry", () => {

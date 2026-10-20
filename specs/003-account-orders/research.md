@@ -256,11 +256,12 @@ décision du 2026-10-14). Backend vérifié au commit `84dc038` le 2026-10-14
   `POST /api/bank-card` (USER), qui valide le corps avec `BankCardAddBodySchema` (strict, mêmes
   contraintes que `BankCardCreationRequestDto` : numéro `^\d{13,19}$` après retrait des
   espaces, expiration future) puis appelle `POST /bank-card/add` et renvoie la carte masquée.
-  Remplacer = confirmation, puis `DELETE /bank-card/delete` suivi de l'ajout (le backend refuse
-  une deuxième carte) ; si l'ajout échoue après la suppression, la réponse porte
-  `cardRemoved: true` et la page dit que l'ancienne carte est supprimée et invite à ressaisir
-  (décision du 2026-10-20). Sans `replace`, le BFF lit d'abord la carte et répond `409 conflict`
-  si elle existe (le backend lèverait une `IllegalStateException` rendue en 500 générique). Le
+  Remplacer = confirmation, puis `PUT /bank-card/replace` (backend `ea5f708`, prompt §12) :
+  le backend valide la nouvelle carte et échange les deux dans une seule transaction, donc un
+  échec garde l'ancienne carte ; la réponse porte alors `cardKept: true` et la page le dit.
+  Sans `replace`, `POST /bank-card/add` répond `409 BANK_CARD_ALREADY_EXISTS` si une carte
+  existe, relayé en `409 conflict` (révision du 2026-10-21 : plus de « supprimer puis
+  ajouter », plus de compte laissé sans carte). Le
   réseau est déduit du numéro (table de préfixes documentée dans `features/account/card-network.ts`)
   et reste modifiable : la sélection du client n'est plus écrasée par la saisie. Le numéro vit seulement dans l'état du formulaire jusqu'à l'envoi, puis est
   effacé ; jamais loggué (le logger du BFF ne reçoit ni le corps ni le numéro, seulement le

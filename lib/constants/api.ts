@@ -124,8 +124,10 @@ export const BACKEND_PATHS = {
   orderRetryPayment: `${API_BASE_PATH}/management/order/retry-payment`,
   /** `GET` — saved card of the caller, masked (404 when none). */
   bankCardGet: `${API_BASE_PATH}/bank-card/get`,
-  /** `POST` — saves a card for the caller (`201`; the caller must have none). */
+  /** `POST` — saves a card for the caller (`201`; `409 BANK_CARD_ALREADY_EXISTS` when one is saved). */
   bankCardAdd: `${API_BASE_PATH}/bank-card/add`,
+  /** `PUT` — replaces (or adds) the caller's card in one transaction; a failure keeps the old card. */
+  bankCardReplace: `${API_BASE_PATH}/bank-card/replace`,
   /** `PUT` — holder name and expiry of the saved card. */
   bankCardUpdate: `${API_BASE_PATH}/bank-card/update`,
   /** `DELETE` — deletes the saved card. */

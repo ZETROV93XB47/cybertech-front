@@ -225,9 +225,9 @@ describe("no card", () => {
 });
 
 describe("replacement", () => {
-  it("confirms first, then says plainly when the old card is gone and the new one failed", async () => {
+  it("confirms first, then says plainly that the old card is kept when the replacement failed", async () => {
     const user = userEvent.setup();
-    mockAdd(400, { code: "invalid", cardRemoved: true });
+    mockAdd(503, { code: "unavailable", cardKept: true });
     render(<BankCardPanel card={CARD} returnTo={null} months={MONTHS} years={YEARS} />);
     await user.click(screen.getByRole("button", { name: "Remplacer ma carte" }));
     await fillCard(user);
@@ -235,7 +235,7 @@ describe("replacement", () => {
     expect(screen.getByRole("dialog", { name: "Remplacer ta carte ?" })).toBeInTheDocument();
     expect(sent).toHaveLength(0);
     await user.click(screen.getByRole("button", { name: "Oui, remplacer" }));
-    expect(await screen.findByText(/ancienne carte a été supprimée/)).toBeInTheDocument();
+    expect(await screen.findByText(/ancienne carte est toujours enregistrée/)).toBeInTheDocument();
     expect(sent[0]).toMatchObject({ replace: true });
     expect(screen.getByLabelText("Numéro de carte")).toHaveValue("");
     expect(navigation.refresh).toHaveBeenCalled();

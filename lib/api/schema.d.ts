@@ -24,6 +24,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/services/bank-card/replace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace current user's bank card
+         * @description Replaces the authenticated user's bank card with a new one (same body as /add), or adds it
+         *     when the user has none. Delete and add run in a single transaction: the new card is
+         *     validated first and any failure keeps the current card, so the account is never left
+         *     without one.
+         */
+        put: operations["replaceBankCard"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/webhooks/stripe": {
         parameters: {
             query?: never;
@@ -153,6 +176,26 @@ export interface paths {
          *     Public endpoint, no JWT required. Sent with a short `Cache-Control: public`.
          */
         post: operations["getSearchFacets"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/notifications/push/subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Register or update this browser's push subscription
+         * @description The authenticated JWT subject owns the subscription; any user identifier in the body is ignored/not accepted. A user keeps at most 5 browsers (cybertech.web-push.max-subscriptions-per-user): registering one more replaces the oldest.
+         */
+        post: operations["register_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -781,6 +824,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/services/review/product/{productUuid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Published reviews of a product (public)
+         * @description Rating summary over every published review of the product (`averageRating` with 1 decimal,
+         *     null without reviews; `reviewCount`; `distribution` with keys "1" to "5" always present) and
+         *     one page of those reviews, newest first (`page`, `size` default 10, max 100; any `sort`
+         *     is ignored). A review rejected by moderation is never listed. Each review carries the
+         *     author's first name only, never their e-mail, last name or user id.
+         *
+         *     Public endpoint, no JWT required. Sent with a short `Cache-Control: public`.
+         */
+        get: operations["getProductReviews"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/review/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the caller's reviews (paginated)
+         * @description Reviews written by the authenticated user, including those hidden by moderation, so they
+         *     can be edited or deleted. Defaults: page=0, size=10, sort=createdAt,desc. Sortable fields:
+         *     createdAt, updatedAt, rating; any other sort falls back to createdAt,desc.
+         */
+        get: operations["getMyReviews"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/services/review/get/{reviewUuid}": {
         parameters: {
             query?: never;
@@ -895,6 +986,23 @@ export interface paths {
          * @description Returns the registered schema for the given category key. No authentication required.
          */
         get: operations["getByCategoryKey"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/notifications/push/public-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the public VAPID key */
+        get: operations["getPublicKey"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1208,6 +1316,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/services/notifications/push/subscriptions/{subscriptionUuid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove one of the authenticated user's push subscriptions */
+        delete: operations["delete_1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/services/cart/decreaseQuantity": {
         parameters: {
             query?: never;
@@ -1299,7 +1424,7 @@ export interface paths {
         put?: never;
         post?: never;
         /** Delete a product category schema (Admin) */
-        delete: operations["delete_1"];
+        delete: operations["delete_2"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1384,6 +1509,32 @@ export interface components {
             /** Format: uuid */
             userUuid?: string;
         };
+        /** @description A product line whose quantity exceeds the available stock */
+        StockShortageDto: {
+            /**
+             * Format: uuid
+             * @description UUID of the product in shortage
+             * @example 0199c6a1-3f2b-7c4e-9d10-5b8a2e4f6c01
+             */
+            productUuid?: string;
+            /**
+             * Format: int32
+             * @description Quantity asked for this product by the request
+             * @example 3
+             */
+            requested?: number;
+            /**
+             * Format: int32
+             * @description Quantity that can still be ordered (stock - reserved stock, never negative)
+             * @example 1
+             */
+            available?: number;
+        };
+        /** @description Structured error payload. Present only for errors that document it (NOT_ENOUGH_STOCK). */
+        ErrorDetailsDto: {
+            /** @description Every product line in shortage (a cart write reports the first one only) */
+            items?: components["schemas"]["StockShortageDto"][];
+        };
         ErrorResponseDto: {
             message?: string;
             /** Format: int32 */
@@ -1391,12 +1542,20 @@ export interface components {
             /** @enum {string} */
             errorCodeType?: "TECHNICAL" | "FUNCTIONAL";
             /** @enum {string} */
-            errorCode?: "APPLICATION_ERROR" | "AUTHENTICATION_REQUIRED" | "TOO_MANY_REQUESTS" | "RESOURCE_NOT_FOUND" | "ACCOUNT_NOT_FOUND" | "CANNOT_CANCEL_ORDER" | "CANNOT_REMOVE_ITEM_FROM_EMPTY_CART" | "PRODUCT_NOT_FOUND" | "ORDER_DOESNT_BELONGS_TO_USER" | "FAILED_UPDATING_ORDER" | "CART_IS_EMPTY" | "CART_NOT_FOUND" | "CART_ITEM_NOT_FOUND" | "INVALID_REQUEST" | "MALFORMED_JSON" | "METHOD_ARGUMENT_TYPE_MISMATCH" | "ACCESS_DENIED" | "ORDER_ALREADY_SHIPPED" | "ORDER_NOT_FOUND" | "ORDER_NOT_FUNDED" | "ORDER_REFUND_FAILED" | "NO_PREVIOUS_PAYMENT_ATTEMPT_FOUND" | "PRODUCT_ALREADY_IN_WISHLIST" | "REVIEW_NOT_FOUND" | "USER_NOT_FOUND" | "USER_NOT_ACTIVE" | "USER_ALREADY_EXISTS" | "USER_NOT_AUTHOR_OF_REVIEW" | "WISHLIST_NOT_FOUND" | "ACCESS_TOKEN_RETRIEVAL_FAILED" | "BANK_CARD_EXPIRED" | "BANK_CARD_NOT_FOUND" | "COMMENT_POST_NOT_ALLOWED" | "IDEMPOTENCY_KEY_GENERATION_FAILED" | "NO_STRATEGY_FOUND" | "NOT_ENOUGH_STOCK" | "ORDER_SUMMARY_REPORT_JOB_FAILED" | "CONCURRENT_MODIFICATION" | "PAYMENT_ALREADY_COMPLETED" | "PAYMENT_FAILED" | "PAYMENT_NOT_FOUND" | "PAYMENT_PROCESSING_ERROR" | "DISCOUNT_TYPE_NOT_ACTIVE" | "UNAUTHORIZED_CART_ACCESS" | "ORDER_NOT_REVIEWABLE" | "UNKNOWN_PRODUCT_CATEGORY" | "INVALID_PRODUCT_CATEGORY_SCHEMA" | "DISCOUNT_CAMPAIGN_MISSING_REQUIRED_FIELD" | "DISCOUNT_CAMPAIGN_NOT_FOUND" | "DISCOUNT_CAMPAIGN_ALREADY_EXISTS";
+            errorCode?: "APPLICATION_ERROR" | "AUTHENTICATION_REQUIRED" | "TOO_MANY_REQUESTS" | "RESOURCE_NOT_FOUND" | "ACCOUNT_NOT_FOUND" | "CANNOT_CANCEL_ORDER" | "CANNOT_REMOVE_ITEM_FROM_EMPTY_CART" | "PRODUCT_NOT_FOUND" | "ORDER_DOESNT_BELONGS_TO_USER" | "FAILED_UPDATING_ORDER" | "CART_IS_EMPTY" | "CART_NOT_FOUND" | "CART_ITEM_NOT_FOUND" | "INVALID_REQUEST" | "MALFORMED_JSON" | "METHOD_ARGUMENT_TYPE_MISMATCH" | "ACCESS_DENIED" | "ORDER_ALREADY_SHIPPED" | "ORDER_NOT_FOUND" | "ORDER_NOT_FUNDED" | "ORDER_REFUND_FAILED" | "NO_PREVIOUS_PAYMENT_ATTEMPT_FOUND" | "PRODUCT_ALREADY_IN_WISHLIST" | "REVIEW_NOT_FOUND" | "USER_NOT_FOUND" | "USER_NOT_ACTIVE" | "USER_ALREADY_EXISTS" | "USER_NOT_AUTHOR_OF_REVIEW" | "WISHLIST_NOT_FOUND" | "ACCESS_TOKEN_RETRIEVAL_FAILED" | "BANK_CARD_ALREADY_EXISTS" | "BANK_CARD_EXPIRED" | "BANK_CARD_NOT_FOUND" | "COMMENT_POST_NOT_ALLOWED" | "IDEMPOTENCY_KEY_GENERATION_FAILED" | "NO_STRATEGY_FOUND" | "NOT_ENOUGH_STOCK" | "ORDER_SUMMARY_REPORT_JOB_FAILED" | "CONCURRENT_MODIFICATION" | "PAYMENT_ALREADY_COMPLETED" | "PAYMENT_FAILED" | "PAYMENT_NOT_FOUND" | "PAYMENT_PROCESSING_ERROR" | "DISCOUNT_TYPE_NOT_ACTIVE" | "UNAUTHORIZED_CART_ACCESS" | "ORDER_NOT_REVIEWABLE" | "UNKNOWN_PRODUCT_CATEGORY" | "INVALID_PRODUCT_CATEGORY_SCHEMA" | "DISCOUNT_CAMPAIGN_MISSING_REQUIRED_FIELD" | "DISCOUNT_CAMPAIGN_NOT_FOUND" | "DISCOUNT_CAMPAIGN_ALREADY_EXISTS" | "PUSH_SERVICE_NOT_CONFIGURED" | "PUSH_SUBSCRIPTION_CONFLICT" | "INVALID_PUSH_ENDPOINT" | "PUSH_SUBSCRIPTION_NOT_FOUND" | "PUSH_SUBSCRIPTION_NOT_OWNED";
             fieldErrors?: components["schemas"]["FieldErrorDto"][];
+            details?: components["schemas"]["ErrorDetailsDto"];
         };
         FieldErrorDto: {
             field?: string;
             message?: string;
+        };
+        BankCardCreationRequestDto: {
+            cardHolderName: string;
+            cardNumber: string;
+            expiryDate: string;
+            /** @enum {string} */
+            cardType: "VISA" | "MASTERCARD" | "AMERICAN_EXPRESS" | "DISCOVER" | "OTHER";
         };
         ProductResponseDto: {
             name?: string;
@@ -1417,13 +1576,6 @@ export interface components {
             /** Format: date-time */
             addedAt?: string;
         };
-        BankCardCreationRequestDto: {
-            cardHolderName: string;
-            cardNumber: string;
-            expiryDate: string;
-            /** @enum {string} */
-            cardType: "VISA" | "MASTERCARD" | "AMERICAN_EXPRESS" | "DISCOVER" | "OTHER";
-        };
         UserCreateRequestDto: {
             /** Format: email */
             email: string;
@@ -1432,8 +1584,11 @@ export interface components {
             /** @enum {string} */
             sex: "M" | "F";
             phoneNumber: string;
-            /** @enum {string} */
-            favoriteCommunicationChanel: "EMAIL" | "SMS" | "PUSH_NOTIFICATION";
+            /**
+             * @description E-mail or SMS. Web Push is not a choice: it is always sent in addition, to subscribed browsers.
+             * @enum {string}
+             */
+            favoriteCommunicationChanel: "EMAIL" | "SMS";
             street: string;
             city: string;
             zipCode: string;
@@ -1536,6 +1691,20 @@ export interface components {
              */
             max?: number;
         };
+        PushSubscriptionKeysDto: {
+            p256dh: string;
+            auth: string;
+        };
+        PushSubscriptionRequestDto: {
+            endpoint: string;
+            keys: components["schemas"]["PushSubscriptionKeysDto"];
+            /** Format: int64 */
+            expirationTime?: number;
+        };
+        PushSubscriptionResponseDto: {
+            /** Format: uuid */
+            uuid?: string;
+        };
         OrderItemCreateRequestDto: {
             /** Format: uuid */
             productUuid: string;
@@ -1612,6 +1781,18 @@ export interface components {
             /** @description Shipping fee for shippingProvider / shippingType. Null on orders placed before this field existed. */
             shippingCost?: number | null;
             shippingAddress?: string;
+            /**
+             * Format: date
+             * @description Indicative earliest delivery day (ISO date, business days, holidays ignored); null on orders placed before estimates existed.
+             * @example 2026-10-15
+             */
+            estimatedDeliveryFrom?: string;
+            /**
+             * Format: date
+             * @description Indicative latest delivery day (ISO date); null on orders placed before estimates existed.
+             * @example 2026-10-16
+             */
+            estimatedDeliveryTo?: string;
             orderItems?: components["schemas"]["OrderItemResponseDto"][];
         };
         /** @description OrderQuoteRequestDto with the shipping options and campaign */
@@ -1780,7 +1961,7 @@ export interface components {
         UserEventDto: {
             userId?: string;
             /** @enum {string} */
-            eventType: "PURCHASE" | "ADD_TO_CART" | "WISHLIST_ADD" | "RATING_POSITIVE" | "RATING_NEGATIVE" | "REVIEW_POSITIVE" | "REVIEW_NEGATIVE" | "VIEW" | "CLICK" | "SCROLL_DEPTH_HIGH" | "HOVER" | "SEARCH_QUERY" | "SEARCH_RESULT_CLICK" | "REMOVE_FROM_CART" | "IGNORE_RECOMMENDATION" | "BOUNCE";
+            eventType: "PURCHASE" | "ADD_TO_CART" | "WISHLIST_ADD" | "COMPARE" | "RATING_POSITIVE" | "RATING_NEGATIVE" | "REVIEW_POSITIVE" | "REVIEW_NEGATIVE" | "VIEW" | "CLICK" | "SCROLL_DEPTH_HIGH" | "HOVER" | "SEARCH_QUERY" | "SEARCH_RESULT_CLICK" | "REMOVE_FROM_CART" | "IGNORE_RECOMMENDATION" | "BOUNCE";
             productId: string;
             sessionId: string;
             metadata?: {
@@ -1792,7 +1973,7 @@ export interface components {
             userId?: string;
             sessionId?: string;
             /** @enum {string} */
-            eventType?: "PURCHASE" | "ADD_TO_CART" | "WISHLIST_ADD" | "RATING_POSITIVE" | "RATING_NEGATIVE" | "REVIEW_POSITIVE" | "REVIEW_NEGATIVE" | "VIEW" | "CLICK" | "SCROLL_DEPTH_HIGH" | "HOVER" | "SEARCH_QUERY" | "SEARCH_RESULT_CLICK" | "REMOVE_FROM_CART" | "IGNORE_RECOMMENDATION" | "BOUNCE";
+            eventType?: "PURCHASE" | "ADD_TO_CART" | "WISHLIST_ADD" | "COMPARE" | "RATING_POSITIVE" | "RATING_NEGATIVE" | "REVIEW_POSITIVE" | "REVIEW_NEGATIVE" | "VIEW" | "CLICK" | "SCROLL_DEPTH_HIGH" | "HOVER" | "SEARCH_QUERY" | "SEARCH_RESULT_CLICK" | "REMOVE_FROM_CART" | "IGNORE_RECOMMENDATION" | "BOUNCE";
             productId?: string;
             /** Format: date-time */
             timestamp?: string;
@@ -1892,6 +2073,28 @@ export interface components {
              * @example EUR
              */
             currency?: string;
+            /**
+             * Format: int32
+             * @description Indicative earliest delivery, in business days (Monday to Friday, holidays ignored) from the day the order is handled.
+             * @example 1
+             */
+            minDeliveryBusinessDays?: number;
+            /**
+             * Format: int32
+             * @description Indicative latest delivery, in business days.
+             * @example 2
+             */
+            maxDeliveryBusinessDays?: number;
+            /**
+             * @description Local time (timeZone) after which an order is handled the next business day; null when there is none.
+             * @example 15:00
+             */
+            cutoffTime?: string;
+            /**
+             * @description IANA time zone of cutoffTime.
+             * @example Europe/Paris
+             */
+            timeZone?: string;
         };
         ReviewableProductDto: {
             /** Format: uuid */
@@ -1901,6 +2104,107 @@ export interface components {
             productName?: string;
             /** Format: date */
             orderDate?: string;
+        };
+        PageMetadata: {
+            /** Format: int64 */
+            size?: number;
+            /** Format: int64 */
+            number?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int64 */
+            totalPages?: number;
+        };
+        PagedModelPublicReviewDto: {
+            content?: components["schemas"]["PublicReviewDto"][];
+            page?: components["schemas"]["PageMetadata"];
+        };
+        ProductReviewsResponseDto: {
+            /**
+             * @description Mean rating over every published review, 1 decimal; null when there is none.
+             * @example 4.3
+             */
+            averageRating?: number;
+            /**
+             * Format: int64
+             * @description Number of published reviews.
+             * @example 12
+             */
+            reviewCount?: number;
+            /**
+             * @description Published reviews per rating; keys "1" to "5" are always present.
+             * @example {
+             *       "1": 0,
+             *       "2": 1,
+             *       "3": 1,
+             *       "4": 4,
+             *       "5": 6
+             *     }
+             */
+            distribution?: {
+                [key: string]: number;
+            };
+            /** @description One page of published reviews, newest first. */
+            reviews?: components["schemas"]["PagedModelPublicReviewDto"];
+        };
+        PublicReviewDto: {
+            /** Format: uuid */
+            uuid?: string;
+            /**
+             * Format: int32
+             * @description Rating from 1 to 5.
+             * @example 4
+             */
+            rating?: number;
+            /** @description Review text; null when the author left only a rating. */
+            comment?: string;
+            /**
+             * @description Author's first name only; null when the account has none (show e.g. "Client").
+             * @example Camille
+             */
+            authorFirstName?: string;
+            /**
+             * Format: date
+             * @description Day the review was posted (ISO date).
+             * @example 2026-10-14
+             */
+            createdAt?: string;
+        };
+        /** @description A review written by the authenticated user */
+        MyReviewDto: {
+            /** Format: uuid */
+            uuid?: string;
+            /** Format: uuid */
+            productUuid?: string;
+            /**
+             * @description Name of the reviewed product
+             * @example Laptop Pro 14
+             */
+            productName?: string;
+            /**
+             * Format: uuid
+             * @description Order the product was bought in; null for a review older than this field when no matching order was found.
+             */
+            orderUuid?: string;
+            /**
+             * Format: int32
+             * @description Rating from 1 to 5.
+             * @example 4
+             */
+            rating?: number;
+            /** @description Review text; null when only a rating was given. */
+            comment?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /**
+             * Format: date-time
+             * @description Last modification; null if never modified.
+             */
+            updatedAt?: string;
+        };
+        PagedModelMyReviewDto: {
+            content?: components["schemas"]["MyReviewDto"][];
+            page?: components["schemas"]["PageMetadata"];
         };
         Pageable: {
             /** Format: int32 */
@@ -1916,21 +2220,14 @@ export interface components {
             availableStock?: number;
             inStock?: boolean;
         };
+        PushPublicKeyResponseDto: {
+            publicKey?: string;
+        };
         OrderStatusDto: {
             /** Format: uuid */
             uuid?: string;
             /** @enum {string} */
             status?: "CREATED" | "AWAITING_PAYMENT" | "PAYMENT_FAILED" | "PAID" | "AWAITING_SHIPPING" | "SHIPPED" | "DELIVERED" | "RETURNED" | "CANCELED" | "REFUNDED";
-        };
-        PageMetadata: {
-            /** Format: int64 */
-            size?: number;
-            /** Format: int64 */
-            number?: number;
-            /** Format: int64 */
-            totalElements?: number;
-            /** Format: int64 */
-            totalPages?: number;
         };
         PagedModel: {
             content?: unknown[];
@@ -1999,6 +2296,50 @@ export interface operations {
             };
             /** @description Bank card not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    replaceBankCard: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-VERSION"?: "1.0";
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BankCardCreationRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Bank card replaced (or added) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankCardResponseDto"];
+                };
+            };
+            /** @description Invalid input or expired card (BANK_CARD_EXPIRED); the current card is kept */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2299,6 +2640,32 @@ export interface operations {
             };
         };
     };
+    register_1: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-VERSION"?: "1.0";
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PushSubscriptionRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Subscription registered */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushSubscriptionResponseDto"];
+                };
+            };
+        };
+    };
     updateOrder: {
         parameters: {
             query?: never;
@@ -2353,6 +2720,15 @@ export interface operations {
             };
             /** @description Order not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not enough stock (NOT_ENOUGH_STOCK): details.items lists the product lines in shortage */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2423,6 +2799,15 @@ export interface operations {
             };
             /** @description Order not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not enough stock (NOT_ENOUGH_STOCK): details.items lists the product lines in shortage */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2549,6 +2934,15 @@ export interface operations {
             };
             /** @description Forbidden - user not allowed to perform this operation */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not enough stock (NOT_ENOUGH_STOCK): details.items lists the product lines in shortage */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2699,6 +3093,15 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
+            /** @description Not enough stock (NOT_ENOUGH_STOCK): details.items lists the product lines in shortage */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
@@ -2752,7 +3155,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
-            /** @description User already has a bank card */
+            /** @description User already has a bank card (BANK_CARD_ALREADY_EXISTS); use PUT /bank-card/replace */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -3482,6 +3885,15 @@ export interface operations {
             };
             /** @description Cart not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Not enough stock (NOT_ENOUGH_STOCK): details.items lists the product lines in shortage */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4257,6 +4669,96 @@ export interface operations {
             };
         };
     };
+    getProductReviews: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-VERSION"?: "1.0" | "1.0.0";
+            };
+            path: {
+                /** @description Product whose reviews to list */
+                productUuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Rating summary and one page of published reviews */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductReviewsResponseDto"];
+                };
+            };
+            /** @description Malformed product uuid (METHOD_ARGUMENT_TYPE_MISMATCH) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Unknown product (PRODUCT_NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    getMyReviews: {
+        parameters: {
+            query?: {
+                /** @description 0-based page index (default 0) */
+                page?: string;
+                /** @description Page size (default 10) */
+                size?: string;
+                /** @description property,direction — createdAt (default, desc), updatedAt or rating */
+                sort?: string;
+            };
+            header?: {
+                "X-API-VERSION"?: "1.0" | "1.0.0";
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of the caller's reviews (possibly empty) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedModelMyReviewDto"];
+                };
+            };
+            /** @description Unauthorized - JWT token missing or invalid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Operation forbidden - USER role required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
     getReviewByUuid: {
         parameters: {
             query?: never;
@@ -4496,6 +4998,37 @@ export interface operations {
             };
             /** @description Internal server error */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    getPublicKey: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-VERSION"?: "1.0";
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Public VAPID key */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushPublicKeyResponseDto"];
+                };
+            };
+            /** @description Web Push is not configured */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5294,6 +5827,46 @@ export interface operations {
             };
         };
     };
+    delete_1: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-VERSION"?: "1.0";
+            };
+            path: {
+                subscriptionUuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Subscription removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Subscription belongs to another user */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Subscription not found (already removed or replaced by a newer browser) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
     decreaseQuantity: {
         parameters: {
             query?: never;
@@ -5528,7 +6101,7 @@ export interface operations {
             };
         };
     };
-    delete_1: {
+    delete_2: {
         parameters: {
             query?: never;
             header?: {

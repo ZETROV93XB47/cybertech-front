@@ -190,10 +190,11 @@ Controller : `{ctrl}/BankCardManagementController.java` (base `/api/v1/services/
 
 | Méthode | Chemin | Controller#méthode | Auth | Body | Réponse | Codes | Notes |
 |---|---|---|---|---|---|---|---|
-| POST | `/bank-card/add` | `#addBankCard` (:35) | USER/ADMIN | `BankCardCreationRequestDto` (§D.4) | `201` `BankCardResponseDto` (§D.21) | 201, 400 (`BANK_CARD_EXPIRED`), 401 | PAN chiffré AES-256 côté serveur. **Le front ne devrait pas manipuler de PAN** (PCI-DSS) — voir analysis §7. |
+| POST | `/bank-card/add` | `#addBankCard` (:35) | USER/ADMIN | `BankCardCreationRequestDto` (§D.4) | `201` `BankCardResponseDto` (§D.21) | 201, 400 (`BANK_CARD_EXPIRED`), 401, 409 (`BANK_CARD_ALREADY_EXISTS`, depuis `ea5f708`) | PAN chiffré AES-256 côté serveur. **Le front ne devrait pas manipuler de PAN** (PCI-DSS) — voir analysis §7. |
 | GET | `/bank-card/get` | `#getBankCard` (:60) | USER/ADMIN | — | `BankCardResponseDto` | 200, 404 | `maskedNumber` uniquement. |
 | PUT | `/bank-card/update` | `#updateBankCard` (:50) | USER/ADMIN | `BankCardUpdateRequestDto` (§D.4b) | `BankCardResponseDto` | 200, 400, 404 | Nom du titulaire + expiration. |
-| DELETE | `/bank-card/delete` | `#deleteBankCard` (:42) | USER/ADMIN | — | `204` | 204, 404 | — |
+| DELETE | `/bank-card/delete` | `#deleteBankCard` (:42) | USER/ADMIN | — | `204` | 204, 404 | Effective depuis `ea5f708` (la carte était recréée au flush avant). |
+| PUT | `/bank-card/replace` | `#replaceBankCard` | USER/ADMIN | `BankCardCreationRequestDto` (§D.4) | `BankCardResponseDto` | 200, 400 (carte gardée), 401 | Ajoute si aucune carte ; validation puis suppression + ajout dans une transaction (`ea5f708`). Utilisé par « Remplacer ma carte ». |
 
 ## 9. Wishlist
 

@@ -6,7 +6,8 @@
  * `POST /order/place` never answers 402: the outcome of the server-side payment is only visible
  * in the status (api-map §E 26). The status is read every `ORDER_STATUS_POLL_INTERVAL_MS` until
  * the payment attempt is over, for `ORDER_STATUS_POLL_TIMEOUT_MS` at most, and not while the tab
- * is hidden.
+ * is hidden. Right after a payment retry, a `PAYMENT_FAILED` read is still the previous attempt's
+ * for `RETRY_STALE_FAILURE_GRACE_MS`: polling goes on and the payment shows as pending.
  *
  * @see specs/003-account-orders/research.md R11
  * @see specs/003-account-orders/contracts/bff-routes.md §1
@@ -19,12 +20,13 @@ import {
   CONFIRMATION_TERMINAL_STATUSES,
   ORDER_STATUS_POLL_INTERVAL_MS,
   ORDER_STATUS_POLL_TIMEOUT_MS,
+  RETRY_STALE_FAILURE_GRACE_MS,
 } from "@/lib/constants/orders";
 import { orderRoute } from "@/lib/constants/routes";
 import { RetryPaymentOutcomeKind } from "@/lib/enums/checkout";
 import { FrontErrorCode } from "@/lib/enums/error-code";
 import { HttpMethod } from "@/lib/enums/http-method";
-import { type OrderStatus, OrderRouteAction } from "@/lib/enums/order";
+import { OrderStatus, OrderRouteAction } from "@/lib/enums/order";
 import { QueryKey } from "@/lib/enums/query-key";
 import { OrderStatusSchema, type OrderStatusResult } from "@/lib/schemas/order";
 
@@ -53,7 +55,31 @@ export interface UseRetryPaymentResult {
 
 /** Part of the status query read to decide on the next poll. */
 interface PolledQuery {
-  readonly state: { readonly data?: OrderStatusResult | undefined; readonly error: Error | null };
+  readonly state: {
+    readonly data?: OrderStatusResult | undefined;
+    readonly dataUpdatedAt: number;
+    readonly error: Error | null;
+  };
+}
+
+/**
+ * Whether a status read is the stale failure of the attempt before a retry.
+ *
+ * @param status - Status read.
+ * @param readAt - When it was read (epoch ms).
+ * @param retriedAt - When the payment was retried (epoch ms), `null` without retry.
+ * @returns `true` for a `PAYMENT_FAILED` read within the grace time of a retry.
+ */
+export function isStaleFailure(
+  status: OrderStatus | undefined,
+  readAt: number,
+  retriedAt: number | null,
+): boolean {
+  return (
+    status === OrderStatus.PAYMENT_FAILED &&
+    retriedAt !== null &&
+    readAt - retriedAt < RETRY_STALE_FAILURE_GRACE_MS
+  );
 }
 
 /**
@@ -61,11 +87,22 @@ interface PolledQuery {
  *
  * @param query - Status query.
  * @param isTimedOut - The polling time is over.
+ * @param retriedAt - When the payment was retried (epoch ms), `null` without retry.
  * @returns The next interval, or `false` to stop.
  */
-function nextPoll(query: PolledQuery, isTimedOut: boolean): number | false {
-  const { data, error } = query.state;
-  if (isTimedOut || (data && CONFIRMATION_TERMINAL_STATUSES.has(data.status))) {
+function nextPoll(
+  query: PolledQuery,
+  isTimedOut: boolean,
+  retriedAt: number | null,
+): number | false {
+  const { data, dataUpdatedAt, error } = query.state;
+  if (isTimedOut) {
+    return false;
+  }
+  if (isStaleFailure(data?.status, dataUpdatedAt, retriedAt)) {
+    return ORDER_STATUS_POLL_INTERVAL_MS;
+  }
+  if (data && CONFIRMATION_TERMINAL_STATUSES.has(data.status)) {
     return false;
   }
   // An outage is retried at the next tick; any other error (404, 401…) ends the polling.
@@ -76,13 +113,12 @@ function nextPoll(query: PolledQuery, isTimedOut: boolean): number | false {
 }
 
 /**
- * Polls the status of an order until its payment attempt is over.
+ * Polling time limit of one round: flips to `true` after `ORDER_STATUS_POLL_TIMEOUT_MS`.
  *
- * @param uuid - Order UUID.
- * @returns The latest status, the timeout flag, the error and a restart action.
+ * @param round - Polling round; a new round starts a new time limit.
+ * @returns Whether the time is over, and its setter (reset on restart).
  */
-export function useOrderStatus(uuid: string): UseOrderStatusResult {
-  const [round, setRound] = useState(0);
+function usePollTimeout(round: number): readonly [boolean, (value: boolean) => void] {
   const [isTimedOut, setTimedOut] = useState(false);
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -92,6 +128,20 @@ export function useOrderStatus(uuid: string): UseOrderStatusResult {
       window.clearTimeout(timer);
     };
   }, [round]);
+  return [isTimedOut, setTimedOut];
+}
+
+/**
+ * Polls the status of an order until its payment attempt is over.
+ *
+ * @param uuid - Order UUID.
+ * @returns The latest status (a stale failure right after a retry reads as `AWAITING_PAYMENT`),
+ *   the timeout flag, the error and a restart action.
+ */
+export function useOrderStatus(uuid: string): UseOrderStatusResult {
+  const [round, setRound] = useState(0);
+  const [isTimedOut, setTimedOut] = usePollTimeout(round);
+  const [retriedAt, setRetriedAt] = useState<number | null>(null);
   const query = useQuery({
     queryKey: [QueryKey.ORDER_STATUS, uuid, round],
     queryFn: ({ signal }) =>
@@ -101,15 +151,19 @@ export function useOrderStatus(uuid: string): UseOrderStatusResult {
         OrderStatusSchema,
         signal,
       ),
-    refetchInterval: (current) => nextPoll(current, isTimedOut),
+    refetchInterval: (current) => nextPoll(current, isTimedOut, retriedAt),
     refetchIntervalInBackground: false,
     retry: false,
   });
   const restart = useCallback(() => {
     setTimedOut(false);
+    setRetriedAt(Date.now());
     setRound((value) => value + 1);
-  }, []);
-  const status = query.data?.status;
+  }, [setTimedOut]);
+  const read = query.data?.status;
+  const status = isStaleFailure(read, query.dataUpdatedAt, retriedAt)
+    ? OrderStatus.AWAITING_PAYMENT
+    : read;
   const isOver = status !== undefined && CONFIRMATION_TERMINAL_STATUSES.has(status);
   return {
     status,

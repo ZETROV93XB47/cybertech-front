@@ -129,8 +129,6 @@ export const CARD_MESSAGES = {
     numberInvalid: "Le numéro doit compter de 13 à 19 chiffres.",
     expiryRequired: "Choisis le mois et l'année.",
     expiryPast: "Cette date est passée : choisis une expiration à venir.",
-    cardRemoved:
-      "Ton ancienne carte a été supprimée, mais la nouvelle n'a pas pu être enregistrée : ressaisis-la pour pouvoir commander.",
     cardKept:
       "On n'a pas pu remplacer ta carte : ton ancienne carte est toujours enregistrée. Réessaie dans un instant.",
     deleteNotApplied:

@@ -63,13 +63,13 @@ export async function getBankCard(accessToken: string): Promise<BankCard | null>
 }
 
 /**
- * Saves a card (`POST /bank-card/add`). The backend refuses a second card: delete the current
- * one first.
+ * Saves a card (`POST /bank-card/add`). The backend refuses a second card
+ * (`409 BANK_CARD_ALREADY_EXISTS`): use {@link replaceBankCard} instead.
  *
  * @param card - Validated card, number without spaces; never logged.
  * @param accessToken - Keycloak access token; never logged.
  * @returns The masked card.
- * @throws {ApiError} `INVALID`, `CARD_EXPIRED`, `UNAUTHENTICATED` or `UNAVAILABLE`.
+ * @throws {ApiError} `INVALID`, `CARD_EXPIRED`, `CONFLICT`, `UNAUTHENTICATED` or `UNAVAILABLE`.
  */
 export async function addBankCard(card: BankCardCreation, accessToken: string): Promise<BankCard> {
   const saved = await backendFetch(BACKEND_PATHS.bankCardAdd, {
@@ -79,6 +79,31 @@ export async function addBankCard(card: BankCardCreation, accessToken: string): 
     accessToken,
   });
   log.info({ cardType: saved.cardType }, "Card saved");
+  return saved;
+}
+
+/**
+ * Replaces the saved card, or adds one when none is saved (`PUT /bank-card/replace`). The
+ * backend validates the new card first and swaps both in one transaction: on any failure the
+ * previous card is kept, so the account is never left without a card.
+ *
+ * @param card - Validated card, number without spaces; never logged.
+ * @param accessToken - Keycloak access token; never logged.
+ * @returns The masked new card.
+ * @throws {ApiError} `INVALID`, `CARD_EXPIRED`, `UNAUTHENTICATED` or `UNAVAILABLE`.
+ * @see BankCardManagementServiceImp#replaceBankCard (backend)
+ */
+export async function replaceBankCard(
+  card: BankCardCreation,
+  accessToken: string,
+): Promise<BankCard> {
+  const saved = await backendFetch(BACKEND_PATHS.bankCardReplace, {
+    method: HttpMethod.PUT,
+    schema: BankCardSchema,
+    body: card,
+    accessToken,
+  });
+  log.info({ cardType: saved.cardType }, "Card replaced");
   return saved;
 }
 

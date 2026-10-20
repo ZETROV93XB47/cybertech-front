@@ -351,7 +351,17 @@ l'utilisateur sur 3000.
     depuis le tunnel → 1111… → retour au tunnel → commande « Payée ») ; le remplacement échoue ;
   - `bank-card.spec.ts` : modification du titulaire et de l'expiration gardée au
     rechargement OK, expiration passée refusée OK ; la suppression échoue.
-- **Défaut backend** (prompt §12 de `docs/backend/backend-prompts-lot2.md`) :
+- **Reprise du 2026-10-21** (backend `ea5f708` + `bddcafd` sur 8081, §12 livré) : le BFF
+  remplace la carte par `PUT /bank-card/replace` (atomique, `cardKept` si refus) et relaie le
+  `409 BANK_CARD_ALREADY_EXISTS` ; types régénérés (`npm run gen:api` : codes push et dates de
+  livraison estimées ajoutés au front). `bank-card.spec.ts` 2 OK ; `bank-card-add.spec.ts`
+  1 OK après correction d'un faux « Paiement refusé » : juste après « Relancer le paiement »,
+  le statut relu valait encore `PAYMENT_FAILED` (tentative précédente) alors que Stripe
+  confirmait le paiement 2 s plus tard (commande finalement `PAID` en base) ; le suivi tient
+  désormais ce statut pour périmé pendant 10 s (`RETRY_STALE_FAILURE_GRACE_MS`, prompt
+  backend §14). Non-régression : `checkout.spec.ts` 4 OK, `orders.spec.ts` 2 OK ;
+  `typecheck`, `lint` 0 warning, `test` verts.
+- **Défaut backend, historique** (prompt §12 de `docs/backend/backend-prompts-lot2.md`) :
   `DELETE /bank-card/delete` répond 204 mais la carte reste (l'utilisateur garde sa référence
   en cascade : la suppression JPA est annulée au flush) ; ajouter une deuxième carte donne 500
   (`IllegalStateException`). Le front relit désormais la carte après une suppression et avant
@@ -372,10 +382,10 @@ l'utilisateur sur 3000.
 | 47 | OK | numéro masqué, titulaire, expiration, réseau ; jamais le numéro complet |
 | 48 | OK | expiration passée refusée sur le champ |
 | 49 | OK | titulaire et expiration gardés au rechargement |
-| 50 | KO backend | suppression sans effet (§12), le front le dit |
+| 50 | OK | suppression effective (§12 livré le 2026-10-20, revérifié le 2026-10-21) |
 | 51 | OK | état « aucune carte » illustré, « Ajouter une carte » (vu depuis le tunnel) |
 | 51 bis | OK | 1111… ajoutée, masquée ; le numéro n'apparaît que dans `POST /api/bank-card` |
-| 51 ter | KO backend | remplacement impossible tant que la suppression est sans effet (§12) |
+| 51 ter | OK | remplacement 1111… → 4242… (« Paiement refusé ») → 1111… et relance « Payée » |
 | 51 quater | OK | numéro trop court et expiration passée refusés sans envoi |
 
 ### US6 — Ma wishlist

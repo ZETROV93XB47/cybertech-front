@@ -132,8 +132,9 @@ erreur).
 - `FrontErrorCode.NO_SAVED_CARD` (`BANK_CARD_NOT_FOUND`) : à la validation de commande, le
   tunnel propose « Ajouter une carte » ; sur « Ma carte », c'est l'état « aucune carte ».
 - Erreurs d'ajout : `400` → erreurs de champ ; carte déjà présente sans `replace` → `409
-  conflict` ; `CARD_EXPIRED` → erreur sur l'expiration ; remplacement dont l'ajout échoue après
-  la suppression → `error.cardRemoved: true` (`FrontErrorBodySchema`, `BffError.cardRemoved`).
+  conflict` (`BANK_CARD_ALREADY_EXISTS`) ; `CARD_EXPIRED` → erreur sur l'expiration ;
+  remplacement refusé (`PUT /bank-card/replace`, atomique) → `error.cardKept: true`
+  (`FrontErrorBodySchema`, `BffError.cardKept`) : l'ancienne carte est toujours enregistrée.
 - `AddedCardSchema` : réponse `201` de `POST /api/bank-card`, `{ maskedNumber, expiryDate,
   cardType }`.
 - Réseau déduit : `detectCardNetwork(digits)` (`features/account/card-network.ts`), `OTHER` par

@@ -507,3 +507,31 @@ Travail demandé :
 
 Mets à jour progress.md et l'OpenAPI.
 ````
+
+---
+
+## 14. Statut périmé juste après « Relancer le paiement »
+
+````text
+Objectif : que GET /management/order/status/{uuid} reflète la relance dès qu'elle a répondu.
+
+Constat (front, e2e bank-card-add.spec.ts du 2026-10-21, backend bddcafd) :
+- commande refusée (carte 4242…, PAYMENT_FAILED), carte remplacée par 1111…, puis
+  POST /management/order/retry-payment/{uuid} → 200 avec status AWAITING_PAYMENT ;
+- 2 s plus tard, GET /management/order/status/{uuid} renvoie PAYMENT_FAILED ;
+- le webhook payment_intent.succeeded arrive ~0,5 s après et la commande finit PAID en base.
+Le statut relu entre la relance et le webhook est donc celui de la tentative précédente (ou
+un événement d'échec tardif l'a réécrit). Un client qui sonde le statut conclut à un refus.
+
+Travail demandé :
+- vérifier que retryPayment persiste AWAITING_PAYMENT dans sa transaction (et pas seulement
+  dans le DTO renvoyé) ;
+- vérifier qu'un événement PAYMENT_FAILED (webhook ou OrderUpdatedEvent) d'une tentative
+  antérieure ne peut pas écraser le statut d'une tentative plus récente (comparer l'identifiant
+  de tentative / PaymentIntent avant d'appliquer la transition) ;
+- IT : refus → relance réussie → le statut lu juste après la relance n'est jamais
+  PAYMENT_FAILED.
+
+En attendant, le front tient un PAYMENT_FAILED lu dans les 10 s qui suivent une relance pour
+périmé (RETRY_STALE_FAILURE_GRACE_MS) et continue de sonder.
+````

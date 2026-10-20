@@ -129,6 +129,14 @@ const FRONT_CODE_BY_BACKEND_CODE = {
   [BackendErrorCode.INVALID_PRODUCT_CATEGORY_SCHEMA]: FrontErrorCode.UNKNOWN,
   [BackendErrorCode.DISCOUNT_CAMPAIGN_MISSING_REQUIRED_FIELD]: FrontErrorCode.UNKNOWN,
   [BackendErrorCode.DISCOUNT_CAMPAIGN_ALREADY_EXISTS]: FrontErrorCode.UNKNOWN,
+  // One card per account: replacing goes through `PUT /bank-card/replace`.
+  [BackendErrorCode.BANK_CARD_ALREADY_EXISTS]: FrontErrorCode.CONFLICT,
+  // Web push is not used by the front yet.
+  [BackendErrorCode.PUSH_SERVICE_NOT_CONFIGURED]: FrontErrorCode.UNAVAILABLE,
+  [BackendErrorCode.PUSH_SUBSCRIPTION_CONFLICT]: FrontErrorCode.CONFLICT,
+  [BackendErrorCode.INVALID_PUSH_ENDPOINT]: FrontErrorCode.INVALID,
+  [BackendErrorCode.PUSH_SUBSCRIPTION_NOT_FOUND]: FrontErrorCode.NOT_FOUND,
+  [BackendErrorCode.PUSH_SUBSCRIPTION_NOT_OWNED]: FrontErrorCode.FORBIDDEN,
 } as const satisfies Record<BackendErrorCode, FrontErrorCode>;
 
 /** Front code used when the body has no known `errorCode`: routed by HTTP status. */

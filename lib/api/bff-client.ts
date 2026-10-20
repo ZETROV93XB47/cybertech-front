@@ -25,9 +25,7 @@ export class BffError extends Error {
   public readonly retryAfterSeconds: number | undefined;
   /** Short lines sent with an `insufficient-stock` error, when the backend named them. */
   public readonly stockShortages: readonly StockShortage[] | undefined;
-  /** A card replacement deleted the previous card before the new one failed. */
-  public readonly cardRemoved: boolean;
-  /** A card replacement could not delete the previous card: it is still saved. */
+  /** A card replacement failed: the previous card is still saved. */
   public readonly cardKept: boolean;
 
   /**
@@ -37,8 +35,7 @@ export class BffError extends Error {
    * @param availableStock - Live stock, for `insufficient-stock` errors.
    * @param retryAfterSeconds - Delay before retrying, for `rate-limited` errors.
    * @param stockShortages - Short lines, for `insufficient-stock` errors.
-   * @param cardRemoved - The previous card is gone (failed card replacement).
-   * @param cardKept - The previous card could not be deleted (failed card replacement).
+   * @param cardKept - The previous card is still saved (failed card replacement).
    */
   public constructor(
     code: FrontErrorCode,
@@ -47,7 +44,6 @@ export class BffError extends Error {
     availableStock?: number,
     retryAfterSeconds?: number,
     stockShortages?: readonly StockShortage[],
-    cardRemoved = false,
     cardKept = false,
   ) {
     super(message);
@@ -57,7 +53,6 @@ export class BffError extends Error {
     this.availableStock = availableStock;
     this.retryAfterSeconds = retryAfterSeconds;
     this.stockShortages = stockShortages;
-    this.cardRemoved = cardRemoved;
     this.cardKept = cardKept;
   }
 }
@@ -73,15 +68,8 @@ async function toBffError(response: Response): Promise<BffError> {
   if (!body.success) {
     return new BffError(FrontErrorCode.UNKNOWN, response.status, "Unreadable BFF error body");
   }
-  const {
-    code,
-    message,
-    availableStock,
-    retryAfterSeconds,
-    stockShortages,
-    cardRemoved,
-    cardKept,
-  } = body.data.error;
+  const { code, message, availableStock, retryAfterSeconds, stockShortages, cardKept } =
+    body.data.error;
   return new BffError(
     code,
     response.status,
@@ -89,7 +77,6 @@ async function toBffError(response: Response): Promise<BffError> {
     availableStock,
     retryAfterSeconds,
     stockShortages,
-    cardRemoved === true,
     cardKept === true,
   );
 }

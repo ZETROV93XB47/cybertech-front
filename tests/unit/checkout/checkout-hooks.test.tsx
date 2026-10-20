@@ -19,6 +19,7 @@ import { accountCartQueryKey } from "@/features/cart/hooks/useCart";
 import {
   ORDER_STATUS_POLL_INTERVAL_MS,
   ORDER_STATUS_POLL_TIMEOUT_MS,
+  RETRY_STALE_FAILURE_GRACE_MS,
 } from "@/lib/constants/orders";
 import { CartLineStatus, CartSource } from "@/lib/enums/cart";
 import { CheckoutStep, PlaceOutcomeKind, RetryPaymentOutcomeKind } from "@/lib/enums/checkout";
@@ -389,6 +390,52 @@ describe("useOrderStatus", () => {
       result.current.restart();
     });
     expect(result.current.isTimedOut).toBe(false);
+  });
+
+  it("after a retry, reads a stale failure as pending until the payment succeeds", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const statuses = [OrderStatus.PAYMENT_FAILED, OrderStatus.PAYMENT_FAILED, OrderStatus.PAID];
+    let reads = 0;
+    server.use(
+      http.get("*/api/orders/:uuid/status", () => {
+        const status = statuses[Math.min(reads, statuses.length - 1)];
+        reads += 1;
+        return HttpResponse.json({ uuid: ORDER, status });
+      }),
+    );
+    const { wrapper } = setup();
+    const { result } = renderHook(() => useOrderStatus(ORDER), { wrapper });
+    await waitFor(() => {
+      expect(result.current.status).toBe(OrderStatus.PAYMENT_FAILED);
+    });
+    act(() => {
+      result.current.restart();
+    });
+    await act(() => vi.advanceTimersByTimeAsync(ORDER_STATUS_POLL_INTERVAL_MS / 2));
+    expect(result.current.status).toBe(OrderStatus.AWAITING_PAYMENT);
+    await act(() => vi.advanceTimersByTimeAsync(statuses.length * ORDER_STATUS_POLL_INTERVAL_MS));
+    expect(result.current.status).toBe(OrderStatus.PAID);
+  });
+
+  it("after a retry, shows a failure that outlasts the grace time", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    server.use(
+      http.get("*/api/orders/:uuid/status", () =>
+        HttpResponse.json({ uuid: ORDER, status: OrderStatus.PAYMENT_FAILED }),
+      ),
+    );
+    const { wrapper } = setup();
+    const { result } = renderHook(() => useOrderStatus(ORDER), { wrapper });
+    await waitFor(() => {
+      expect(result.current.status).toBe(OrderStatus.PAYMENT_FAILED);
+    });
+    act(() => {
+      result.current.restart();
+    });
+    await act(() =>
+      vi.advanceTimersByTimeAsync(RETRY_STALE_FAILURE_GRACE_MS + 2 * ORDER_STATUS_POLL_INTERVAL_MS),
+    );
+    expect(result.current.status).toBe(OrderStatus.PAYMENT_FAILED);
   });
 
   it("stops on a missing order", async () => {

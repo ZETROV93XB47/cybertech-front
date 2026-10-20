@@ -665,10 +665,15 @@ panier ; recharger : un seul produit reste, cœur plein sur sa carte.
   périmètre.
 - **Carte de l'utilisateur chez Stripe** : abandonnée par le backend le 2026-10-14
   (`ae1d263`) ; plus de dépendance : `POST /bank-card/add` reçoit la carte saisie.
-- **Remplacement atomique de la carte** (optionnelle) : le backend refuse une deuxième carte
-  (`IllegalStateException`, rendue en 500 générique) ; le BFF supprime puis ajoute, avec le
-  risque d'un compte sans carte si l'ajout échoue entre les deux (signalé à l'utilisateur). Un
-  endpoint backend « remplacer » transactionnel supprimerait ce risque.
+- **Suppression et remplacement de la carte** : **livrés** par le backend `ea5f708`
+  (`backend-prompts-lot2.md` §12) : la suppression est effective, une deuxième carte donne
+  `409 BANK_CARD_ALREADY_EXISTS` et `PUT /bank-card/replace` échange la carte dans une seule
+  transaction ; le BFF l'utilise pour « Remplacer ma carte » (plus de compte sans carte).
+- **Statut cohérent juste après une relance de paiement** (non bloquante) : la relance répond
+  `AWAITING_PAYMENT` mais le statut relu dans les secondes qui suivent peut encore être le
+  `PAYMENT_FAILED` de la tentative précédente, jusqu'au webhook (`backend-prompts-lot2.md`
+  §14) ; le front tient ce `PAYMENT_FAILED` pour périmé pendant
+  `RETRY_STALE_FAILURE_GRACE_MS` (10 s).
 
 - **Détail structuré de `NOT_ENOUGH_STOCK`** : **livré** par le backend `f582c3a`
   (`backend-prompts-lot2.md` §11, `details.items`). La modification de commande signale

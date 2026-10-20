@@ -16,9 +16,8 @@ import { FieldErrorSchema, StockShortageSchema } from "./error";
  * `{ error: { code, message, fieldErrors?, retryAfterSeconds?, availableStock?, stockShortages? } }`.
  *
  * `stockShortages` relays the backend `details.items` of an `insufficient-stock` error (product
- * UUIDs and quantities only). `cardRemoved` says that a card replacement deleted the previous
- * card before the new one failed, so the account has no card any more; `cardKept` says that the
- * backend acknowledged a deletion that did not take effect, so the previous card is still saved.
+ * UUIDs and quantities only). `cardKept` says that a card replacement failed and the previous
+ * card is still saved (the backend swaps both in one transaction).
  */
 export const FrontErrorBodySchema = z.object({
   error: z.object({
@@ -28,7 +27,6 @@ export const FrontErrorBodySchema = z.object({
     retryAfterSeconds: z.int().nonnegative().optional(),
     availableStock: z.int().nonnegative().optional(),
     stockShortages: z.array(StockShortageSchema).optional(),
-    cardRemoved: z.literal(true).optional(),
     cardKept: z.literal(true).optional(),
   }),
 });

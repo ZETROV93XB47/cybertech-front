@@ -4,8 +4,8 @@
  * « Ajouter une carte »: the typed values, the replacement confirmation, and the sending to
  * `POST /api/bank-card`. The number is emptied from the state as soon as it is sent, whatever
  * the answer, and never written to the browser storage (constitution V v3.0.0). On success the
- * page is refreshed (the masked card shows) and the customer goes back to `returnTo`; when a
- * replacement lost the previous card, the message says so and the page shows « aucune carte ».
+ * page is refreshed (the masked card shows) and the customer goes back to `returnTo`; a failed
+ * replacement keeps the previous card, and the message says so.
  *
  * @see specs/003-account-orders/research.md R21
  */
@@ -54,27 +54,26 @@ export interface UseAddCardResult {
  * What the form shows after a refused add.
  *
  * @param error - Thrown value.
- * @returns The outcome (the previous card's loss is said explicitly).
+ * @returns The outcome: a field to fix, the session to renew, or (failed replacement) the
+ *   previous card being kept.
  */
 export function addCardFailure(error: unknown): AddCardOutcome {
   const bffError = error instanceof BffError ? error : null;
-  if (bffError?.cardRemoved === true) {
-    return { status: CardFormStatus.ERROR, formError: CARD_MESSAGES.errors.cardRemoved };
-  }
-  if (bffError?.cardKept === true) {
-    return { status: CardFormStatus.ERROR, formError: CARD_MESSAGES.errors.cardKept };
-  }
   const failure = cardFailure(
     bffError?.code ?? FrontErrorCode.UNKNOWN,
     bffError?.retryAfterSeconds,
   );
-  return failure.needsSignIn === true
-    ? {
-        ...failure,
-        status: CardFormStatus.ERROR,
-        formError: CARD_MESSAGES.errors.sessionExpiredNumber,
-      }
-    : { ...failure, status: CardFormStatus.ERROR };
+  if (failure.needsSignIn === true) {
+    return {
+      ...failure,
+      status: CardFormStatus.ERROR,
+      formError: CARD_MESSAGES.errors.sessionExpiredNumber,
+    };
+  }
+  if (bffError?.cardKept === true && failure.fieldErrors === undefined) {
+    return { status: CardFormStatus.ERROR, formError: CARD_MESSAGES.errors.cardKept };
+  }
+  return { ...failure, status: CardFormStatus.ERROR };
 }
 
 /**
