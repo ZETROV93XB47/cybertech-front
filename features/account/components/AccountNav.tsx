@@ -5,8 +5,8 @@
  * current one marked with `aria-current="page"` and a gold accent (never colour alone: the
  * link also gets its weight and background).
  *
- * The sections come from `account-sections.ts`, shared with the header account menu; « Mon
- * profil » (US4) and « Ma carte » (US5) join the list when their pages exist.
+ * The sections come from `account-sections.ts`, shared with the header account menu; « Ma
+ * carte » (US5) joins the list when its page exists.
  *
  * @see specs/003-account-orders/tasks.md T050
  */

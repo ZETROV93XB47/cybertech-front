@@ -1,6 +1,6 @@
 /**
- * User endpoints of the backend: registration (public, rate limited per IP) and profile of the
- * signed-in user.
+ * User endpoints of the backend: registration (public, rate limited per IP), profile of the
+ * signed-in user and its self-service update (feature 003 US4).
  *
  * @see docs/backend/api-map.md §4
  * @see UserManagementController (backend)
@@ -18,7 +18,9 @@ import type { UserCreateRequest } from "@/lib/schemas/register";
 import {
   CurrentUserSchema,
   UserProfileSchema,
+  toUserSelfUpdateBody,
   type CurrentUser,
+  type ProfileUpdate,
   type UserProfile,
 } from "@/lib/schemas/user";
 
@@ -33,6 +35,8 @@ const RegisteredUserSchema = z.object({
 export type RegisteredUser = z.infer<typeof RegisteredUserSchema>;
 
 const log = createModuleLogger("auth.register");
+
+const profileLog = createModuleLogger("account.profile");
 
 /**
  * Creates an account (backend saga: Keycloak user, then database profile).
@@ -84,4 +88,31 @@ export async function getMe(accessToken: string): Promise<CurrentUser> {
  */
 export async function getProfile(accessToken: string): Promise<UserProfile> {
   return backendFetch(BACKEND_PATHS.userMe, { schema: UserProfileSchema, accessToken });
+}
+
+/**
+ * Updates the profile of the signed-in user (`PATCH /user/me`, `UserSelfUpdateRequestDto`).
+ *
+ * Only the fields present in the body change: empty form fields are omitted beforehand so a
+ * stored value is never overwritten with `null`. Never retried (Keycloak then database saga on
+ * the backend). The log names the fields sent, never their values.
+ *
+ * @param update - Validated form.
+ * @param accessToken - Keycloak access token; never logged.
+ * @returns The updated profile.
+ * @throws {ApiError} `INVALID` (with `fieldErrors`), `UNAUTHENTICATED`, `NOT_FOUND`
+ * (`USER_NOT_FOUND`), `RATE_LIMITED` or `UNAVAILABLE`.
+ * @see specs/003-account-orders/contracts/bff-routes.md §2
+ * @see UserManagementController#updateMe (backend)
+ */
+export async function updateMe(update: ProfileUpdate, accessToken: string): Promise<UserProfile> {
+  const body = toUserSelfUpdateBody(update);
+  const profile = await backendFetch(BACKEND_PATHS.userMe, {
+    schema: UserProfileSchema,
+    method: HttpMethod.PATCH,
+    body,
+    accessToken,
+  });
+  profileLog.info({ fields: Object.keys(body) }, "Profile updated");
+  return profile;
 }

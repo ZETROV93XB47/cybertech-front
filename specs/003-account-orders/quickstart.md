@@ -311,11 +311,33 @@ Vérifié le 2026-10-20 (T041–T054, T098) : backend `f582c3a` sur 8081 (images
 
 ### US4 — Mon profil
 
-À remplir.
+Vérifié le 2026-10-20 (T055–T062) : backend `f582c3a` sur 8081, front de l'utilisateur sur 3000
+(`IMAGES_REMOTE_HOST=localhost:9000`, `E2E=true`).
+
+- Contrôles : `typecheck` OK, `lint` 0 warning, `test` 838 tests verts (85 fichiers).
+- E2E (`--workers=1`, chromium) : `profile.spec.ts` 2 OK (un premier passage a vu « La
+  boutique ne répond pas » sur une fiche produit : coupure passagère du backend, OK au second
+  passage) ; régression `checkout.spec.ts` 4 OK (session expirée comprise), `orders.spec.ts`
+  2 OK, `auth.spec.ts` 6 OK.
+- Captures relues : `screenshots/us4/` (profil, erreur de prénom, profil enregistré, menu
+  avatar avec « Mon profil »).
+- Lighthouse desktop (build `.next-prod`, port 3124) : accueil 98 (LCP 1 172 ms, CLS 0,002,
+  TBT 0), catalogue 97 (LCP 1 202 ms, TBT 2 ms), fiche produit 99 (LCP 862 ms), panier 99
+  (LCP 854 ms). « Mon profil » est privé : non mesuré.
+- Écart : une session expirée à l'enregistrement affiche une erreur de formulaire avec
+  « Me reconnecter » et garde la saisie, au lieu de rediriger (contrat §2 mis à jour).
+- Limite connue : le nom affiché dans l'en-tête vient du jeton Keycloak ; il change au
+  prochain renouvellement du jeton ou à la reconnexion.
 
 | # | Résultat | Commentaire |
 |---|---|---|
-| 40–46 | à remplir | |
+| 40 | OK | identité, email, nom d'utilisateur, adresse découpée et préremplie |
+| 41 | OK | « Entre 2 et 50 caractères. » sur le champ, rien n'est envoyé |
+| 42 | OK | ville gardée au rechargement, préremplie dans le tunnel |
+| 43 | OK | téléphone vide avec la mention de remplacement |
+| 44 | OK | « Changer de mot de passe (nouvel onglet) » vers la console Keycloak |
+| 45 | OK | email et nom d'utilisateur en lecture seule ; aucune suppression de compte |
+| 46 | couvert par les tests unitaires | `parseFlatAddress` (US1) |
 
 ### US5 — Ma carte enregistrée
 

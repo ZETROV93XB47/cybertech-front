@@ -82,8 +82,9 @@ autre que `unavailable` (qui est réessayée au tour suivant, dans la limite de
 
 Formulaires avec `useActionState`, validation Zod côté serveur reprenant Bean Validation,
 `revalidatePath` après succès. Résultat commun : `{ ok: true }` ou `{ ok: false, fieldErrors?,
-formError?: FrontErrorCode, retryAfterSeconds? }`. Session absente → redirection connexion
-(`requireSession`).
+formError?: FrontErrorCode, retryAfterSeconds? }`. Session absente ou expirée →
+`formError: unauthenticated` : le formulaire invite à se reconnecter et garde les valeurs
+saisies (FR-002), sans redirection (`getAccessTokenOrThrow`).
 
 | Action | Entrée | Endpoint Spring | Erreurs spécifiques |
 |---|---|---|---|
