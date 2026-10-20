@@ -1,7 +1,7 @@
 /**
  * « Ma wishlist » (feature 003 US6): the products the user kept aside, newest first, one page
  * of the backend at a time (`?page=`, 1-based). Private page, guarded by the proxy and the
- * `(account)` layout; read on the server with the user's token, never cached.
+ * `(account)` layout, shown in the account shell (`account/layout.tsx`); read on the server with the user's token, never cached.
  *
  * @see specs/003-account-orders/spec.md US6, FR-037
  * @see specs/003-account-orders/research.md R22
@@ -14,7 +14,6 @@ import { z } from "zod";
 import { LiveTitle } from "@/components/effects/LiveTitle";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { PAGE_TITLE_CLASS, PageHeader } from "@/components/layout/PageHeader";
-import { PageShell } from "@/components/layout/PageShell";
 import { COMMON_MESSAGES } from "@/features/common/messages";
 import { WishlistList } from "@/features/wishlist/components/WishlistList";
 import { WISHLIST_MESSAGES } from "@/features/wishlist/messages";
@@ -60,7 +59,7 @@ export default async function WishlistPage({
     redirect(wishlistPagePath(Math.max(FIRST_PAGE, wishlist.page.totalPages)));
   }
   return (
-    <PageShell>
+    <>
       <PageHeader
         breadcrumb={
           <Breadcrumb
@@ -78,6 +77,6 @@ export default async function WishlistPage({
         page={page}
         totalPages={wishlist.page.totalPages}
       />
-    </PageShell>
+    </>
   );
 }

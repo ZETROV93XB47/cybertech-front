@@ -106,6 +106,38 @@ export const PlacedOrderSchema = z.object({
 export type PlacedOrder = z.infer<typeof PlacedOrderSchema>;
 
 /**
+ * Body of a successful `POST /api/orders/{uuid}` (edit) and `POST /api/orders/{uuid}/cancel`:
+ * the new status and the backend amounts the page compares with the previous ones (never
+ * recomputed). The page then reads the order again with `router.refresh()`.
+ *
+ * @see specs/003-account-orders/contracts/bff-routes.md §1
+ */
+export const OrderChangeResultSchema = z.object({
+  uuid: z.uuid(),
+  status: z.enum(OrderStatus),
+  total: AmountSchema,
+  refunded: AmountSchema,
+});
+
+/** Outcome of an order edit or cancellation. */
+export type OrderChangeResult = z.infer<typeof OrderChangeResultSchema>;
+
+/**
+ * Keeps from an edited or cancelled order what the page needs (no address, no lines).
+ *
+ * @param order - Order returned by the backend.
+ * @returns Its status and amounts.
+ */
+export function toOrderChangeResult(order: OrderResponse): OrderChangeResult {
+  return {
+    uuid: order.uuid,
+    status: order.status,
+    total: order.totalAmount,
+    refunded: order.refundedAmount,
+  };
+}
+
+/**
  * `OrderQuoteResponseDto`: amounts the backend would charge for the cart, nothing created.
  *
  * `discountApplied` is false under `minOrderAmount` (the backend then drops the discount

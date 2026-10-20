@@ -10,6 +10,15 @@ export const AUTH_MESSAGES = {
   signOut: "Se déconnecter",
   signingOut: "Déconnexion…",
   accountMenuLabel: (name: string): string => `Compte de ${name}`,
+  /**
+   * Greeting at the top of the header account menu.
+   *
+   * @param firstName - First name of the signed-in user.
+   * @returns The greeting.
+   */
+  accountMenuGreeting: (firstName: string): string => `Bonjour ${firstName}`,
+  /** Name of the list of links of the header account menu (distinct from the account nav). */
+  accountMenuLinks: "Raccourcis de ton compte",
   loginTitle: "Connexion",
   loginDescription: "Connecte-toi pour retrouver ton panier sur tous tes appareils.",
   loginRedirecting: "On t'emmène vers la page de connexion…",

@@ -83,3 +83,11 @@ export const SESSION_COOKIE_CHUNK_SIZE = 3_936;
 
 /** Refresh token written by the test-only route to make the next renewal fail. */
 export const INVALID_REFRESH_TOKEN = "e2e-invalid-refresh-token";
+
+/**
+ * Delay before the header account menu closes once the pointer leaves the avatar or the panel.
+ *
+ * Long enough to cross the gap between the avatar and the panel without the menu closing, short
+ * enough to feel immediate (Nielsen's 0.1 s / « about instant » range plus a margin).
+ */
+export const ACCOUNT_MENU_CLOSE_DELAY_MS = 200;

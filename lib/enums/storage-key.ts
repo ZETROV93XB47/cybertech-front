@@ -41,4 +41,11 @@ export enum StorageKey {
    * @see specs/003-account-orders/research.md R22
    */
   WISHLIST_PENDING = "ct_wishlist_pending_v1",
+  /**
+   * `sessionStorage`: changes of an order edit kept across a forced re-login (lines, shipping,
+   * payment; never the address), restored once and never saved automatically.
+   *
+   * @see specs/003-account-orders/tasks.md T053
+   */
+  ORDER_EDIT = "ct_order_edit_v1",
 }

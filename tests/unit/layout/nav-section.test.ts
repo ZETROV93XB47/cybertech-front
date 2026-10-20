@@ -22,6 +22,10 @@ describe("resolveNavSection", () => {
     ["/cart", "", null, NavSection.NONE],
     ["/register", "", null, NavSection.NONE],
     ["/login", "callbackUrl=%2F", null, NavSection.NONE],
+    ["/account/orders", "", null, NavSection.ACCOUNT],
+    ["/account/wishlist", "page=2", null, NavSection.ACCOUNT],
+    ["/checkout", "", null, NavSection.ACCOUNT],
+    ["/accounts", "", null, NavSection.NONE],
   ])("%s?%s with product category %s gives %s", (pathname, query, category, expected) => {
     expect(resolveNavSection(pathname, params(query), category)).toBe(expected);
   });

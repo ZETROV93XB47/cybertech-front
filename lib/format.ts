@@ -47,3 +47,35 @@ export function formatDay(value: string): string | null {
   const date = new Date(HAS_TIME_ZONE.test(value) ? value : `${value}${UTC_SUFFIX}`);
   return Number.isNaN(date.getTime()) ? null : dateFormatter.format(date);
 }
+
+const fullDateFormatter = new Intl.DateTimeFormat(UI_LOCALE, {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+/** Detects a date without time (`2026-10-15`, backend `LocalDate`). */
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Time appended to a date without time, read as UTC midnight. */
+const MIDNIGHT_UTC = "T00:00:00Z";
+
+/**
+ * Formats a backend date with its year, « 14 octobre 2026 » (orders, delivery windows).
+ *
+ * Backend `LocalDate` and `LocalDateTime` values have no time zone; they are read as UTC.
+ *
+ * @param value - ISO date or date-time, with or without time zone.
+ * @returns The formatted date, or `null` when the value is not a date.
+ */
+export function formatFullDay(value: string): string | null {
+  let iso = value;
+  if (DATE_ONLY.test(value)) {
+    iso = `${value}${MIDNIGHT_UTC}`;
+  } else if (!HAS_TIME_ZONE.test(value)) {
+    iso = `${value}${UTC_SUFFIX}`;
+  }
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? null : fullDateFormatter.format(date);
+}

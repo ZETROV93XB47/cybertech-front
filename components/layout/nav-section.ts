@@ -12,6 +12,7 @@ import { useSyncExternalStore } from "react";
 
 import { assertNever } from "@/lib/assert-never";
 import { CATALOG_PATH, HOME_PATH } from "@/lib/constants/routes";
+import { PRIVATE_PATH_PREFIXES } from "@/lib/constants/security";
 import { CategoryKey } from "@/lib/enums/category-key";
 import { NavSection } from "@/lib/enums/nav-section";
 import { SearchParam } from "@/lib/enums/search-param";
@@ -38,12 +39,25 @@ function categorySection(category: CategoryKey): NavSection {
 }
 
 /**
+ * Whether a path is a prefix itself or one of its sub-paths (`/account`, `/account/orders`, but
+ * not `/accounts`).
+ *
+ * @param pathname - Current path.
+ * @param prefix - Path prefix.
+ * @returns `true` when the path belongs to the prefix.
+ */
+function isUnder(pathname: string, prefix: string): boolean {
+  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
+/**
  * Resolves the current section of the navigation bar.
  *
  * @param pathname - Current path.
  * @param searchParams - Current query parameters.
  * @param productCategory - Category published by a product page, `null` otherwise.
- * @returns The section to highlight; `NONE` outside the home page and the catalog.
+ * @returns The section to highlight; `ACCOUNT` on the private pages (account and checkout),
+ *   `NONE` on the other pages outside the home page and the catalog.
  */
 export function resolveNavSection(
   pathname: string,
@@ -59,6 +73,9 @@ export function resolveNavSection(
   }
   if (pathname.startsWith(PRODUCT_PATH_PREFIX)) {
     return productCategory === null ? NavSection.CATALOG : categorySection(productCategory);
+  }
+  if (PRIVATE_PATH_PREFIXES.some((prefix) => isUnder(pathname, prefix))) {
+    return NavSection.ACCOUNT;
   }
   return NavSection.NONE;
 }

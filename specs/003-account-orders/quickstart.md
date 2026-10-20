@@ -266,11 +266,48 @@ sans minimum ni plafond).
 
 ### US3 — Suivre et gérer mes commandes
 
-À remplir.
+Vérifié le 2026-10-20 (T041–T054, T098) : backend `f582c3a` sur 8081 (images sur
+`localhost:9000`), `next dev` de vérification sur 3000 avec `E2E=true` et
+`IMAGES_REMOTE_HOST=localhost:9000`.
+
+- Contrôles : `typecheck` OK, `lint` 0 warning, `test` vert (83 fichiers).
+- E2E (`--workers=1`, chromium, une minute entre les specs qui inscrivent des comptes) :
+  `orders.spec.ts` 2 OK, `auth.spec.ts` 6 OK (menu avatar), `checkout.spec.ts` 4 OK (session
+  expirée enfin exécutée), `discount.spec.ts` 1 OK + 1 sauté (aucune campagne à minimum),
+  `wishlist.spec.ts` 2 OK, `cart.spec.ts` 7 OK, `catalog.spec.ts` 8 OK (palette Ctrl+K et
+  « Rupture » passent).
+- Correctifs pendant la vérification :
+  - après une reconnexion forcée, les choix restaurés restaient dans des étapes « À venir » :
+    les étapes restaurées sont maintenant repliées comme faites (`checkout-state.ts`) ;
+  - le test de session expirée attendait un formulaire Keycloak, alors que la session SSO de
+    Keycloak survit à celle du site (reconnexion silencieuse) ;
+  - deux commandes passées à quelques secondes d'écart avaient le même numéro (début d'un
+    UUID v7 = horodatage) : le numéro reprend la fin de l'UUID ;
+  - liens dans le texte de la modification de commande soulignés (axe `link-in-text-block`) ;
+  - sélecteurs e2e ambigus (« Indisponible » sur la fiche, produit en double pendant la
+    navigation).
+- Captures relues : `screenshots/us3/` (liste vide et remplie, filtre, détail, frise,
+  modification, dialogue d'annulation, commande annulée, commande introuvable, menu avatar).
+- Lighthouse desktop (build `.next-prod`, port 3124) : accueil 98 (LCP 1 196 ms, CLS 0,002,
+  TBT 0), catalogue 97 (LCP 1 211 ms), fiche produit 99 (LCP 952 ms), panier 99 (LCP 907 ms).
+  « Mes commandes » et le détail sont privés : non mesurés.
 
 | # | Résultat | Commentaire |
 |---|---|---|
-| 25–39 | à remplir | |
+| 25 | OK | plus récente d'abord ; pagination couverte par les tests unitaires (comptes e2e à 2 commandes) |
+| 26 | OK | `?status=PAID` gardé au rechargement, formulaire GET |
+| 27 | OK | sous-total, livraison, total, adresse, transporteur |
+| 28 | couvert par les tests unitaires | pas de commande ancienne sur un compte neuf |
+| 29 | OK | étape courante marquée ; « Commande annulée » à part |
+| 30–31 | OK | quantité baissée, produit ajouté par recherche, ancien et nouveau total |
+| 32 | partiel | le backend ne dit pas quelle ligne manque de stock : toutes les lignes ajoutées ou augmentées sont signalées (`backend-prompts-lot2.md` §11) |
+| 33 | OK | retrait de la dernière ligne impossible, lien vers l'annulation |
+| 34 | OK | moyen de paiement requis, non prérempli |
+| 35 | couvert par les tests unitaires | 409 `order-locked` |
+| 36 | OK | confirmation puis « Annulée », remboursement affiché |
+| 37 | couvert par les tests unitaires | une carte `0000…` permettrait de le tester à la main |
+| 38 | OK | état vide illustré |
+| 39 | OK | « Commande introuvable » |
 
 ### US4 — Mon profil
 

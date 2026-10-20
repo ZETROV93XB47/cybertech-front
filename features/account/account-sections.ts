@@ -1,0 +1,47 @@
+/**
+ * Sections of the account area, shared by the side navigation of `/account/**` (`AccountNav`)
+ * and the header account menu (`AccountMenu`), so both always list the same pages.
+ *
+ * Only sections whose page exists are listed: « Mon profil » (US4) and « Ma carte » (US5) add
+ * their entry here when their page lands, and appear in both places at once.
+ *
+ * @see specs/003-account-orders/tasks.md T050, T098
+ */
+import { Heart, Package, type LucideIcon } from "lucide-react";
+
+import { ACCOUNT_PATHS } from "@/lib/constants/routes";
+
+import { ACCOUNT_NAV_MESSAGES } from "./messages";
+
+/** One section of the account area. */
+export interface AccountSection {
+  /** Path of the section page. */
+  readonly href: string;
+  /** Visible label (French). */
+  readonly label: string;
+  /** Decorative icon shown before the label. */
+  readonly icon: LucideIcon;
+}
+
+/**
+ * Sections, in display order. Also the items of the header account menu
+ * (`ACCOUNT_MENU_ITEMS`): add the profile and card entries here in US4 / US5.
+ */
+export const ACCOUNT_SECTIONS: readonly AccountSection[] = [
+  { href: ACCOUNT_PATHS.orders, label: ACCOUNT_NAV_MESSAGES.orders, icon: Package },
+  { href: ACCOUNT_PATHS.wishlist, label: ACCOUNT_NAV_MESSAGES.wishlist, icon: Heart },
+];
+
+/** Items of the header account menu: the account sections, in the same order. */
+export const ACCOUNT_MENU_ITEMS: readonly AccountSection[] = ACCOUNT_SECTIONS;
+
+/**
+ * Whether a section is the current one (its page or one of its sub-pages).
+ *
+ * @param pathname - Current path.
+ * @param href - Section path.
+ * @returns `true` for the current section.
+ */
+export function isCurrentSection(pathname: string, href: string): boolean {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}

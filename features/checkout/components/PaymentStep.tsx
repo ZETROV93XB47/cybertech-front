@@ -29,6 +29,50 @@ export interface PaymentStepProps {
   readonly onSubmit: () => void;
 }
 
+/** Props of {@link PaymentMethodsFieldset}. */
+export interface PaymentMethodsFieldsetProps {
+  readonly value: PaymentType | null;
+  /** Id of the element describing the choice (hint or error). */
+  readonly describedBy: string;
+  readonly onChange: (value: PaymentType) => void;
+}
+
+/**
+ * The four payment methods, shared by the checkout and the order edit form.
+ *
+ * @param props - Selection, description and handler.
+ * @returns The fieldset.
+ */
+export function PaymentMethodsFieldset({
+  value,
+  describedBy,
+  onChange,
+}: PaymentMethodsFieldsetProps): ReactNode {
+  return (
+    <fieldset className="grid gap-3 sm:grid-cols-2" aria-describedby={describedBy}>
+      <legend className="mb-2 text-sm font-medium">{CHECKOUT_MESSAGES.paymentLegend}</legend>
+      {Object.values(PaymentType).map((type) => (
+        <label
+          key={type}
+          className="flex cursor-pointer items-center gap-3 rounded-card border border-border p-4 transition-colors duration-(--duration-fast) has-checked:border-brand-text"
+        >
+          <input
+            type="radio"
+            name={RADIO_NAME}
+            className="accent-brand"
+            checked={value === type}
+            onChange={() => {
+              onChange(type);
+            }}
+          />
+          <CreditCard aria-hidden className="size-5 text-brand-text" />
+          <span className="text-sm font-medium">{CHECKOUT_MESSAGES.paymentLabels[type]}</span>
+        </label>
+      ))}
+    </fieldset>
+  );
+}
+
 /**
  * Payment step form.
  *
@@ -50,30 +94,11 @@ export function PaymentStep({
         onSubmit();
       }}
     >
-      <fieldset
-        className="grid gap-3 sm:grid-cols-2"
-        aria-describedby={error ? "payment-error" : "payment-hint"}
-      >
-        <legend className="mb-2 text-sm font-medium">{CHECKOUT_MESSAGES.paymentLegend}</legend>
-        {Object.values(PaymentType).map((type) => (
-          <label
-            key={type}
-            className="flex cursor-pointer items-center gap-3 rounded-card border border-border p-4 transition-colors duration-(--duration-fast) has-checked:border-brand-text"
-          >
-            <input
-              type="radio"
-              name={RADIO_NAME}
-              className="accent-brand"
-              checked={value === type}
-              onChange={() => {
-                onChange(type);
-              }}
-            />
-            <CreditCard aria-hidden className="size-5 text-brand-text" />
-            <span className="text-sm font-medium">{CHECKOUT_MESSAGES.paymentLabels[type]}</span>
-          </label>
-        ))}
-      </fieldset>
+      <PaymentMethodsFieldset
+        value={value}
+        describedBy={error ? "payment-error" : "payment-hint"}
+        onChange={onChange}
+      />
       <SavedCardPanel card={savedCard} />
       <p id="payment-hint" className="text-xs text-text-muted">
         {CHECKOUT_MESSAGES.paymentTest}

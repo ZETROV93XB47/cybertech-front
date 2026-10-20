@@ -108,6 +108,57 @@ describe("checkoutReducer", () => {
     expect(state.payment).toBe(PaymentType.GOOGLE_PAY);
     expect(state.address).toEqual(ADDRESS);
     expect(state.addressNotice).toMatch(/adresse a été reprise/);
+    // The reset address must be checked again; the restored choices stay folded as done.
+    expect(state.openStep).toBe(CheckoutStep.ADDRESS);
+    expect(stepStateOf(state, CheckoutStep.SHIPPING)).toBe(CheckoutStepState.DONE);
+    expect(stepStateOf(state, CheckoutStep.PAYMENT)).toBe(CheckoutStepState.DONE);
+  });
+
+  it("folds every restored step so that only « Valider la commande » is left", () => {
+    const state = run({
+      type: CheckoutActionType.RESTORE_DRAFT,
+      draft: {
+        step: CheckoutStep.PAYMENT,
+        shippingType: ShippingType.EXPRESS,
+        shippingProvider: ShippingProvider.DHL,
+        paymentType: PaymentType.GOOGLE_PAY,
+        hadCustomAddress: false,
+      },
+    });
+    expect(state.openStep).toBeNull();
+    expect(areStepsComplete(state)).toBe(true);
+    expect(state.addressNotice).toBeNull();
+  });
+
+  it("opens the first step whose choice did not come back", () => {
+    const state = run({
+      type: CheckoutActionType.RESTORE_DRAFT,
+      draft: {
+        step: CheckoutStep.SHIPPING,
+        shippingType: ShippingType.STANDARD,
+        shippingProvider: ShippingProvider.DHL,
+        hadCustomAddress: false,
+      },
+    });
+    expect(state.validated).toEqual([CheckoutStep.ADDRESS, CheckoutStep.SHIPPING]);
+    expect(state.openStep).toBe(CheckoutStep.PAYMENT);
+  });
+
+  it("keeps the address step open when the profile address is incomplete", () => {
+    const state = [
+      {
+        type: CheckoutActionType.RESTORE_DRAFT,
+        draft: {
+          step: CheckoutStep.PAYMENT,
+          shippingType: ShippingType.STANDARD,
+          shippingProvider: ShippingProvider.DHL,
+          paymentType: PaymentType.VISA,
+          hadCustomAddress: false,
+        },
+      } satisfies CheckoutAction,
+    ].reduce(checkoutReducer, initCheckoutState({ ...ADDRESS, city: "" }));
+    expect(state.openStep).toBe(CheckoutStep.ADDRESS);
+    expect(areStepsComplete(state)).toBe(false);
   });
 
   it("writes a draft without any address", () => {

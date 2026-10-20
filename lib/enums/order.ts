@@ -96,3 +96,47 @@ export enum OrderChangeKind {
   /** Neither changed. */
   UNCHANGED = "unchanged",
 }
+
+/** Display state of one step of the order timeline (FR-024). */
+export enum TimelineStepState {
+  /** Step reached and passed. */
+  DONE = "done",
+  /** Step the order is at now. */
+  CURRENT = "current",
+  /** Step not reached yet (or never reached, after an outcome). */
+  UPCOMING = "upcoming",
+}
+
+/** Transitions of the order edit reducer (`features/orders/order-edit.ts`). */
+export enum OrderEditActionType {
+  SET_QUANTITY = "set-quantity",
+  REMOVE_LINE = "remove-line",
+  ADD_PRODUCT = "add-product",
+  CHANGE_ADDRESS = "change-address",
+  SELECT_SHIPPING = "select-shipping",
+  SELECT_PAYMENT = "select-payment",
+  /** Marks lines refused for lack of stock (added or increased lines). */
+  FLAG_STOCK = "flag-stock",
+  SET_ADDRESS_ERRORS = "set-address-errors",
+  RESTORE_DRAFT = "restore-draft",
+}
+
+/** Why an order edit cannot be sent yet. */
+export enum OrderEditIssue {
+  /** An address field is empty or too long. */
+  ADDRESS = "address",
+  /** No payment method chosen (the backend does not return the previous one). */
+  PAYMENT = "payment",
+}
+
+/** Outcome of a click on « Enregistrer les modifications » or « Oui, annuler ». */
+export enum OrderActionOutcomeKind {
+  /** The backend accepted the change. */
+  DONE = "done",
+  /** The backend (or the BFF) refused it; the form stays as it is. */
+  FAILED = "failed",
+  /** The session expired: the browser is on its way to the sign-in page. */
+  REDIRECTED = "redirected",
+  /** A previous click is still being processed. */
+  IGNORED = "ignored",
+}

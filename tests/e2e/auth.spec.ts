@@ -22,6 +22,8 @@ import {
 const GUEST_CART_KEY = "ct_guest_cart_v1";
 
 const signOutButton = (page: Page) => page.getByRole("button", { name: "Se déconnecter" });
+/** Avatar of the header account menu, present only once signed in (FR-040). */
+const accountAvatar = (page: Page) => page.getByRole("button", { name: /^Compte de / });
 const signInLink = (page: Page) => page.getByRole("link", { name: "Se connecter" });
 
 /** Damages the session through the test-only route; skips the test when it is not enabled. */
@@ -58,7 +60,7 @@ test("signing in from the header comes back to the page of origin", async ({ pag
   await signInLink(page).click();
   await fillKeycloakForm(page, email);
   await page.waitForURL((url) => url.pathname === "/cart");
-  await expect(signOutButton(page)).toBeVisible();
+  await expect(accountAvatar(page)).toBeVisible();
 });
 
 test("a signed-in user is welcomed by first name", async ({ page }) => {
@@ -85,6 +87,8 @@ test("signing out closes both sessions and leaves nothing private behind", async
   await page.getByRole("button", { name: "Ajouter au panier" }).click();
   await expect(page.getByRole("link", { name: "Panier, 1 article" })).toBeVisible();
 
+  await accountAvatar(page).click();
+  await expect(page.getByTestId("account-name")).toContainText("Camille");
   await signOutButton(page).click();
   await page.waitForURL((url) => url.port === "3000" && url.pathname === "/");
   await expect(signInLink(page)).toBeVisible();
@@ -105,7 +109,7 @@ test("an expired access token is renewed without the user noticing", async ({ pa
   await expireSession(page, "access");
   await page.goto("/cart");
   await expect(page).toHaveURL(/\/cart$/);
-  await expect(signOutButton(page)).toBeVisible();
+  await expect(accountAvatar(page)).toBeVisible();
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Content de te revoir, Camille");
 });

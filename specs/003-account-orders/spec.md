@@ -550,6 +550,16 @@ panier ; recharger : un seul produit reste, cœur plein sur sa carte.
   (identifiants des produits, au plus `WISHLIST_IDS_MAX` produits), partagée par toutes les
   cartes ; aucun appel par carte.
 
+**Menu du compte**
+
+- **FR-040**: Une fois connecté, l'en-tête MUST afficher un avatar rond aux initiales du client
+  (nom accessible « Compte de {nom} ») ; au survol, au clic ou au clavier (Entrée, Espace,
+  flèche bas), il MUST ouvrir un panneau avec « Bonjour {prénom} », le nom complet et l'email,
+  les liens des sections existantes du compte (page courante signalée) et « Se déconnecter » ;
+  Échap le ferme et rend le focus à l'avatar ; un clic dehors ou la sortie du focus le
+  ferme. Les sections viennent d'une seule liste partagée avec la navigation du compte
+  (« Mon profil » et « Ma carte » s'y ajoutent avec US4 et US5).
+
 **Interface vivante**
 
 - **FR-033**: Chaque page de la feature MUST avoir une apparition orchestrée et utile
@@ -649,6 +659,9 @@ panier ; recharger : un seul produit reste, cœur plein sur sa carte.
 - **Carte de l'utilisateur chez Stripe** : abandonnée par le backend le 2026-10-14
   (`ae1d263`) ; plus de dépendance : `POST /bank-card/add` reçoit la carte saisie.
 
+- **Détail structuré de `NOT_ENOUGH_STOCK`** (non bloquante) : la ligne en rupture n'est
+  donnée que dans le texte libre du message ; demandé (`backend-prompts-lot2.md` §11). En
+  attendant, la modification de commande signale toutes les lignes ajoutées ou augmentées.
 - **État de la wishlist par produit** (non bloquante) : aucun endpoint ne dit si un produit
   est dans ma wishlist ; le front lit la première page de `GET /wishlist/my-wishlist` à la
   taille maximale (100, `spring.data.web.pageable.max-page-size`) pour colorer les cœurs ;

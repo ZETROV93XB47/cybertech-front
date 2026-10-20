@@ -28,3 +28,6 @@ export const CHECKOUT_DRAFT_STORAGE_KEY = StorageKey.CHECKOUT;
 
 /** `sessionStorage` key of the wishlist add kept aside during the sign-in. */
 export const WISHLIST_PENDING_STORAGE_KEY = StorageKey.WISHLIST_PENDING;
+
+/** `sessionStorage` key of the order edit draft kept during a forced re-login. */
+export const ORDER_EDIT_DRAFT_STORAGE_KEY = StorageKey.ORDER_EDIT;

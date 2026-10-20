@@ -5,7 +5,8 @@
  * accepted or refused (bounded in time), offers a retry after a refusal, and announces every
  * change politely.
  *
- * Until « Mes commandes » exists (US3), the way out points to the catalog and the home page.
+ * The way out leads to the order detail (« Mes commandes », US3) and to the catalog; the order
+ * detail reuses the tracker without them.
  *
  * @see specs/003-account-orders/spec.md FR-013, FR-014
  * @see specs/003-account-orders/research.md R11
@@ -15,7 +16,7 @@ import Link from "next/link";
 import { useState, type ReactNode } from "react";
 
 import { assertNever } from "@/lib/assert-never";
-import { CATALOG_PATH, HOME_PATH } from "@/lib/constants/routes";
+import { CATALOG_PATH, orderPath } from "@/lib/constants/routes";
 import { PaymentTrackerState, RetryPaymentOutcomeKind } from "@/lib/enums/checkout";
 
 import { useOrderStatus, useRetryPayment } from "../hooks/useOrderStatus";
@@ -25,6 +26,30 @@ import { paymentTrackerState } from "../payment-tracker";
 /** Props of {@link PaymentTracker}. */
 export interface PaymentTrackerProps {
   readonly orderUuid: string;
+  /** Shows the links to the order detail and to the catalog (confirmation page). */
+  readonly withLinks?: boolean;
+}
+
+/**
+ * Links of the confirmation page.
+ *
+ * @param props - Order to link to.
+ * @returns The links.
+ */
+function TrackerLinks({ orderUuid }: { readonly orderUuid: string }): ReactNode {
+  return (
+    <div className="flex flex-wrap gap-4 text-sm">
+      <Link
+        href={orderPath(orderUuid)}
+        className="text-brand-text underline-offset-4 hover:underline"
+      >
+        {CONFIRMATION_MESSAGES.viewOrder}
+      </Link>
+      <Link href={CATALOG_PATH} className="text-text-muted underline-offset-4 hover:underline">
+        {CONFIRMATION_MESSAGES.continueShopping}
+      </Link>
+    </div>
+  );
 }
 
 /**
@@ -95,10 +120,10 @@ function retryMessage(outcome: RetryPaymentOutcomeKind): string | null {
 /**
  * Payment follow-up.
  *
- * @param props - Order to follow.
+ * @param props - Order to follow and whether to show the links.
  * @returns The status block.
  */
-export function PaymentTracker({ orderUuid }: PaymentTrackerProps): ReactNode {
+export function PaymentTracker({ orderUuid, withLinks = true }: PaymentTrackerProps): ReactNode {
   const { status, isTimedOut, error, restart } = useOrderStatus(orderUuid);
   const { retry, isPending } = useRetryPayment(orderUuid, restart);
   const [notice, setNotice] = useState<string | null>(null);
@@ -128,14 +153,7 @@ export function PaymentTracker({ orderUuid }: PaymentTrackerProps): ReactNode {
           {isPending ? CONFIRMATION_MESSAGES.retrying : CONFIRMATION_MESSAGES.retry}
         </button>
       )}
-      <div className="flex flex-wrap gap-4 text-sm">
-        <Link href={CATALOG_PATH} className="text-brand-text underline-offset-4 hover:underline">
-          {CONFIRMATION_MESSAGES.continueShopping}
-        </Link>
-        <Link href={HOME_PATH} className="text-text-muted underline-offset-4 hover:underline">
-          {CONFIRMATION_MESSAGES.backHome}
-        </Link>
-      </div>
+      {withLinks && <TrackerLinks orderUuid={orderUuid} />}
     </section>
   );
 }

@@ -76,8 +76,29 @@ export function initCheckoutState(address: ParsedAddress): CheckoutState {
 }
 
 /**
+ * Steps a restored draft can count as done: the address when it is still the (valid) profile
+ * one, and each choice step whose choice came back. An edited address was reset to the profile
+ * one, so its step stays open for the customer to check it.
+ *
+ * @param state - State with the restored choices.
+ * @param hadCustomAddress - Whether the address had been edited before the re-login.
+ * @returns The validated steps, in display order.
+ */
+function restoredSteps(state: CheckoutState, hadCustomAddress: boolean): CheckoutStep[] {
+  const isAddressDone = !hadCustomAddress && validateAddress(state.address).ok;
+  const done: Record<CheckoutStep, boolean> = {
+    [CheckoutStep.ADDRESS]: isAddressDone,
+    [CheckoutStep.SHIPPING]: state.shipping !== null,
+    [CheckoutStep.PAYMENT]: state.payment !== null,
+  };
+  return CHECKOUT_STEPS.filter((step) => done[step]);
+}
+
+/**
  * Restores a draft kept across a forced re-login (research R9): the shipping and payment
- * choices come back, the address stays the profile one, with a notice if it had been edited.
+ * choices come back and their steps are folded as done, so the customer only has to click
+ * « Valider la commande » again (never automatically, FR-002). The address stays the profile
+ * one; if it had been edited, its step is reopened with a notice.
  *
  * @param state - Initial state.
  * @param draft - Draft read from `sessionStorage`.
@@ -88,12 +109,15 @@ function restoreDraft(state: CheckoutState, draft: CheckoutDraft): CheckoutState
     draft.shippingType && draft.shippingProvider
       ? { type: draft.shippingType, provider: draft.shippingProvider }
       : state.shipping;
-  return {
+  const restored: CheckoutState = {
     ...state,
     shipping,
     payment: draft.paymentType ?? state.payment,
     addressNotice: draft.hadCustomAddress ? CHECKOUT_MESSAGES.addressReset : null,
   };
+  const validated = restoredSteps(restored, draft.hadCustomAddress);
+  const openStep = CHECKOUT_STEPS.find((step) => !validated.includes(step)) ?? null;
+  return { ...restored, validated, openStep };
 }
 
 /**

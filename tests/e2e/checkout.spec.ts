@@ -152,7 +152,13 @@ test("an expired session keeps the choices and never places by itself", async ({
   const expired = await page.request.post("/api/test/expire-session?mode=all");
   test.skip(expired.status() === 404, "Start the front with E2E=true to run this journey");
   await page.getByRole("button", { name: "Valider la commande" }).click();
-  await fillKeycloakForm(page, email);
+  await page.waitForURL(/\/login\?/);
+  // The Keycloak SSO session outlives the site session: the sign-in is silent unless Keycloak
+  // asks for the credentials again.
+  await page.waitForURL((url) => url.pathname === "/checkout" || url.pathname.includes("/realms/"));
+  if (page.url().includes("/realms/")) {
+    await fillKeycloakForm(page, email);
+  }
   await page.waitForURL(/\/checkout$/);
   await expect(page.getByRole("button", { name: "Valider la commande" })).toBeVisible();
   await expect(page.getByText(/Livraison express/).first()).toBeVisible();

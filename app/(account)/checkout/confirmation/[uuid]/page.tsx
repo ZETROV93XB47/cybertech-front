@@ -17,6 +17,7 @@ import { PAGE_TITLE_CLASS, PageHeader } from "@/components/layout/PageHeader";
 import { PageShell } from "@/components/layout/PageShell";
 import { PaymentTracker } from "@/features/checkout/components/PaymentTracker";
 import { CHECKOUT_SUMMARY_MESSAGES, CONFIRMATION_MESSAGES } from "@/features/checkout/messages";
+import { shortOrderNumber } from "@/features/orders/order-view";
 import { ApiError } from "@/lib/api/errors";
 import { getOrder } from "@/lib/api/endpoints/orders";
 import { getAccessTokenOrRedirect } from "@/lib/auth/guards";
@@ -24,9 +25,6 @@ import { checkoutConfirmationPath } from "@/lib/constants/routes";
 import { FrontErrorCode } from "@/lib/enums/error-code";
 import { formatPrice } from "@/lib/format";
 import { OrderUuidParamSchema, type OrderResponse } from "@/lib/schemas/order";
-
-/** Characters of the order UUID shown as its number. */
-const ORDER_NUMBER_LENGTH = 8;
 
 /** Page metadata: private content, never indexed. */
 export const metadata: Metadata = {
@@ -122,9 +120,7 @@ export default async function ConfirmationPage({
     <PageShell>
       <PageHeader
         title={<LiveTitle text={CONFIRMATION_MESSAGES.pageTitle} className={PAGE_TITLE_CLASS} />}
-        subtitle={CONFIRMATION_MESSAGES.orderNumber(
-          order.uuid.slice(0, ORDER_NUMBER_LENGTH).toUpperCase(),
-        )}
+        subtitle={CONFIRMATION_MESSAGES.orderNumber(shortOrderNumber(order.uuid))}
       />
       <div className="grid items-start gap-8 lg:grid-cols-12">
         <div className="lg:col-span-7">

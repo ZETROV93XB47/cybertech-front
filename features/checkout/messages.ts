@@ -175,8 +175,6 @@ export const CONFIRMATION_MESSAGES = {
     "Le paiement prend plus de temps que prévu. Tu pourras suivre son statut un peu plus tard.",
   linesTitle: "Ce que tu as commandé",
   totalPaid: "Total",
-  backToCart: "Retour au panier",
-  backHome: "Retour à l'accueil",
   continueShopping: "Continuer mes achats",
   viewOrder: "Voir ma commande",
 } as const;

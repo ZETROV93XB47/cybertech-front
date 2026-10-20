@@ -149,6 +149,44 @@ function renderChoice(
   }
 }
 
+/** Props of {@link ShippingChoicesFieldset}. */
+export interface ShippingChoicesFieldsetProps {
+  readonly choices: readonly ShippingChoice[];
+  readonly value: QuoteShipping | null;
+  readonly error: string | null;
+  readonly onChange: (value: QuoteShipping) => void;
+}
+
+/**
+ * Shipping choices with their real prices, shared by the checkout and the order edit form.
+ *
+ * @param props - Choices, selection, error and handler.
+ * @returns The fieldset and its error.
+ */
+export function ShippingChoicesFieldset({
+  choices,
+  value,
+  error,
+  onChange,
+}: ShippingChoicesFieldsetProps): ReactNode {
+  return (
+    <>
+      <fieldset
+        className="flex flex-col gap-3"
+        aria-describedby={error ? "shipping-error" : undefined}
+      >
+        <legend className="mb-2 text-sm font-medium">{CHECKOUT_MESSAGES.shippingLegend}</legend>
+        {choices.map((choice) => renderChoice(choice, value, onChange))}
+      </fieldset>
+      {error && (
+        <p id="shipping-error" className="text-sm text-rose">
+          {error}
+        </p>
+      )}
+    </>
+  );
+}
+
 /**
  * Shipping step form.
  *
@@ -173,18 +211,7 @@ export function ShippingStep({
         onSubmit();
       }}
     >
-      <fieldset
-        className="flex flex-col gap-3"
-        aria-describedby={error ? "shipping-error" : undefined}
-      >
-        <legend className="mb-2 text-sm font-medium">{CHECKOUT_MESSAGES.shippingLegend}</legend>
-        {choices.map((choice) => renderChoice(choice, value, onChange))}
-      </fieldset>
-      {error && (
-        <p id="shipping-error" className="text-sm text-rose">
-          {error}
-        </p>
-      )}
+      <ShippingChoicesFieldset choices={choices} value={value} error={error} onChange={onChange} />
       <button
         type="submit"
         className="cta-gradient h-11 self-start rounded-button px-6 font-medium"

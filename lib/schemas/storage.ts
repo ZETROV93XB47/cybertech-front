@@ -18,6 +18,7 @@ import {
 } from "@/lib/constants/cart";
 import { RECENTLY_VIEWED_MAX } from "@/lib/constants/catalog";
 import { COMPARE_MAX_PRODUCTS } from "@/lib/constants/compare";
+import { ORDER_MAX_LINES } from "@/lib/constants/orders";
 import { PendingActionType } from "@/lib/enums/cart";
 import { CategoryKey } from "@/lib/enums/category-key";
 import { CheckoutStep } from "@/lib/enums/checkout";
@@ -120,3 +121,31 @@ export const CheckoutDraftSchema = z.strictObject({
 
 /** Stored checkout draft. */
 export type CheckoutDraft = z.infer<typeof CheckoutDraftSchema>;
+
+/** One line of a stored order edit. */
+export const OrderEditDraftLineSchema = z.strictObject({
+  productUuid: z.uuid(),
+  productName: z.string().min(1),
+  quantity: z.int().min(CART_LINE_MIN_QUANTITY).max(CART_LINE_MAX_QUANTITY),
+  /** Unit price shown for a line added during the edit; `null` for an existing line. */
+  unitPrice: z.number().nonnegative().nullable(),
+  isAdded: z.boolean(),
+});
+
+/**
+ * Order edit kept in `sessionStorage` (`ct_order_edit_v1`) before a forced re-login: the lines,
+ * shipping and payment of one order, **never the address** (personal data, constitution IV).
+ * Restored once on the edit page of the same order; never saved automatically (FR-002).
+ *
+ * @see specs/003-account-orders/tasks.md T053
+ */
+export const OrderEditDraftSchema = z.strictObject({
+  orderUuid: z.uuid(),
+  lines: z.array(OrderEditDraftLineSchema).min(1).max(ORDER_MAX_LINES),
+  shippingType: z.enum(ShippingType),
+  shippingProvider: z.enum(ShippingProvider),
+  paymentType: z.enum(PaymentType).optional(),
+});
+
+/** Stored order edit. */
+export type OrderEditDraft = z.infer<typeof OrderEditDraftSchema>;

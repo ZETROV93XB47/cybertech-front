@@ -101,7 +101,8 @@ test.describe("guest cart", () => {
     await expect(card.getByRole("button", { name: "Indisponible" })).toBeDisabled();
 
     await page.goto(path);
-    await expect(page.getByRole("button", { name: "Indisponible" })).toBeDisabled();
+    // The product's own button comes first; the similar products below have theirs too.
+    await expect(page.getByRole("button", { name: "Indisponible" }).first()).toBeDisabled();
   });
 });
 

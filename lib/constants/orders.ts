@@ -55,3 +55,16 @@ export const ORDER_EDIT_SEARCH_DEBOUNCE_MS = 300;
 
 /** Results proposed by the product search of the order edit form. */
 export const ORDER_EDIT_SEARCH_SIZE = 8;
+
+/**
+ * Characters of the order UUID shown as its number (« Commande n° 9F3C2A71 »), taken from its
+ * end: backend UUIDs are version 7, whose first characters are a timestamp shared by orders
+ * placed a few seconds apart.
+ */
+export const ORDER_NUMBER_LENGTH = 8;
+
+/** Query parameter of « Mes commandes » carrying a status filter (repeated per status). */
+export const ORDERS_STATUS_PARAM = "status";
+
+/** Query parameter of « Mes commandes » carrying the 1-based page. */
+export const ORDERS_PAGE_PARAM = "page";

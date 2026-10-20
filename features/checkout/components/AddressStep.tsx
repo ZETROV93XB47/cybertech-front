@@ -77,34 +77,22 @@ function AddressInput({
   );
 }
 
+/** Props of {@link AddressFields}. */
+export interface AddressFieldsProps {
+  readonly value: ParsedAddress;
+  readonly errors: AddressErrors;
+  readonly onChange: (field: AddressField, value: string) => void;
+}
+
 /**
- * Address step form.
+ * The four address fields, shared by the checkout and the order edit form.
  *
- * @param props - Values, errors, notice and handlers.
- * @returns The form.
+ * @param props - Values, errors and change handler.
+ * @returns The fields.
  */
-export function AddressStep({
-  value,
-  errors,
-  notice,
-  onChange,
-  onSubmit,
-}: AddressStepProps): ReactNode {
+export function AddressFields({ value, errors, onChange }: AddressFieldsProps): ReactNode {
   return (
-    <form
-      noValidate
-      className="flex flex-col gap-4"
-      onSubmit={(event: SyntheticEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        onSubmit();
-      }}
-    >
-      {notice && (
-        <p role="status" className="rounded-card border border-gold p-3 text-sm">
-          {notice}
-        </p>
-      )}
-      <p className="text-sm text-text-muted">{CHECKOUT_MESSAGES.addressHint}</p>
+    <>
       <AddressInput
         field={AddressField.STREET}
         value={value.street}
@@ -133,6 +121,39 @@ export function AddressStep({
         error={errors.country}
         onChange={onChange}
       />
+    </>
+  );
+}
+
+/**
+ * Address step form.
+ *
+ * @param props - Values, errors, notice and handlers.
+ * @returns The form.
+ */
+export function AddressStep({
+  value,
+  errors,
+  notice,
+  onChange,
+  onSubmit,
+}: AddressStepProps): ReactNode {
+  return (
+    <form
+      noValidate
+      className="flex flex-col gap-4"
+      onSubmit={(event: SyntheticEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        onSubmit();
+      }}
+    >
+      {notice && (
+        <p role="status" className="rounded-card border border-gold p-3 text-sm">
+          {notice}
+        </p>
+      )}
+      <p className="text-sm text-text-muted">{CHECKOUT_MESSAGES.addressHint}</p>
+      <AddressFields value={value} errors={errors} onChange={onChange} />
       <button
         type="submit"
         className="cta-gradient h-11 self-start rounded-button px-6 font-medium"

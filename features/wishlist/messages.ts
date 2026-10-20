@@ -10,7 +10,6 @@ export const WISHLIST_MESSAGES = {
   metaTitle: "Ma wishlist — cybertech",
   pageDescription: "Les produits que tu as mis de côté, du plus récent au plus ancien.",
   breadcrumb: "Ma wishlist",
-  menuLink: "Ma wishlist",
   add: (name: string): string => `Ajouter ${name} à ma wishlist`,
   remove: (name: string): string => `Retirer ${name} de ma wishlist`,
   detailAdd: "Ajouter à ma wishlist",
