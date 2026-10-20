@@ -659,9 +659,10 @@ panier ; recharger : un seul produit reste, cœur plein sur sa carte.
 - **Carte de l'utilisateur chez Stripe** : abandonnée par le backend le 2026-10-14
   (`ae1d263`) ; plus de dépendance : `POST /bank-card/add` reçoit la carte saisie.
 
-- **Détail structuré de `NOT_ENOUGH_STOCK`** (non bloquante) : la ligne en rupture n'est
-  donnée que dans le texte libre du message ; demandé (`backend-prompts-lot2.md` §11). En
-  attendant, la modification de commande signale toutes les lignes ajoutées ou augmentées.
+- **Détail structuré de `NOT_ENOUGH_STOCK`** : **livré** par le backend `f582c3a`
+  (`backend-prompts-lot2.md` §11, `details.items`). La modification de commande signale
+  exactement les lignes en défaut (« Il n'en reste que N ») ; sans détail, elle signale encore
+  toutes les lignes ajoutées ou augmentées (T099).
 - **État de la wishlist par produit** (non bloquante) : aucun endpoint ne dit si un produit
   est dans ma wishlist ; le front lit la première page de `GET /wishlist/my-wishlist` à la
   taille maximale (100, `spring.data.web.pageable.max-page-size`) pour colorer les cœurs ;

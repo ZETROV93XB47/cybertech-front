@@ -99,6 +99,25 @@ describe("POST /api/cart", () => {
     });
   });
 
+  it("takes the remaining stock from the backend details when they name the product", async () => {
+    server.use(
+      http.post(`${API}/cart/add`, () =>
+        HttpResponse.json(
+          {
+            ...errorBody("NOT_ENOUGH_STOCK", 409),
+            details: { items: [{ productUuid: PRODUCT_B, requested: 5, available: 1 }] },
+          },
+          { status: 409 },
+        ),
+      ),
+    );
+    const response = await addRoute(json("POST", { productUuid: PRODUCT_B, quantity: 5 }));
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({
+      error: { code: "insufficient-stock", availableStock: 1 },
+    });
+  });
+
   it("rejects an invalid body without calling the backend", async () => {
     for (const body of [
       { productUuid: "x", quantity: 1 },

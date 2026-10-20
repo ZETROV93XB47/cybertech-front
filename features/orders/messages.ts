@@ -126,6 +126,8 @@ export const ORDER_EDIT_MESSAGES = {
   cancelInstead: "Annuler la commande",
   addedLine: "Ajouté",
   stockIssue: "Stock insuffisant pour cette quantité.",
+  stockLeft: (available: number): string =>
+    available === 0 ? "Plus en stock." : `Il n'en reste que ${available}.`,
   maxLines: (max: number): string => `${max} articles différents au maximum.`,
   searchLabel: "Ajouter un produit",
   searchPlaceholder: "Rechercher un produit…",

@@ -128,7 +128,48 @@ describe("orderEditReducer", () => {
       quantity: 1,
     });
     state = orderEditReducer(state, { type: OrderEditActionType.FLAG_STOCK });
-    expect(state.stockFlagged).toEqual([PRODUCT_B]);
+    expect(state.stockFlagged).toEqual([{ productUuid: PRODUCT_B, available: null }]);
+  });
+
+  it("flags exactly the short lines named by the backend, with what is left", () => {
+    let state = orderEditReducer(initial(), {
+      type: OrderEditActionType.SET_QUANTITY,
+      productUuid: PRODUCT_B,
+      quantity: 3,
+    });
+    state = orderEditReducer(state, {
+      type: OrderEditActionType.SET_QUANTITY,
+      productUuid: PRODUCT_A,
+      quantity: 5,
+    });
+    state = orderEditReducer(state, {
+      type: OrderEditActionType.FLAG_STOCK,
+      shortages: [{ productUuid: PRODUCT_A, requested: 5, available: 2 }],
+    });
+    expect(state.stockFlagged).toEqual([{ productUuid: PRODUCT_A, available: 2 }]);
+  });
+
+  it("falls back to the increased lines when the backend names no line", () => {
+    let state = orderEditReducer(initial(), {
+      type: OrderEditActionType.SET_QUANTITY,
+      productUuid: PRODUCT_B,
+      quantity: 3,
+    });
+    state = orderEditReducer(state, { type: OrderEditActionType.FLAG_STOCK, shortages: [] });
+    expect(state.stockFlagged).toEqual([{ productUuid: PRODUCT_B, available: null }]);
+  });
+
+  it("clears the flag of a line whose quantity changes", () => {
+    let state = orderEditReducer(initial(), {
+      type: OrderEditActionType.FLAG_STOCK,
+      shortages: [{ productUuid: PRODUCT_A, requested: 5, available: 0 }],
+    });
+    state = orderEditReducer(state, {
+      type: OrderEditActionType.SET_QUANTITY,
+      productUuid: PRODUCT_A,
+      quantity: 1,
+    });
+    expect(state.stockFlagged).toEqual([]);
   });
 });
 

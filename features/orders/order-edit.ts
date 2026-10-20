@@ -17,6 +17,7 @@ import type { QuoteShipping } from "@/lib/constants/checkout";
 import { ORDER_MAX_LINES } from "@/lib/constants/orders";
 import type { AddressField } from "@/lib/enums/checkout-step-state";
 import { OrderEditActionType, OrderEditIssue, type PaymentType } from "@/lib/enums/order";
+import type { StockShortage } from "@/lib/schemas/error";
 import type { OrderResponse, OrderUpdateBody } from "@/lib/schemas/order";
 import type { OrderEditDraft } from "@/lib/schemas/storage";
 
@@ -31,6 +32,13 @@ export interface EditLine {
   readonly originalQuantity: number;
 }
 
+/** A line flagged after a stock refusal. */
+export interface StockFlag {
+  readonly productUuid: string;
+  /** What can still be ordered, from the backend details; `null` when the backend named no line. */
+  readonly available: number | null;
+}
+
 /** State of the edit form. */
 export interface OrderEditState {
   readonly lines: readonly EditLine[];
@@ -38,8 +46,8 @@ export interface OrderEditState {
   readonly addressErrors: AddressErrors;
   readonly shipping: QuoteShipping;
   readonly payment: PaymentType | null;
-  /** Products of the lines refused for lack of stock at the last save. */
-  readonly stockFlagged: readonly string[];
+  /** Lines refused for lack of stock at the last save. */
+  readonly stockFlagged: readonly StockFlag[];
 }
 
 /** Product picked in the search of the edit form. */
@@ -65,7 +73,11 @@ export type OrderEditAction =
     }
   | { readonly type: OrderEditActionType.SELECT_SHIPPING; readonly value: QuoteShipping }
   | { readonly type: OrderEditActionType.SELECT_PAYMENT; readonly value: PaymentType }
-  | { readonly type: OrderEditActionType.FLAG_STOCK }
+  | {
+      readonly type: OrderEditActionType.FLAG_STOCK;
+      /** Short lines named by the backend (`details.items`); absent or empty → fallback. */
+      readonly shortages?: readonly StockShortage[] | undefined;
+    }
   | { readonly type: OrderEditActionType.SET_ADDRESS_ERRORS; readonly errors: AddressErrors }
   | { readonly type: OrderEditActionType.RESTORE_DRAFT; readonly draft: OrderEditDraft };
 
@@ -145,7 +157,7 @@ function setQuantity(state: OrderEditState, productUuid: string, quantity: numbe
     lines: state.lines.map((line) =>
       line.productUuid === productUuid ? { ...line, quantity: clampQuantity(quantity) } : line,
     ),
-    stockFlagged: state.stockFlagged.filter((uuid) => uuid !== productUuid),
+    stockFlagged: state.stockFlagged.filter((flag) => flag.productUuid !== productUuid),
   };
 }
 
@@ -165,13 +177,33 @@ function removeLine(state: OrderEditState, productUuid: string): OrderEditState 
 
 /**
  * Lines that ask for more stock than the saved order: the only ones a `NOT_ENOUGH_STOCK` can
- * be about (the backend does not say which product).
+ * be about when the backend does not name the short lines.
  *
  * @param lines - Edited lines.
  * @returns Their product UUIDs.
  */
 export function linesNeedingStock(lines: readonly EditLine[]): string[] {
   return lines.filter((line) => line.quantity > line.originalQuantity).map((l) => l.productUuid);
+}
+
+/**
+ * Lines to flag after a stock refusal: exactly the short lines named by the backend
+ * (`details.items`, backend commit f582c3a), else every line asking for more than the saved
+ * order, without a remaining quantity.
+ *
+ * @param lines - Edited lines.
+ * @param shortages - Short lines sent by the backend, if any.
+ * @returns The flags.
+ * @see docs/backend/backend-prompts-lot2.md §11
+ */
+export function stockFlagsOf(
+  lines: readonly EditLine[],
+  shortages: readonly StockShortage[] | undefined,
+): StockFlag[] {
+  if (shortages !== undefined && shortages.length > 0) {
+    return shortages.map(({ productUuid, available }) => ({ productUuid, available }));
+  }
+  return linesNeedingStock(lines).map((productUuid) => ({ productUuid, available: null }));
 }
 
 /**
@@ -224,7 +256,7 @@ export function orderEditReducer(state: OrderEditState, action: OrderEditAction)
     case OrderEditActionType.SELECT_PAYMENT:
       return { ...state, payment: action.value };
     case OrderEditActionType.FLAG_STOCK:
-      return { ...state, stockFlagged: linesNeedingStock(state.lines) };
+      return { ...state, stockFlagged: stockFlagsOf(state.lines, action.shortages) };
     case OrderEditActionType.SET_ADDRESS_ERRORS:
       return { ...state, addressErrors: action.errors };
     case OrderEditActionType.RESTORE_DRAFT:

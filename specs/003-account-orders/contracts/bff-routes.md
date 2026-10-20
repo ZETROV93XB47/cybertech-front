@@ -54,7 +54,7 @@ sont mis à jour).
 | retry | `PAYMENT_FAILED` (402) | 402 | **+** `payment-failed` | nouvel échec expliqué, bouton relance conservé |
 | retry | `FAILED_UPDATING_ORDER` (422) | 422 | **+** `payment-failed` | message « relance impossible pour l'instant », lien vers le détail |
 | update | `PAYMENT_FAILED` (402, complément refusé) | 402 | **+** `payment-failed` | complément refusé expliqué, formulaire conservé |
-| update | `NOT_ENOUGH_STOCK` (409) | 409 | `insufficient-stock` (+ `productUuid` si connu) | ligne signalée, formulaire conservé |
+| update | `NOT_ENOUGH_STOCK` (409) | 409 | `insufficient-stock` + `stockShortages` (`details.items` du backend, s'il est présent) | lignes en défaut signalées avec la quantité restante (repli : lignes ajoutées ou augmentées), formulaire conservé |
 | update | `ORDER_ALREADY_SHIPPED` (409), `ORDER_NOT_FUNDED` (409) | 409 | **+** `order-locked` | retour au détail rafraîchi |
 | cancel | `CANNOT_CANCEL_ORDER` (409) | 409 | **+** `order-locked` | message, détail rafraîchi |
 | cancel | `ORDER_REFUND_FAILED` (409) | 409 | **+** `refund-failed` | message avec marche à suivre, détail rafraîchi |

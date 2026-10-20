@@ -10,9 +10,14 @@ import { z } from "zod";
 
 import { FrontErrorCode } from "@/lib/enums/error-code";
 
-import { FieldErrorSchema } from "./error";
+import { FieldErrorSchema, StockShortageSchema } from "./error";
 
-/** `{ error: { code, message, fieldErrors?, retryAfterSeconds?, availableStock? } }`. */
+/**
+ * `{ error: { code, message, fieldErrors?, retryAfterSeconds?, availableStock?, stockShortages? } }`.
+ *
+ * `stockShortages` relays the backend `details.items` of an `insufficient-stock` error (product
+ * UUIDs and quantities only).
+ */
 export const FrontErrorBodySchema = z.object({
   error: z.object({
     code: z.enum(FrontErrorCode),
@@ -20,6 +25,7 @@ export const FrontErrorBodySchema = z.object({
     fieldErrors: z.array(FieldErrorSchema).optional(),
     retryAfterSeconds: z.int().nonnegative().optional(),
     availableStock: z.int().nonnegative().optional(),
+    stockShortages: z.array(StockShortageSchema).optional(),
   }),
 });
 

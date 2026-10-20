@@ -60,6 +60,7 @@ export function jsonError(error: unknown, details?: ErrorDetails): NextResponse 
         ? {}
         : { retryAfterSeconds: apiError.retryAfterSeconds }),
       ...(details?.availableStock === undefined ? {} : { availableStock: details.availableStock }),
+      ...(apiError.stockShortages ? { stockShortages: [...apiError.stockShortages] } : {}),
     },
   };
   return NextResponse.json(body, {

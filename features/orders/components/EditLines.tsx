@@ -18,15 +18,27 @@ import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import { ORDER_EDIT_MESSAGES } from "../messages";
-import type { EditLine, OrderEditAction } from "../order-edit";
+import type { EditLine, OrderEditAction, StockFlag } from "../order-edit";
 
 /** Props of {@link EditLines}. */
 export interface EditLinesProps {
   readonly orderUuid: string;
   readonly lines: readonly EditLine[];
-  readonly stockFlagged: readonly string[];
+  readonly stockFlagged: readonly StockFlag[];
   readonly dispatch: Dispatch<OrderEditAction>;
   readonly disabled: boolean;
+}
+
+/**
+ * Stock message of a flagged line: the remaining quantity when the backend named the line.
+ *
+ * @param flag - Flag of the line.
+ * @returns The message.
+ */
+function stockMessage(flag: StockFlag): string {
+  return flag.available === null
+    ? ORDER_EDIT_MESSAGES.stockIssue
+    : ORDER_EDIT_MESSAGES.stockLeft(flag.available);
 }
 
 /**
@@ -38,22 +50,23 @@ export interface EditLinesProps {
 function EditLineRow({
   line,
   isLast,
-  isFlagged,
+  flag,
   dispatch,
   disabled,
 }: {
   readonly line: EditLine;
   readonly isLast: boolean;
-  readonly isFlagged: boolean;
+  /** Stock flag of the line after a refused save, if any. */
+  readonly flag: StockFlag | undefined;
   readonly dispatch: Dispatch<OrderEditAction>;
   readonly disabled: boolean;
 }): ReactNode {
   return (
     <li
-      data-flagged={isFlagged}
+      data-flagged={flag !== undefined}
       className={cn(
         "flex flex-wrap items-center justify-between gap-4 rounded-card border border-border p-4",
-        isFlagged && "border-rose",
+        flag !== undefined && "border-rose",
       )}
     >
       <span className="flex min-w-0 flex-1 flex-col gap-1">
@@ -64,7 +77,7 @@ function EditLineRow({
             {line.unitPrice !== null && ` · ${formatPrice(line.unitPrice)}`}
           </span>
         )}
-        {isFlagged && <span className="text-xs text-rose">{ORDER_EDIT_MESSAGES.stockIssue}</span>}
+        {flag !== undefined && <span className="text-xs text-rose">{stockMessage(flag)}</span>}
       </span>
       <QuantityStepper
         value={line.quantity}
@@ -115,7 +128,7 @@ export function EditLines({
             key={line.productUuid}
             line={line}
             isLast={isSingle}
-            isFlagged={stockFlagged.includes(line.productUuid)}
+            flag={stockFlagged.find((candidate) => candidate.productUuid === line.productUuid)}
             dispatch={dispatch}
             disabled={disabled}
           />

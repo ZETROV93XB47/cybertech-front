@@ -82,15 +82,22 @@ export async function removeAccountLine(
 
 /**
  * Builds the error response of a cart write. For `INSUFFICIENT_STOCK`, the live stock of the
- * product is attached so the UI can say « Il n'en reste que N ».
+ * product is attached so the UI can say « Il n'en reste que N »: taken from the backend
+ * `details` when it names the product (backend commit f582c3a), otherwise read with one
+ * availability call.
  *
  * @param error - Error of the write.
  * @param productUuid - Product concerned by the write.
  * @returns The error response.
+ * @see docs/backend/backend-prompts-lot2.md §11
  */
 export async function cartWriteError(error: unknown, productUuid: string): Promise<NextResponse> {
   if (!(error instanceof ApiError) || error.frontCode !== FrontErrorCode.INSUFFICIENT_STOCK) {
     return jsonError(error);
+  }
+  const shortage = error.stockShortages?.find((item) => item.productUuid === productUuid);
+  if (shortage !== undefined) {
+    return jsonError(error, { availableStock: shortage.available });
   }
   try {
     const [availability] = await getAvailability([productUuid]);

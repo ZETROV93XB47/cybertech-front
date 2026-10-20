@@ -43,6 +43,12 @@ Toutes les erreurs (controllers, 401, 403, **et 429**) renvoient `ErrorResponseD
 - **`errorCode`** = nom de l'enum `ErrorCode` (liste complète dans l'OpenAPI, schéma `ErrorResponseDto`) : **c'est sur lui que le front doit brancher sa logique**, jamais sur `message` (texte anglais susceptible de changer).
 - `errorCodeType` ∈ `TECHNICAL | FUNCTIONAL`.
 - `fieldErrors` : présent **uniquement** sur les erreurs de validation Bean Validation (`INVALID_REQUEST` issu de `@Valid`), un élément par champ, **sans la valeur rejetée** (pas de mot de passe renvoyé). Champs imbriqués au format `cartItemAddRequestDtos[0].quantity`.
+- `details` (depuis `f582c3a`, prompt §11) : présent **uniquement** sur `409 NOT_ENOUGH_STOCK`,
+  `{ "items": [ { "productUuid", "requested", "available" } ] }` (`ErrorDetailsDto`,
+  `StockShortageDto`, `available` jamais négatif). Commande (`place`, `update`,
+  `retry-payment`) : toutes les lignes en défaut ; panier (`add`, `update`) : la première. Le
+  front le lit dans `lib/schemas/error.ts` (`ErrorDetailsSchema`, toléré s'il est absent ou
+  malformé) et le relaie au navigateur sous `error.stockShortages`.
 - `401` : `errorCode = AUTHENTICATION_REQUIRED` (`CustomAuthenticationEntryPoint.java`).
 - `403` (rôle insuffisant) : `errorCode = ACCESS_DENIED` (`CustomAccessDeniedHandler.java`).
 - `429` : `errorCode = TOO_MANY_REQUESTS`, délai dans l'en-tête **`Retry-After`** (secondes) (`RateLimitFilter.java`).

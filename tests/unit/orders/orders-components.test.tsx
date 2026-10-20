@@ -274,6 +274,25 @@ describe("OrderEditForm", () => {
     expect(screen.getByRole("radio", { name: "Visa" })).toBeChecked();
     expect(screen.getByRole("alert")).toHaveTextContent(/plus assez de stock/);
   });
+
+  it("flags only the line named by the backend, with what is left", async () => {
+    actions.update.mockResolvedValue({
+      kind: OrderActionOutcomeKind.FAILED,
+      error: new BffError(FrontErrorCode.INSUFFICIENT_STOCK, 409, "stock", undefined, undefined, [
+        { productUuid: PRODUCT_A, requested: 3, available: 1 },
+      ]),
+    });
+    renderEditForm();
+    await userEvent.click(screen.getByRole("radio", { name: "Visa" }));
+    const increases = screen.getAllByRole("button", { name: "Ajouter une unité" });
+    for (const increase of increases) {
+      await userEvent.click(increase);
+    }
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer les modifications" }));
+    expect(await screen.findByText("Il n'en reste que 1.")).toBeInTheDocument();
+    expect(screen.queryByText("Stock insuffisant pour cette quantité.")).not.toBeInTheDocument();
+    expect(document.querySelectorAll('[data-flagged="true"]')).toHaveLength(1);
+  });
 });
 
 describe("ProductPicker", () => {

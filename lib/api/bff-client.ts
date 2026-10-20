@@ -12,6 +12,7 @@ import { JSON_CONTENT_TYPE } from "@/lib/constants/api";
 import { HTTP_HEADERS } from "@/lib/constants/http";
 import { FrontErrorCode } from "@/lib/enums/error-code";
 import type { HttpMethod } from "@/lib/enums/http-method";
+import type { StockShortage } from "@/lib/schemas/error";
 import { FrontErrorBodySchema } from "@/lib/schemas/front-error";
 
 /** Error raised by {@link bffGet} and {@link bffSend}; the UI branches on {@link BffError.code}. */
@@ -22,6 +23,8 @@ export class BffError extends Error {
   public readonly availableStock: number | undefined;
   /** Seconds to wait, sent with a `rate-limited` error. */
   public readonly retryAfterSeconds: number | undefined;
+  /** Short lines sent with an `insufficient-stock` error, when the backend named them. */
+  public readonly stockShortages: readonly StockShortage[] | undefined;
 
   /**
    * @param code - Stable front error code.
@@ -29,6 +32,7 @@ export class BffError extends Error {
    * @param message - Technical message (English), never shown as is.
    * @param availableStock - Live stock, for `insufficient-stock` errors.
    * @param retryAfterSeconds - Delay before retrying, for `rate-limited` errors.
+   * @param stockShortages - Short lines, for `insufficient-stock` errors.
    */
   public constructor(
     code: FrontErrorCode,
@@ -36,6 +40,7 @@ export class BffError extends Error {
     message: string,
     availableStock?: number,
     retryAfterSeconds?: number,
+    stockShortages?: readonly StockShortage[],
   ) {
     super(message);
     this.name = "BffError";
@@ -43,6 +48,7 @@ export class BffError extends Error {
     this.status = status;
     this.availableStock = availableStock;
     this.retryAfterSeconds = retryAfterSeconds;
+    this.stockShortages = stockShortages;
   }
 }
 
@@ -57,8 +63,15 @@ async function toBffError(response: Response): Promise<BffError> {
   if (!body.success) {
     return new BffError(FrontErrorCode.UNKNOWN, response.status, "Unreadable BFF error body");
   }
-  const { code, message, availableStock, retryAfterSeconds } = body.data.error;
-  return new BffError(code, response.status, message, availableStock, retryAfterSeconds);
+  const { code, message, availableStock, retryAfterSeconds, stockShortages } = body.data.error;
+  return new BffError(
+    code,
+    response.status,
+    message,
+    availableStock,
+    retryAfterSeconds,
+    stockShortages,
+  );
 }
 
 /**

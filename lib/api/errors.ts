@@ -10,7 +10,7 @@
 import { HTTP_STATUS, SERVER_ERROR_MIN_STATUS } from "@/lib/constants/http";
 import { RETRY_AFTER_HEADER } from "@/lib/constants/api";
 import { BackendErrorCode, FrontErrorCode } from "@/lib/enums/error-code";
-import { ApiErrorBodySchema, type FieldError } from "@/lib/schemas/error";
+import { ApiErrorBodySchema, type FieldError, type StockShortage } from "@/lib/schemas/error";
 
 /** Radix used to parse the `Retry-After` header. */
 const DECIMAL_RADIX = 10;
@@ -34,6 +34,8 @@ export interface ApiErrorInit {
   readonly retryAfterSeconds?: number | undefined;
   /** Backend `X-Request-Id`, to correlate logs. */
   readonly requestId?: string | undefined;
+  /** Short lines of a `NOT_ENOUGH_STOCK` (`details.items`), when the backend sent them. */
+  readonly stockShortages?: readonly StockShortage[] | undefined;
 }
 
 /**
@@ -49,6 +51,7 @@ export class ApiError extends Error {
   public readonly fieldErrors: readonly FieldError[] | undefined;
   public readonly retryAfterSeconds: number | undefined;
   public readonly requestId: string | undefined;
+  public readonly stockShortages: readonly StockShortage[] | undefined;
 
   /**
    * @param init - Error details.
@@ -62,6 +65,7 @@ export class ApiError extends Error {
     this.fieldErrors = init.fieldErrors;
     this.retryAfterSeconds = init.retryAfterSeconds;
     this.requestId = init.requestId;
+    this.stockShortages = init.stockShortages;
   }
 }
 
@@ -231,6 +235,7 @@ export async function parseErrorResponse(
     fieldErrors: body.data.fieldErrors,
     retryAfterSeconds: readRetryAfterSeconds(response),
     requestId,
+    stockShortages: body.data.details?.items,
   });
 }
 

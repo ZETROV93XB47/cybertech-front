@@ -76,7 +76,8 @@ function useRestoredDraft(
 }
 
 /**
- * Message of a failed save, flagging the lines a stock refusal can be about.
+ * Message of a failed save, flagging the short lines of a stock refusal (named by the backend
+ * when it sends them).
  *
  * @param outcome - Failed outcome.
  * @param dispatch - Reducer dispatcher.
@@ -87,7 +88,7 @@ function failureMessage(
   dispatch: Dispatch<OrderEditAction>,
 ): string {
   if (outcome.error.code === FrontErrorCode.INSUFFICIENT_STOCK) {
-    dispatch({ type: OrderEditActionType.FLAG_STOCK });
+    dispatch({ type: OrderEditActionType.FLAG_STOCK, shortages: outcome.error.stockShortages });
   }
   return orderErrorMessage(outcome.error);
 }
