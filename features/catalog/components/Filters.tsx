@@ -18,7 +18,7 @@ import { useTransition, type ChangeEvent, type ReactNode, type SubmitEvent } fro
 import { buttonVariants } from "@/components/ui/button";
 import { PRICE_MAX_EUR, PRICE_MIN_EUR } from "@/lib/constants/catalog";
 import { CATALOG_PATH } from "@/lib/constants/routes";
-import { CategoryKey } from "@/lib/enums/category-key";
+import type { CategoryKey } from "@/lib/enums/category-key";
 import { FacetSource } from "@/lib/enums/facet-source";
 import { RangeBound, SearchParam, SearchParamPrefix } from "@/lib/enums/search-param";
 import { formatPrice } from "@/lib/format";
@@ -35,6 +35,8 @@ import { FacetFieldset, FIELDSET, INPUT, LEGEND, ValueCheckbox } from "./FacetFi
 export interface FiltersProps {
   /** Filters of the current URL. */
   readonly filters: SearchFilters;
+  /** Active categories, in display order (`getActiveCategories`). */
+  readonly categories: readonly CategoryKey[];
   /** Attribute filters of the selected category (empty without category). */
   readonly facets: readonly FilterFacet[];
   /** Brand checkboxes, with their counts when known. */
@@ -66,15 +68,21 @@ function readForm(form: HTMLFormElement, current: SearchFilters): SearchFilters 
 }
 
 /**
- * Category radios, « Toutes » first.
+ * Category radios, « Toutes » first, then the active categories in display order.
  *
- * @param props - Selected category.
+ * @param props - Active categories and the selected one.
  * @returns The fieldset.
  */
-function CategoryFieldset({ selected }: { readonly selected: CategoryKey | undefined }): ReactNode {
+function CategoryFieldset({
+  categories,
+  selected,
+}: {
+  readonly categories: readonly CategoryKey[];
+  readonly selected: CategoryKey | undefined;
+}): ReactNode {
   const options: readonly (readonly [CategoryKey | "", string])[] = [
     ["", LIST_MESSAGES.allCategories],
-    ...Object.values(CategoryKey).map((key) => [key, CATEGORY_LABELS[key]] as const),
+    ...categories.map((key) => [key, CATEGORY_LABELS[key]] as const),
   ];
   return (
     <fieldset className={FIELDSET}>
@@ -183,7 +191,13 @@ function PriceFieldset({ filters }: { readonly filters: SearchFilters }): ReactN
  * @param props - Current filters, the attribute and brand filters, and the facets source.
  * @returns The form, keyed on the URL so it resets after each navigation.
  */
-export function Filters({ filters, facets, brandFilter, facetSource }: FiltersProps): ReactNode {
+export function Filters({
+  filters,
+  categories,
+  facets,
+  brandFilter,
+  facetSource,
+}: FiltersProps): ReactNode {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const onSubmit = (event: SubmitEvent<HTMLFormElement>): void => {
@@ -222,7 +236,7 @@ export function Filters({ filters, facets, brandFilter, facetSource }: FiltersPr
           className={INPUT}
         />
       </label>
-      <CategoryFieldset selected={filters.category} />
+      <CategoryFieldset categories={categories} selected={filters.category} />
       {filters.category !== undefined && facetSource === FacetSource.UNAVAILABLE && (
         <p role="status" className="text-xs text-text-muted">
           {LIST_MESSAGES.facetsUnavailable}

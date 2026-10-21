@@ -6,8 +6,11 @@
  */
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
-/** Links of the bar, in order. */
-const NAV_LINKS = ["Accueil", "Catalogue", "Ordinateurs", "Écrans"];
+/**
+ * Links of the bar, in order. Feature 004 groups the categories under the « Catalogue » menu
+ * (US2) and adds « Promotions » (US4).
+ */
+const NAV_LINKS = ["Accueil", "Catalogue"];
 
 /**
  * Main navigation landmark.
@@ -55,8 +58,8 @@ test.describe("navigation bar", () => {
     const pages: readonly (readonly [string, string | null])[] = [
       ["/", "Accueil"],
       ["/products", "Catalogue"],
-      ["/products?category=COMPUTER", "Ordinateurs"],
-      [computer, "Ordinateurs"],
+      ["/products?category=COMPUTER", "Catalogue"],
+      [computer, "Catalogue"],
       ["/cart", null],
       ["/register", null],
       ["/login?error=Configuration", null],

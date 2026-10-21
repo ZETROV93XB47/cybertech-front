@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveNavSection } from "@/components/layout/nav-section";
+import { resolveNavCategory, resolveNavSection } from "@/components/layout/nav-section";
 import { CategoryKey } from "@/lib/enums/category-key";
 import { NavSection } from "@/lib/enums/nav-section";
 
@@ -10,27 +10,38 @@ const params = (query = ""): URLSearchParams => new URLSearchParams(query);
 
 describe("resolveNavSection", () => {
   it.each([
-    ["/", "", null, NavSection.HOME],
-    ["/products", "category=COMPUTER", null, NavSection.COMPUTER],
-    ["/products", "category=MONITOR&brand=DELL", null, NavSection.MONITOR],
-    ["/products", "", null, NavSection.CATALOG],
-    ["/products", "category=PHONE", null, NavSection.CATALOG],
-    ["/products", "q=lenovo", null, NavSection.CATALOG],
-    [PRODUCT_PATH, "", CategoryKey.COMPUTER, NavSection.COMPUTER],
-    [PRODUCT_PATH, "", CategoryKey.MONITOR, NavSection.MONITOR],
-    [PRODUCT_PATH, "", null, NavSection.CATALOG],
-    ["/cart", "", null, NavSection.NONE],
-    ["/register", "", null, NavSection.NONE],
-    ["/login", "callbackUrl=%2F", null, NavSection.NONE],
-    ["/account/orders", "", null, NavSection.ACCOUNT],
-    ["/account/wishlist", "page=2", null, NavSection.ACCOUNT],
-    ["/checkout", "", null, NavSection.ACCOUNT],
-    ["/accounts", "", null, NavSection.NONE],
+    ["/", NavSection.HOME],
+    ["/products", NavSection.CATALOG],
+    [PRODUCT_PATH, NavSection.CATALOG],
+    ["/promotions", NavSection.PROMOTIONS],
+    ["/promotions/BLACK_FRIDAY", NavSection.PROMOTIONS],
+    ["/promotionsx", NavSection.NONE],
+    ["/cart", NavSection.NONE],
+    ["/register", NavSection.NONE],
+    ["/login", NavSection.NONE],
+    ["/account/orders", NavSection.ACCOUNT],
+    ["/account/reviews", NavSection.ACCOUNT],
+    ["/checkout", NavSection.ACCOUNT],
+    ["/accounts", NavSection.NONE],
+  ])("%s gives %s", (pathname, expected) => {
+    expect(resolveNavSection(pathname)).toBe(expected);
+  });
+});
+
+describe("resolveNavCategory", () => {
+  it.each([
+    ["/products", "category=SMARTWATCH", null, CategoryKey.SMARTWATCH],
+    ["/products", "category=DESKTOP&brand=DELL", null, CategoryKey.DESKTOP],
+    ["/products", "", null, null],
+    ["/products", "category=TABLET", null, null],
+    [PRODUCT_PATH, "", CategoryKey.SMARTPHONE, CategoryKey.SMARTPHONE],
+    [PRODUCT_PATH, "", null, null],
+    ["/", "category=COMPUTER", null, null],
   ])("%s?%s with product category %s gives %s", (pathname, query, category, expected) => {
-    expect(resolveNavSection(pathname, params(query), category)).toBe(expected);
+    expect(resolveNavCategory(pathname, params(query), category)).toBe(expected);
   });
 
   it("ignores a product category published outside a product page", () => {
-    expect(resolveNavSection("/cart", params(), CategoryKey.COMPUTER)).toBe(NavSection.NONE);
+    expect(resolveNavCategory("/cart", params(), CategoryKey.COMPUTER)).toBeNull();
   });
 });

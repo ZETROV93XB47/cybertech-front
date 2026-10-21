@@ -24,6 +24,7 @@ import { BRAND_LABELS, PRODUCT_MESSAGES } from "../messages";
 import type { ProductSpec } from "../product-specs";
 
 import { AvailabilityBadge } from "./AvailabilityBadge";
+import { CategoryTag } from "./CategoryTag";
 import { describeDiscount } from "./DiscountBanner";
 import { ProductGrid } from "./ProductGrid";
 
@@ -95,9 +96,13 @@ export function ProductSummary({
   return (
     <RevealGroup className="flex flex-col gap-6">
       <RevealItem className="flex flex-col gap-2">
-        <p className="text-sm text-text-muted">
-          <span className="sr-only">{PRODUCT_MESSAGES.brandLabel} : </span>
-          {BRAND_LABELS[product.brand]}
+        <p className="flex flex-wrap items-center gap-x-2 text-sm text-text-muted">
+          <span>
+            <span className="sr-only">{PRODUCT_MESSAGES.brandLabel} : </span>
+            {BRAND_LABELS[product.brand]}
+          </span>
+          <span aria-hidden>·</span>
+          <CategoryTag category={product.category} className="text-sm" />
         </p>
         <h1 className="text-3xl leading-tight">{product.name}</h1>
       </RevealItem>

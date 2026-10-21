@@ -43,28 +43,18 @@ afterEach(() => {
 });
 
 describe("MainNav", () => {
-  it("lists Accueil, Catalogue, Ordinateurs and Écrans with their addresses", async () => {
+  it("lists Accueil and Catalogue with their addresses (categories live in the menu, US2)", async () => {
     const { container } = renderAt("/");
-    expect(navLinks().map((link) => link.textContent)).toEqual([
-      "Accueil",
-      "Catalogue",
-      "Ordinateurs",
-      "Écrans",
-    ]);
-    expect(navLinks().map((link) => link.getAttribute("href"))).toEqual([
-      "/",
-      "/products",
-      "/products?category=COMPUTER",
-      "/products?category=MONITOR",
-    ]);
+    expect(navLinks().map((link) => link.textContent)).toEqual(["Accueil", "Catalogue"]);
+    expect(navLinks().map((link) => link.getAttribute("href"))).toEqual(["/", "/products"]);
     expect(await axe(container)).toHaveNoViolations();
   });
 
   it.each([
     ["/", "", "Accueil"],
     ["/products", "", "Catalogue"],
-    ["/products", "category=COMPUTER&page=2", "Ordinateurs"],
-    ["/products", "category=MONITOR", "Écrans"],
+    ["/products", "category=COMPUTER&page=2", "Catalogue"],
+    ["/products", "category=SMARTWATCH", "Catalogue"],
   ])("marks exactly one current link on %s?%s", (pathname, search, current) => {
     renderAt(pathname, search);
     const currentLinks = navLinks().filter((link) => link.getAttribute("aria-current") === "page");
@@ -78,27 +68,21 @@ describe("MainNav", () => {
     expect(document.querySelector("[data-nav-indicator]")).toBeNull();
   });
 
-  it("follows the category published by a product page", () => {
+  it("marks « Catalogue » on a product page, whatever its category", () => {
     location.pathname = "/products/0193a2b4-1111-7222-8333-000000000001";
     location.search = "";
-    const { unmount } = renderWithProviders(
+    renderWithProviders(
       <>
         <MainNav />
-        <NavSectionMarker category={CategoryKey.COMPUTER} />
+        <NavSectionMarker category={CategoryKey.SMARTPHONE} />
       </>,
     );
-    expect(screen.getByRole("link", { name: "Ordinateurs" })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
-    unmount();
-    renderWithProviders(<MainNav />);
     expect(screen.getByRole("link", { name: "Catalogue" })).toHaveAttribute("aria-current", "page");
   });
 
   it("has a static version without current link", () => {
     renderWithProviders(<StaticMainNav />);
-    expect(navLinks()).toHaveLength(4);
+    expect(navLinks()).toHaveLength(2);
     expect(navLinks().filter((link) => link.hasAttribute("aria-current"))).toHaveLength(0);
   });
 });

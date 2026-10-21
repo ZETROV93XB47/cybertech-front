@@ -10,6 +10,7 @@ import { CircleAlert, Trash2 } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { CategoryTag } from "@/features/catalog/components/CategoryTag";
 import { ProductImage } from "@/features/catalog/components/ProductImage";
 import { productPath } from "@/lib/constants/routes";
 import { CartLineStatus } from "@/lib/enums/cart";
@@ -66,7 +67,12 @@ function CartLineItem({
       data-status={line.status}
     >
       <div className="col-span-2 aspect-4/3 overflow-hidden rounded-field bg-surface-2">
-        <ProductImage src={line.imageUrl} alt="" category="" media={THEME.media.thumbnail} />
+        <ProductImage
+          src={line.imageUrl}
+          alt=""
+          category={line.category ?? ""}
+          media={THEME.media.thumbnail}
+        />
       </div>
       <div className="col-span-4 flex flex-col gap-1">
         {unavailable ? (
@@ -76,6 +82,7 @@ function CartLineItem({
             {name}
           </Link>
         )}
+        <CategoryTag category={line.category} />
         <p className="text-xs text-text-muted">
           {CART_MESSAGES.unitPrice} : <span className="price">{formatPrice(line.unitPrice)}</span>
         </p>

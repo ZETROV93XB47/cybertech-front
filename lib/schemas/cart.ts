@@ -55,6 +55,11 @@ export const CartLineSchema = z.object({
   productUuid: z.uuid(),
   /** Empty for a guest line whose product no longer exists. */
   name: z.string(),
+  /**
+   * Raw category of the product (backend `abe674d` for the account cart, product data for the
+   * guest cart); `null` or absent when unknown, shown with the generic name (FR-003).
+   */
+  category: z.string().min(1).nullish(),
   imageUrl: z.url().nullable(),
   unitPrice: z.number().nonnegative(),
   quantity: z.int().min(1),

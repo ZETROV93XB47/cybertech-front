@@ -58,6 +58,11 @@ describe("toFrontErrorCode — one case per row of contracts/errors.md", () => {
     [BackendErrorCode.ORDER_DOESNT_BELONGS_TO_USER, 403, FrontErrorCode.NOT_FOUND],
     [BackendErrorCode.BANK_CARD_NOT_FOUND, 404, FrontErrorCode.NO_SAVED_CARD],
     [BackendErrorCode.NO_PREVIOUS_PAYMENT_ATTEMPT_FOUND, 404, FrontErrorCode.NOT_FOUND],
+    // Feature 004 (specs/004-catalog-promos-reviews/data-model.md §1).
+    [BackendErrorCode.COMMENT_POST_NOT_ALLOWED, 403, FrontErrorCode.REVIEW_REJECTED],
+    [BackendErrorCode.ORDER_NOT_REVIEWABLE, 409, FrontErrorCode.REVIEW_NOT_ALLOWED],
+    [BackendErrorCode.USER_NOT_AUTHOR_OF_REVIEW, 403, FrontErrorCode.FORBIDDEN],
+    [BackendErrorCode.REVIEW_NOT_FOUND, 404, FrontErrorCode.NOT_FOUND],
   ])("%s (%i) → %s", (code, status, expected) => {
     expect(toFrontErrorCode(code, status)).toBe(expected);
   });

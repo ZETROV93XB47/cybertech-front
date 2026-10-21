@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
 
+import { CategoryTag } from "@/features/catalog/components/CategoryTag";
 import { EmptyState } from "@/components/layout/EmptyState";
 import { AddToCartButton } from "@/features/cart/components/AddToCartButton";
 import { AvailabilityBadge } from "@/features/catalog/components/AvailabilityBadge";
@@ -73,6 +74,7 @@ function WishlistItemRow({
         <Link href={row.href} className="line-clamp-2 hover:text-brand-text">
           {row.name}
         </Link>
+        <CategoryTag category={row.category} />
         <p className="price text-lg">{formatPrice(row.price)}</p>
         <AvailabilityBadge productUuid={row.productUuid} />
         {row.addedOn && (

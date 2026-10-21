@@ -34,13 +34,17 @@ import {
   restrictToFacets,
   type SearchParamsInput,
 } from "@/features/catalog/search-params";
-import { getCategorySchema } from "@/lib/api/endpoints/categories";
+import { getActiveCategories, getCategorySchema } from "@/lib/api/endpoints/categories";
 import { getFacets } from "@/lib/api/endpoints/facets";
 import { searchProducts } from "@/lib/api/endpoints/products";
 import { CATALOG_PATH } from "@/lib/constants/routes";
+import type { CategoryKey } from "@/lib/enums/category-key";
 import { PageWidth } from "@/lib/enums/page-width";
+import { createModuleLogger } from "@/lib/logger";
 import type { ParsedCategorySchema } from "@/lib/schemas/category";
 import { hasActiveFilters, type SearchFilters } from "@/lib/schemas/search";
+
+const log = createModuleLogger("catalog.list");
 
 /** Props given by Next.js to the page. */
 interface ProductsPageProps {
@@ -67,17 +71,39 @@ function receivedQuery(input: Readonly<Record<string, string | string[] | undefi
 }
 
 /**
- * Parses the URL and loads the category facets.
+ * Loads the schema of the selected category; a backend outage only hides its attribute filters
+ * (the filter column then shows its « filtres indisponibles » notice), it never fails the page.
+ *
+ * @param category - Selected category.
+ * @returns Its parsed schema, or no facet.
+ */
+async function loadCategorySchema(category: CategoryKey): Promise<ParsedCategorySchema> {
+  try {
+    return await getCategorySchema(category);
+  } catch {
+    log.warn({ category }, "Category schema unavailable; attribute filters hidden");
+    return NO_CATEGORY;
+  }
+}
+
+/**
+ * Parses the URL and loads the category facets. A category that is not active (or unknown)
+ * falls back to the whole catalog.
  *
  * @param input - Page search params.
+ * @param categories - Active categories.
  * @returns Canonical filters and the category schema.
  */
 async function resolveFilters(
   input: SearchParamsInput,
+  categories: readonly CategoryKey[],
 ): Promise<{ filters: SearchFilters; schema: ParsedCategorySchema }> {
   const parsed = parseSearchParams(input);
-  const schema = parsed.category ? await getCategorySchema(parsed.category) : NO_CATEGORY;
-  return { filters: restrictToFacets(parsed, schema.facets), schema };
+  const { category, ...rest } = parsed;
+  const isActive = category !== undefined && categories.includes(category);
+  const kept: SearchFilters = isActive ? parsed : { ...rest, attributes: {}, numericRanges: {} };
+  const schema = isActive ? await loadCategorySchema(category) : NO_CATEGORY;
+  return { filters: restrictToFacets(kept, schema.facets), schema };
 }
 
 /**
@@ -114,7 +140,8 @@ export default async function ProductsPage({
   searchParams,
 }: ProductsPageProps): Promise<ReactNode> {
   const input = await searchParams;
-  const { filters, schema } = await resolveFilters(input);
+  const categories = await getActiveCategories();
+  const { filters, schema } = await resolveFilters(input, categories);
   if (buildSearchQuery(filters) !== receivedQuery(input)) {
     redirect(buildSearchUrl(filters));
   }
@@ -136,6 +163,7 @@ export default async function ProductsPage({
         <aside className="lg:w-64 lg:shrink-0">
           <Filters
             filters={filters}
+            categories={categories}
             facets={facets}
             brandFilter={buildBrandFilter(facetData, filters)}
             facetSource={facetData.source}

@@ -8,7 +8,7 @@ export const SITE_MESSAGES = {
   name: "cybertech",
   title: "cybertech — matériel informatique",
   description:
-    "Ordinateurs et écrans sélectionnés avec soin. Compare, filtre, ajoute au panier : tout se passe ici.",
+    "Ordinateurs, écrans, smartphones et montres connectées sélectionnés avec soin. Compare, filtre, ajoute au panier : tout se passe ici.",
   skipToContent: "Aller au contenu",
   mainNavigation: "Navigation principale",
   homeNavLink: "Accueil",

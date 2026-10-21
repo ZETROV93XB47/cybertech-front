@@ -122,6 +122,7 @@ function toAccountLine(item: AccountCartItem, enrichment: CartEnrichment | null)
   return {
     productUuid: item.productUuid,
     name: item.productName,
+    category: item.category ?? product?.category ?? null,
     imageUrl: product?.imageUrl ?? null,
     unitPrice: item.unitPrice,
     quantity: item.quantity,
@@ -161,6 +162,7 @@ function toGuestLine(line: GuestLine, enrichment: CartEnrichment): CartLine {
     return {
       productUuid: line.productUuid,
       name: "",
+      category: null,
       imageUrl: null,
       unitPrice: 0,
       quantity: line.quantity,
@@ -173,6 +175,7 @@ function toGuestLine(line: GuestLine, enrichment: CartEnrichment): CartLine {
   return {
     productUuid: line.productUuid,
     name: product.name,
+    category: product.category,
     imageUrl: product.imageUrl,
     unitPrice: product.price,
     quantity: line.quantity,

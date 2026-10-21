@@ -22,6 +22,23 @@ export function productPath(uuid: string): string {
 /** Cart page (`app/(shop)/cart/page.tsx`). */
 export const CART_PATH = "/cart";
 
+/**
+ * List of the running discount campaigns (`app/(shop)/promotions/page.tsx`).
+ *
+ * @see specs/004-catalog-promos-reviews/spec.md US4
+ */
+export const PROMOTIONS_PATH = "/promotions";
+
+/**
+ * Builds the path of a campaign page.
+ *
+ * @param key - Discount key (`BLACK_FRIDAY`…), already validated by `DiscountKeySchema`.
+ * @returns The path `/promotions/{key}`.
+ */
+export function promotionRoute(key: string): string {
+  return `${PROMOTIONS_PATH}/${encodeURIComponent(key)}`;
+}
+
 /** BFF route handlers called by the browser (contracts/bff-routes.md). */
 export const BFF_ROUTES = {
   /** `GET ?q=` — command palette results. */
@@ -132,7 +149,37 @@ export const ACCOUNT_PATHS = {
   card: "/account/card",
   /** « Ma wishlist ». */
   wishlist: "/account/wishlist",
+  /** « Mes avis » (feature 004 US5). */
+  reviews: "/account/reviews",
 } as const;
+
+/** Query parameters of « Mes avis » opening the review form of one bought product. */
+export const REVIEW_TARGET_PARAMS = {
+  /** Product to review. */
+  product: "product",
+  /** Order the product was bought in. */
+  order: "order",
+} as const;
+
+/**
+ * Builds the path of « Mes avis » with the form of one bought product open.
+ *
+ * @param target - Product and order of the review.
+ * @param target.productUuid - Product UUID.
+ * @param target.orderUuid - Order UUID.
+ * @returns The path `/account/reviews?product=…&order=…`.
+ * @see specs/004-catalog-promos-reviews/research.md R10
+ */
+export function accountReviewRoute(target: {
+  readonly productUuid: string;
+  readonly orderUuid: string;
+}): string {
+  const query = new URLSearchParams({
+    [REVIEW_TARGET_PARAMS.product]: target.productUuid,
+    [REVIEW_TARGET_PARAMS.order]: target.orderUuid,
+  });
+  return `${ACCOUNT_PATHS.reviews}?${query.toString()}`;
+}
 
 /**
  * Query parameter of « Ma carte » holding the relative path to go back to once a card is saved

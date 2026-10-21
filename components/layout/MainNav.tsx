@@ -1,7 +1,8 @@
 "use client";
 
 /**
- * Main navigation links: Accueil, Catalogue, Ordinateurs, Écrans (FR-025).
+ * Main navigation links: Accueil, Catalogue (FR-025). Feature 004 groups the categories under
+ * the « Catalogue » menu (US2) and adds « Promotions » (US4).
  *
  * The current section carries `aria-current="page"` and a gold underline, so it is never
  * conveyed by colour alone (FR-026). At full effects the underline slides from one link to the
@@ -12,20 +13,17 @@
  */
 import { motion } from "motion/react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { CATEGORY_LABELS } from "@/features/catalog/messages";
 import { SITE_MESSAGES } from "@/features/common/messages";
 import { CATALOG_PATH, HOME_PATH } from "@/lib/constants/routes";
-import { CategoryKey } from "@/lib/enums/category-key";
 import { EntranceMode } from "@/lib/enums/entrance-mode";
 import { NavSection } from "@/lib/enums/nav-section";
-import { SearchParam } from "@/lib/enums/search-param";
 import { cn } from "@/lib/utils";
 import { useMotionTokens, useSurfaceMotion } from "@/styles/motion";
 
-import { resolveNavSection, useNavCategory } from "./nav-section";
+import { resolveNavSection } from "./nav-section";
 
 /** Shared layout id of the underline, so it slides between links. */
 const UNDERLINE_LAYOUT_ID = "main-nav-underline";
@@ -37,30 +35,10 @@ interface NavLink {
   readonly label: string;
 }
 
-/**
- * Builds the address of the catalog filtered on a category.
- *
- * @param category - Category key.
- * @returns The canonical catalog URL of that category.
- */
-function categoryHref(category: CategoryKey): string {
-  return `${CATALOG_PATH}?${new URLSearchParams({ [SearchParam.CATEGORY]: category }).toString()}`;
-}
-
 /** Links of the bar, in display order. */
 const NAV_LINKS: readonly NavLink[] = [
   { section: NavSection.HOME, href: HOME_PATH, label: SITE_MESSAGES.homeNavLink },
   { section: NavSection.CATALOG, href: CATALOG_PATH, label: SITE_MESSAGES.catalogLink },
-  {
-    section: NavSection.COMPUTER,
-    href: categoryHref(CategoryKey.COMPUTER),
-    label: CATEGORY_LABELS[CategoryKey.COMPUTER],
-  },
-  {
-    section: NavSection.MONITOR,
-    href: categoryHref(CategoryKey.MONITOR),
-    label: CATEGORY_LABELS[CategoryKey.MONITOR],
-  },
 ];
 
 /**
@@ -132,7 +110,5 @@ export function StaticMainNav(): ReactNode {
  */
 export function MainNav(): ReactNode {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const productCategory = useNavCategory();
-  return <NavLinks current={resolveNavSection(pathname, searchParams, productCategory)} />;
+  return <NavLinks current={resolveNavSection(pathname)} />;
 }

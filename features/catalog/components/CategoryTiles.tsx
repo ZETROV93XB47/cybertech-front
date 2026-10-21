@@ -1,21 +1,22 @@
 /**
- * Category tiles of the home page: one tile per category, leading to the catalog filtered on it,
+ * Category tiles of the home page: one tile per active category (feature 004: five today, in
+ * `CATEGORY_ORDER`), leading to the catalog filtered on it,
  * with the real number of products (FR-029) and a strip of real product photos of the category,
  * so the tiles are not text only. A count that could not be read is not shown; a category
  * without product shows its icon and says so instead of inventing anything.
  *
  * @see specs/002-catalog-refresh/research.md R13
  */
-import { ArrowRight, Laptop, Monitor } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { TiltCard } from "@/components/effects/TiltCard";
 import { THEME } from "@/lib/theme/theme.config";
-import { assertNever } from "@/lib/assert-never";
-import { CategoryKey } from "@/lib/enums/category-key";
+import type { CategoryKey } from "@/lib/enums/category-key";
 import { EMPTY_SEARCH_FILTERS } from "@/lib/schemas/search";
 
+import { CATEGORY_ICONS } from "../category-icons";
 import { CATEGORY_LABELS, CATEGORY_TILE_MESSAGES } from "../messages";
 import { buildSearchUrl } from "../search-params";
 
@@ -23,27 +24,23 @@ import { ProductImage } from "./ProductImage";
 
 /** Props of {@link CategoryTiles}. */
 export interface CategoryTilesProps {
-  /** Products by category; `null` when the count is unknown. */
-  readonly counts: Readonly<Record<CategoryKey, number | null>>;
+  /** Active categories, in display order (`getActiveCategories`). */
+  readonly categories: readonly CategoryKey[];
+  /** Products by category; `null` or absent when the count is unknown. */
+  readonly counts: Readonly<Partial<Record<CategoryKey, number | null>>>;
   /** Real product photos by category; the category icon is shown without any. */
-  readonly photos?: Readonly<Record<CategoryKey, readonly string[]>>;
+  readonly photos?: Readonly<Partial<Record<CategoryKey, readonly string[]>>>;
 }
 
 /**
  * Icon of a category.
  *
- * @param category - Category key.
+ * @param props - Category key.
  * @returns The icon.
  */
 function CategoryIcon({ category }: { readonly category: CategoryKey }): ReactNode {
-  switch (category) {
-    case CategoryKey.COMPUTER:
-      return <Laptop aria-hidden className="size-12 text-brand-text" />;
-    case CategoryKey.MONITOR:
-      return <Monitor aria-hidden className="size-12 text-brand-text" />;
-    default:
-      return assertNever(category);
-  }
+  const Icon = CATEGORY_ICONS[category];
+  return <Icon aria-hidden className="size-12 text-brand-text" />;
 }
 
 /**
@@ -93,14 +90,14 @@ function TileVisual({
 /**
  * The tiles, as a list of links.
  *
- * @param props - Counts and photos by category.
+ * @param props - Active categories, counts and photos by category.
  * @returns The list.
  */
-export function CategoryTiles({ counts, photos }: CategoryTilesProps): ReactNode {
+export function CategoryTiles({ categories, counts, photos }: CategoryTilesProps): ReactNode {
   return (
-    <ul className="grid gap-6 sm:grid-cols-2">
-      {Object.values(CategoryKey).map((category) => {
-        const text = countText(counts[category]);
+    <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {categories.map((category) => {
+        const text = countText(counts[category] ?? null);
         return (
           <li key={category} className="flex">
             <TiltCard className="glass relative flex w-full flex-col overflow-hidden rounded-card">

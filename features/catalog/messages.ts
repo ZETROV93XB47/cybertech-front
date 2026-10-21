@@ -20,7 +20,8 @@ export const GREETING_MESSAGES = {
 
 /** Home page. */
 export const HOME_MESSAGES = {
-  intro: "Ordinateurs et écrans choisis pour durer. Cherche un modèle, compare, ajoute au panier.",
+  intro:
+    "Ordinateurs, écrans, smartphones et montres connectées choisis pour durer. Cherche un modèle, compare, ajoute au panier.",
   searchCta: "Parcourir le catalogue",
   bestSellersTitle: "Les plus demandés",
   bestSellersEmpty: "Les meilleures ventes s'afficheront ici dès les premières commandes.",
@@ -53,11 +54,24 @@ export const CATALOG_BREADCRUMB_MESSAGES = {
   home: "Accueil",
 } as const;
 
-/** Category names shown in filters and on cards. */
+/**
+ * Category names shown in the menu, the filters, the breadcrumbs and on every product.
+ *
+ * The backend labels are English (`GET /product-category-schemas`), so the French names live
+ * here, one per known key.
+ *
+ * @see specs/004-catalog-promos-reviews/data-model.md §2.1
+ */
 export const CATEGORY_LABELS: Readonly<Record<CategoryKey, string>> = {
-  [CategoryKey.COMPUTER]: "Ordinateurs",
+  [CategoryKey.COMPUTER]: "Ordinateurs portables",
+  [CategoryKey.DESKTOP]: "Ordinateurs de bureau",
   [CategoryKey.MONITOR]: "Écrans",
+  [CategoryKey.SMARTPHONE]: "Smartphones",
+  [CategoryKey.SMARTWATCH]: "Montres connectées",
 };
+
+/** Name of a category the front does not know (new backend key, or none). */
+export const GENERIC_CATEGORY_LABEL = "Autres produits";
 
 /** Brand names as the brands write them (the backend enum is upper case). */
 export const BRAND_LABELS: Readonly<Record<Brand, string>> = {
@@ -120,6 +134,61 @@ export const ATTRIBUTE_LABELS: Readonly<Record<string, string>> = {
   memory: "Stockage",
   resolution: "Résolution",
   refreshRate: "Fréquence de rafraîchissement",
+  // Feature 004: attributes of the five categories (schemas of backend `28a15ae`).
+  cpuCores: "Cœurs du processeur",
+  weightKg: "Poids",
+  panelType: "Type de dalle",
+  convertible: "Convertible",
+  storageType: "Type de stockage",
+  touchscreen: "Écran tactile",
+  screenResolution: "Définition de l'écran",
+  screenSizeInches: "Taille de l'écran",
+  wirelessStandard: "Norme Wi-Fi",
+  batteryCapacityWh: "Capacité de la batterie",
+  screenRefreshRateHz: "Fréquence de l'écran",
+  depthMm: "Profondeur",
+  widthMm: "Largeur",
+  heightMm: "Hauteur",
+  formFactor: "Format du boîtier",
+  opticalDrive: "Lecteur optique",
+  powerSupplyW: "Alimentation",
+  videoMemoryGB: "Mémoire vidéo",
+  storageInterface: "Interface de stockage",
+  ethernetController: "Contrôleur Ethernet",
+  hdr: "HDR",
+  curved: "Écran incurvé",
+  aspectRatio: "Format d'image",
+  videoInputs: "Entrées vidéo",
+  adaptiveSync: "Synchronisation adaptative",
+  contrastRatio: "Contraste",
+  brightnessNits: "Luminosité",
+  responseTimeMs: "Temps de réponse",
+  nfc: "NFC",
+  ramGB: "Mémoire vive",
+  dualSim: "Double SIM",
+  network: "Réseau mobile",
+  storage: "Stockage",
+  weightG: "Poids",
+  foldable: "Pliable",
+  coreCount: "Cœurs du processeur",
+  simFormat: "Format SIM",
+  screenSize: "Taille de l'écran",
+  thicknessMm: "Épaisseur",
+  fastCharging: "Charge rapide",
+  waterResistant: "Résistant à l'eau",
+  wirelessCharging: "Charge sans fil",
+  batteryCapacityMah: "Capacité de la batterie",
+  wifi: "Wi-Fi",
+  caseSize: "Taille du boîtier",
+  cellular: "Réseau cellulaire",
+  bluetooth: "Bluetooth",
+  strapSize: "Taille du bracelet",
+  strapColor: "Couleur du bracelet",
+  batteryLife: "Autonomie",
+  caseMaterial: "Matière du boîtier",
+  colorDisplay: "Écran couleur",
+  strapMaterial: "Matière du bracelet",
+  compatibleIphone: "Compatible iPhone",
 };
 
 /** Units of the known numeric attributes, shown after the value and in range filters. */
@@ -127,6 +196,25 @@ export const ATTRIBUTE_UNITS: Readonly<Record<string, string>> = {
   ram: "Go",
   memory: "Go",
   refreshRate: "Hz",
+  weightKg: "kg",
+  screenSizeInches: "pouces",
+  batteryCapacityWh: "Wh",
+  screenRefreshRateHz: "Hz",
+  depthMm: "mm",
+  widthMm: "mm",
+  heightMm: "mm",
+  powerSupplyW: "W",
+  videoMemoryGB: "Go",
+  brightnessNits: "cd/m²",
+  responseTimeMs: "ms",
+  ramGB: "Go",
+  storage: "Go",
+  weightG: "g",
+  screenSize: "pouces",
+  thicknessMm: "mm",
+  batteryCapacityMah: "mAh",
+  caseSize: "mm",
+  batteryLife: "h",
 };
 
 /** Product list and filters. */

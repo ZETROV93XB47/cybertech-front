@@ -69,6 +69,20 @@ describe("toOrderView", () => {
     expect(toOrderView({ ...RECENT_ORDER, shippingCost: null }, null).breakdown).toBeNull();
   });
 
+  it("carries the category of each line, null when the backend has none", () => {
+    const [first, ...others] = RECENT_ORDER.orderItems;
+    const order = {
+      ...RECENT_ORDER,
+      orderItems: [
+        { ...first!, category: "SMARTPHONE" },
+        ...others.map((item) => ({ ...item, category: null })),
+      ],
+    };
+    const categories = toOrderView(order, null).lines.map((line) => line.category);
+    expect(categories[0]).toBe("SMARTPHONE");
+    expect(categories.slice(1).every((category) => category === null)).toBe(true);
+  });
+
   it("links only the lines still in the catalog", () => {
     const view = toOrderView(RECENT_ORDER, new Set([PRODUCT_A]));
     expect(view.lines.map((line) => [line.productUuid, line.isInCatalog])).toEqual([

@@ -40,6 +40,8 @@ export function cartErrorMessage(code: FrontErrorCode, availableStock?: number):
     case FrontErrorCode.FORBIDDEN:
     case FrontErrorCode.ALREADY_EXISTS:
     case FrontErrorCode.UNKNOWN:
+    case FrontErrorCode.REVIEW_REJECTED:
+    case FrontErrorCode.REVIEW_NOT_ALLOWED:
     case FrontErrorCode.DISCOUNT_INVALID:
     case FrontErrorCode.PAYMENT_FAILED:
     case FrontErrorCode.PAYMENT_ALREADY_COMPLETED:

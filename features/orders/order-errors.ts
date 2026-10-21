@@ -45,6 +45,8 @@ export function orderErrorMessage(error: BffError): string {
     case FrontErrorCode.ACCOUNT_INACTIVE:
     case FrontErrorCode.CARD_EXPIRED:
     case FrontErrorCode.UNKNOWN:
+    case FrontErrorCode.REVIEW_REJECTED:
+    case FrontErrorCode.REVIEW_NOT_ALLOWED:
       return ORDER_ERROR_MESSAGES.unknown;
     default:
       return assertNever(error.code);

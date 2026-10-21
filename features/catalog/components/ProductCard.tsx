@@ -26,6 +26,7 @@ import { THEME } from "@/lib/theme/theme.config";
 import { BRAND_LABELS } from "../messages";
 
 import { AvailabilityBadge } from "./AvailabilityBadge";
+import { CategoryTag } from "./CategoryTag";
 import { ProductImage } from "./ProductImage";
 
 /** Prefix of the `view-transition-name` shared by a card image and the product page gallery. */
@@ -105,7 +106,11 @@ export function ProductCard(props: ProductCardProps): ReactNode {
         </div>
       )}
       <div className="flex flex-1 flex-col gap-2 p-5">
-        <p className="text-xs text-text-muted">{BRAND_LABELS[product.brand]}</p>
+        <p className="flex flex-wrap items-center gap-x-2 text-xs text-text-muted">
+          <span>{BRAND_LABELS[product.brand]}</span>
+          <span aria-hidden>·</span>
+          <CategoryTag category={product.category} />
+        </p>
         <h3 className="line-clamp-2 text-base leading-snug">
           <TransitionLink
             href={productPath(product.uuid)}

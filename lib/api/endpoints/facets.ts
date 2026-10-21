@@ -289,16 +289,22 @@ function toProductCount(data: FacetData): number | null {
  * One facets call per category (same cache as the catalog), read from `totalHits`: the backend
  * endpoint or the fallback scan, so the number is always a real catalog count (FR-029).
  *
- * @returns The number of products by category; `null` when the facets are unavailable.
+ * @param categories - Categories to count (the active ones, `getActiveCategories`).
+ * @returns The number of products of each given category; `null` when its facets are
+ *   unavailable, without failing the others.
  * @see specs/002-catalog-refresh/research.md R13
+ * @see specs/004-catalog-promos-reviews/research.md R2
  */
-export async function getCategoryCounts(): Promise<Record<CategoryKey, number | null>> {
-  const [computers, monitors] = await Promise.all([
-    getFacets({ ...EMPTY_SEARCH_FILTERS, category: CategoryKey.COMPUTER }),
-    getFacets({ ...EMPTY_SEARCH_FILTERS, category: CategoryKey.MONITOR }),
-  ]);
-  return {
-    [CategoryKey.COMPUTER]: toProductCount(computers),
-    [CategoryKey.MONITOR]: toProductCount(monitors),
-  };
+export async function getCategoryCounts(
+  categories: readonly CategoryKey[],
+): Promise<Partial<Record<CategoryKey, number | null>>> {
+  const facets = await Promise.all(
+    categories.map((category) => getFacets({ ...EMPTY_SEARCH_FILTERS, category })),
+  );
+  return Object.fromEntries(
+    categories.map((category, index) => [
+      category,
+      toProductCount(facets[index] ?? UNAVAILABLE_FACETS),
+    ]),
+  );
 }

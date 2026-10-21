@@ -62,11 +62,11 @@ test.describe("home and catalog", () => {
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   });
 
-  test("the « Ordinateurs » tile leads to the filtered catalog", async ({ page }) => {
+  test("the « Ordinateurs portables » tile leads to the filtered catalog", async ({ page }) => {
     await page.goto("/");
     await page
       .getByRole("region", { name: "Catégories" })
-      .getByRole("link", { name: /Ordinateurs/ })
+      .getByRole("link", { name: /Ordinateurs portables/ })
       .click();
     await expect(page).toHaveURL("/products?category=COMPUTER");
   });

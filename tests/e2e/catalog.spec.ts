@@ -36,7 +36,7 @@ test.describe("catalog", () => {
 
   test("combined filters are kept in the URL and survive a reload", async ({ page }) => {
     await page.goto("/products");
-    await page.getByRole("radio", { name: "Ordinateurs" }).check();
+    await page.getByRole("radio", { name: "Ordinateurs portables" }).check();
     await expect(page).toHaveURL(/category=COMPUTER/);
     await page
       .getByRole("form", { name: "Filtres" })
@@ -51,7 +51,7 @@ test.describe("catalog", () => {
     await page.reload();
     await expect(page).toHaveURL("/products?category=COMPUTER&brand=LENOVO&min=500");
     await expect(page.getByText(/\d+ produits?$/)).toHaveText(count ?? "");
-    await expect(page.getByRole("radio", { name: "Ordinateurs" })).toBeChecked();
+    await expect(page.getByRole("radio", { name: "Ordinateurs portables" })).toBeChecked();
     await expect(
       page.getByRole("form", { name: "Filtres" }).getByRole("checkbox", { name: /^Lenovo/ }),
     ).toBeChecked();

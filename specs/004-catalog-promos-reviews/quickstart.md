@@ -101,3 +101,40 @@ avis. Budgets : LCP ≤ 2,5 s, CLS ≤ 0,1, TBT ≤ 200 ms.
 
 À remplir story par story (date, commit backend, contrôles, e2e, captures relues, points
 manuels).
+
+### Setup, socle et US1 — Toutes les catégories
+
+Vérifié le 2026-10-21 (T001–T021) : backend `abe674d` sur 8081, front de l'utilisateur sur
+3000 (rechargement à chaud).
+
+- Contrôles : `typecheck` OK, `lint` 0 warning, `test` 938 tests verts (93 fichiers).
+- Photos (T009) : 10 photos Unsplash recadrées 16:9, 1 920 × 1 080, de 62 à 265 Ko, crédits
+  dans `docs/credits.md` ; la première photo générique (sac Uniqlo, logo lisible) a été
+  remplacée.
+- Libellés : les attributs des cinq schémas ont maintenant un nom français et une unité
+  (NFC, double SIM, taille du boîtier en mm, autonomie en h…) ; sans cela ils s'affichaient
+  en anglais « humanisé ».
+- E2E (`--workers=1`) : `categories.spec.ts` 8 OK (comptes lus sur les facettes du backend :
+  576, 262, 410, 616, 315), `catalog.spec.ts` 8 OK, `catalog-filters.spec.ts` 9 OK,
+  `product-page.spec.ts` 2 OK, `compare.spec.ts` 5 OK, `home.spec.ts` 4 OK,
+  `navigation.spec.ts` 3 OK, `cart.spec.ts` 7 OK. Un premier passage de `catalog` et
+  `catalog-filters` a donné des dépassements de 30 s dus au serveur de dev (compilation à
+  chaud) ; repassés verts sans changement de code.
+- Captures relues : `screenshots/before/` et `screenshots/us1/` (accueil à cinq tuiles,
+  catalogue par catégorie, fiche d'une montre). Correctif : l'accroche de l'accueil et la
+  description du site ne parlaient que d'« ordinateurs et écrans ».
+- Lighthouse desktop (build de production, port 3124) : accueil 0,95 (LCP 1,45 s, CLS 0,002,
+  TBT 0), smartphones 0,98 (LCP 1,09 s), fiche smartphone 0,99 (LCP 0,91 s).
+- Écart assumé : la page de **modification** d'une commande n'affiche pas la catégorie (son
+  brouillon sauvegardé ne la conserve pas) ; le détail de la commande l'affiche.
+- Barre de navigation provisoire : « Accueil · Catalogue » ; le menu des catégories arrive en
+  US2.
+
+| # | Résultat | Commentaire |
+|---|---|---|
+| 1 | OK | « Smartphones » : 616 produits, filtres NFC, double SIM, réseau mobile, stockage |
+| 2 | OK | idem pour les quatre autres catégories (e2e) |
+| 3 | OK | fil d'Ariane « Montres connectées » et étiquette à côté de la marque |
+| 4 | OK | catégorie sur les cartes, la fiche, le comparateur, les lignes du panier (invité et connecté), le détail de commande, la wishlist |
+| 5 | OK | cinq tuiles avec leur nombre de produits |
+| 5 bis | non testé | aucune catégorie désactivable sans l'administration ; couvert par les tests unitaires de `getActiveCategories` |

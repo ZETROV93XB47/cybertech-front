@@ -156,6 +156,17 @@ export interface EffectsSettings {
   };
   /** Vertical lift of a hovered card. */
   readonly cardHoverLift: CssValue;
+  /**
+   * Home carousel (feature 004 US3): automatic rotation and cross-fade between slides. Without
+   * autoplay the slides only change on the visitor's request, instantly when `crossFade` is
+   * off (FR-010).
+   */
+  readonly carousel: {
+    readonly autoplay: boolean;
+    /** Time a slide stays on screen before the next one. */
+    readonly intervalMs: number;
+    readonly crossFade: boolean;
+  };
 }
 
 /** One generated interface sound. */
@@ -187,6 +198,8 @@ export interface ThemeMedia {
   readonly thumbnail: MediaSize;
   /** Banner photo at the top of the home page. */
   readonly hero: MediaSize;
+  /** Photo of a home carousel slide or of a campaign (16:9 files in `public/images/`). */
+  readonly slide: MediaSize;
 }
 
 /** Page layout tokens. */

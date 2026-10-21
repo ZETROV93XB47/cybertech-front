@@ -21,7 +21,7 @@ describe("describeActiveFilters", () => {
     const pills = describeActiveFilters(FILTERS, []);
     expect(pills.map(({ kind, label }) => [kind, label])).toEqual([
       [ActiveFilterKind.KEYWORD, "Recherche : « gaming »"],
-      [ActiveFilterKind.CATEGORY, "Catégorie : Ordinateurs"],
+      [ActiveFilterKind.CATEGORY, "Catégorie : Ordinateurs portables"],
       [ActiveFilterKind.BRAND, "Marque : HP"],
       [ActiveFilterKind.BRAND, "Marque : Lenovo"],
       [ActiveFilterKind.PRICE, PRICE_LABEL],

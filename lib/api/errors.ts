@@ -121,10 +121,12 @@ const FRONT_CODE_BY_BACKEND_CODE = {
   // `POST /order/place` needs a saved card (`validateUserBeforeProcessingPayment`).
   [BackendErrorCode.BANK_CARD_NOT_FOUND]: FrontErrorCode.NO_SAVED_CARD,
   [BackendErrorCode.PRODUCT_ALREADY_IN_WISHLIST]: FrontErrorCode.ALREADY_EXISTS,
-  [BackendErrorCode.USER_NOT_AUTHOR_OF_REVIEW]: FrontErrorCode.UNKNOWN,
-  [BackendErrorCode.COMMENT_POST_NOT_ALLOWED]: FrontErrorCode.UNKNOWN,
+  [BackendErrorCode.USER_NOT_AUTHOR_OF_REVIEW]: FrontErrorCode.FORBIDDEN,
+  // Moderation refusal of a review comment (feature 004, FR-017).
+  [BackendErrorCode.COMMENT_POST_NOT_ALLOWED]: FrontErrorCode.REVIEW_REJECTED,
   [BackendErrorCode.UNAUTHORIZED_CART_ACCESS]: FrontErrorCode.UNKNOWN,
-  [BackendErrorCode.ORDER_NOT_REVIEWABLE]: FrontErrorCode.UNKNOWN,
+  // 409 on the backend side: branch on the code, never on the status.
+  [BackendErrorCode.ORDER_NOT_REVIEWABLE]: FrontErrorCode.REVIEW_NOT_ALLOWED,
   [BackendErrorCode.UNKNOWN_PRODUCT_CATEGORY]: FrontErrorCode.UNKNOWN,
   [BackendErrorCode.INVALID_PRODUCT_CATEGORY_SCHEMA]: FrontErrorCode.UNKNOWN,
   [BackendErrorCode.DISCOUNT_CAMPAIGN_MISSING_REQUIRED_FIELD]: FrontErrorCode.UNKNOWN,

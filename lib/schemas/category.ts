@@ -26,6 +26,24 @@ export const CategorySchemaResponseSchema = z.object({
 /** A category schema as returned by the backend. */
 export type CategorySchemaResponse = z.infer<typeof CategorySchemaResponseSchema>;
 
+/**
+ * `ProductCategoryResponseDto`: one active category of `GET /product-category-schemas`
+ * (backend `28a15ae`). The key stays free text here: the endpoint decides which keys the front
+ * knows (`toCategoryKey`), and the English `label` is never shown.
+ *
+ * @see specs/004-catalog-promos-reviews/data-model.md §2.2
+ */
+export const CategorySummarySchema = z.object({
+  categoryKey: z.string().min(1),
+  label: z.string(),
+});
+
+/** One active category as returned by the backend. */
+export type CategorySummary = z.infer<typeof CategorySummarySchema>;
+
+/** Body of `GET /product-category-schemas`. */
+export const CategorySummariesSchema = z.array(CategorySummarySchema);
+
 /** Schema of a category key. */
 const CategoryKeySchema = z.enum(CategoryKey);
 

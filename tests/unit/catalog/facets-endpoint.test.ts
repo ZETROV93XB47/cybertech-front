@@ -170,20 +170,40 @@ describe("getFacets", () => {
 });
 
 describe("getCategoryCounts", () => {
-  it("returns the total of each category, null when its facets are unavailable", async () => {
+  it("returns the total of each given category, null when its facets are unavailable", async () => {
+    const asked: string[] = [];
     server.use(
       http.post(FACETS_URL, async ({ request }) => {
         const { category } = (await request.json()) as { category?: string };
-        return category === CategoryKey.COMPUTER
-          ? HttpResponse.json({ ...FACETS_BODY, totalHits: 531 })
-          : HttpResponse.error();
+        asked.push(category ?? "");
+        if (category === CategoryKey.COMPUTER) {
+          return HttpResponse.json({ ...FACETS_BODY, totalHits: 531 });
+        }
+        if (category === CategoryKey.SMARTWATCH) {
+          return HttpResponse.json({ ...FACETS_BODY, totalHits: 315 });
+        }
+        return HttpResponse.error();
       }),
       http.post(SEARCH_URL, () => HttpResponse.error()),
     );
     const { getCategoryCounts } = await loadFacetsModule();
-    expect(await getCategoryCounts()).toEqual({
+    const counts = await getCategoryCounts([
+      CategoryKey.COMPUTER,
+      CategoryKey.MONITOR,
+      CategoryKey.SMARTWATCH,
+    ]);
+    expect(counts).toEqual({
       [CategoryKey.COMPUTER]: 531,
       [CategoryKey.MONITOR]: null,
+      [CategoryKey.SMARTWATCH]: 315,
     });
+    expect(asked.sort()).toEqual(
+      [CategoryKey.COMPUTER, CategoryKey.MONITOR, CategoryKey.SMARTWATCH].sort(),
+    );
+  });
+
+  it("asks nothing without category", async () => {
+    const { getCategoryCounts } = await loadFacetsModule();
+    expect(await getCategoryCounts([])).toEqual({});
   });
 });

@@ -91,6 +91,35 @@ describe("buildAccountCartView", () => {
   });
 });
 
+describe("category of the cart lines (feature 004, FR-003)", () => {
+  it("reads the account line category from the backend line, then from the product", () => {
+    const raw = backendCart([
+      [PRODUCT_A, 1],
+      [PRODUCT_B, 1],
+    ]) as { items: Record<string, unknown>[] };
+    const items = raw.items.map((item, index) =>
+      index === 0 ? { ...item, category: "SMARTWATCH" } : item,
+    );
+    const view = buildAccountCartView(
+      AccountCartSchema.parse({ ...raw, items }),
+      enrichment({ [PRODUCT_A]: 5, [PRODUCT_B]: 5 }),
+    );
+    expect(view.lines.map((line) => line.category)).toEqual(["SMARTWATCH", "COMPUTER"]);
+    expect(buildAccountCartView(AccountCartSchema.parse(raw), null).lines[0]?.category).toBeNull();
+  });
+
+  it("reads the guest line category from the product, null for a deleted product", () => {
+    const view = buildGuestCartView(
+      [
+        { productUuid: PRODUCT_A, quantity: 1 },
+        { productUuid: PRODUCT_C, quantity: 1 },
+      ],
+      enrichment({ [PRODUCT_A]: 5, [PRODUCT_C]: 5 }, [PRODUCT_C]),
+    );
+    expect(view.lines.map((line) => line.category)).toEqual(["COMPUTER", null]);
+  });
+});
+
 describe("buildGuestCartView", () => {
   it("re-reads prices and estimates the total", () => {
     const view = buildGuestCartView(

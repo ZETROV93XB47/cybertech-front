@@ -33,6 +33,12 @@ const MINT = "#7BE0A8";
 /** Shared ease-out (fast start, soft landing). */
 const EASE_OUT: readonly [number, number, number, number] = [0.22, 1, 0.36, 1];
 
+/**
+ * Time a home carousel slide stays on screen at the full effects level (spec 004, assumption
+ * « 6 secondes »): long enough to read a title and a tagline.
+ */
+const CAROUSEL_AUTOPLAY_INTERVAL_MS = 6_000;
+
 /** Effects with every decoration switched off (also the reduced-motion fallback). */
 const EFFECTS_OFF: EffectsSettings = {
   dotGrid: {
@@ -64,6 +70,7 @@ const EFFECTS_OFF: EffectsSettings = {
   viewTransitions: { enabled: false },
   liveTitle: { enabled: false, weightMin: 600, weightMax: 600, radiusPx: 0 },
   cardHoverLift: "0px",
+  carousel: { autoplay: false, intervalMs: CAROUSEL_AUTOPLAY_INTERVAL_MS, crossFade: false },
 };
 
 /** The theme. */
@@ -191,6 +198,7 @@ export const THEME = {
       viewTransitions: { enabled: true },
       liveTitle: { enabled: true, weightMin: 500, weightMax: 650, radiusPx: 220 },
       cardHoverLift: "-4px",
+      carousel: { autoplay: true, intervalMs: CAROUSEL_AUTOPLAY_INTERVAL_MS, crossFade: true },
     },
     [EffectsLevel.REDUCED]: {
       dotGrid: {
@@ -222,6 +230,8 @@ export const THEME = {
       viewTransitions: { enabled: true },
       liveTitle: { enabled: false, weightMin: 600, weightMax: 600, radiusPx: 0 },
       cardHoverLift: "-2px",
+      // Reduced effects: no automatic rotation (FR-010), a soft fade on request only.
+      carousel: { autoplay: false, intervalMs: CAROUSEL_AUTOPLAY_INTERVAL_MS, crossFade: true },
     },
     [EffectsLevel.OFF]: EFFECTS_OFF,
   },
@@ -240,6 +250,8 @@ export const THEME = {
     thumbnail: { width: 120, height: 90, sizes: "96px" },
     // Home banner: full content width (1152px inside the 1200px container).
     hero: { width: 2400, height: 1600, sizes: "(min-width: 1200px) 1152px, 100vw" },
+    // Carousel slides and campaign photos: 16:9 files, full content width at most.
+    slide: { width: 1920, height: 1080, sizes: "(min-width: 1200px) 1152px, 100vw" },
   },
   layout: {
     containerMaxWidth: "1200px",

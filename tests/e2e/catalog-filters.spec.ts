@@ -163,7 +163,7 @@ test.describe("catalog attribute filters", () => {
       .first()
       .click();
     actions += 1;
-    await page.getByRole("radio", { name: "Ordinateurs" }).check();
+    await page.getByRole("radio", { name: "Ordinateurs portables" }).check();
     actions += 1;
     await filterGroup(page, "Processeur")
       .getByRole("checkbox", { name: valueName(AMD) })

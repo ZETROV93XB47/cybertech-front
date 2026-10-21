@@ -99,6 +99,8 @@ export function toOrderSummaryRow(order: OrderResponse): OrderSummaryRow {
 export interface OrderLineView {
   readonly productUuid: string;
   readonly productName: string;
+  /** Raw category of the product (backend `abe674d`); `null` when unknown (product deleted). */
+  readonly category: string | null;
   readonly quantity: number;
   readonly unitPrice: number;
   readonly lineTotal: number;
@@ -188,6 +190,7 @@ export function toOrderView(
     lines: order.orderItems.map((item) => ({
       productUuid: item.productUuid,
       productName: item.productName,
+      category: item.category ?? null,
       quantity: item.quantity,
       unitPrice: item.unitPrice,
       lineTotal: item.lineItemTotalPrice,

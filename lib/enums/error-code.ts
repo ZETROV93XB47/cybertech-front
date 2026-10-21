@@ -117,4 +117,11 @@ export enum FrontErrorCode {
    * without one, and the « Ma carte » page shows its empty state.
    */
   NO_SAVED_CARD = "no-saved-card",
+  /**
+   * Review comment refused by the automatic moderation (`COMMENT_POST_NOT_ALLOWED`): the form
+   * keeps the input and explains it kindly (feature 004, FR-017).
+   */
+  REVIEW_REJECTED = "review-rejected",
+  /** Order not reviewable (`ORDER_NOT_REVIEWABLE`, 409): not paid, cancelled, refunded… */
+  REVIEW_NOT_ALLOWED = "review-not-allowed",
 }

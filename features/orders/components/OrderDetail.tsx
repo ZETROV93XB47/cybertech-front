@@ -10,6 +10,7 @@ import { MapPin, Truck } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { CategoryTag } from "@/features/catalog/components/CategoryTag";
 import { PaymentTracker } from "@/features/checkout/components/PaymentTracker";
 import { DELIVERY_MESSAGES } from "@/features/catalog/messages";
 import { productPath } from "@/lib/constants/routes";
@@ -50,6 +51,7 @@ function OrderLine({ line }: { readonly line: OrderLineView }): ReactNode {
             </span>
           </span>
         )}
+        <CategoryTag category={line.category} />
         <span className="text-xs text-text-muted">
           {`${ORDER_DETAIL_MESSAGES.quantity(line.quantity)} · ${ORDER_DETAIL_MESSAGES.unitPrice(formatPrice(line.unitPrice))}`}
         </span>

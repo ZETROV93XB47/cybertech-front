@@ -8,14 +8,12 @@
  * backdrop (`photoBackdrop` in the theme), so it fills its frame without dark side bands.
  */
 import Image from "next/image";
-import { Laptop, Monitor } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
-import { CategoryKey } from "@/lib/enums/category-key";
-import { toCategoryKey } from "@/lib/schemas/category";
 import type { MediaSize } from "@/lib/theme/types";
 import { cn } from "@/lib/utils";
 
+import { categoryIcon } from "../category-icons";
 import { PRODUCT_MESSAGES } from "../messages";
 
 /** Props of {@link ProductImage}. */
@@ -44,7 +42,7 @@ function PhotoFallback({
   category,
   iconClassName,
 }: Pick<ProductImageProps, "category" | "iconClassName">): ReactNode {
-  const Icon = toCategoryKey(category) === CategoryKey.MONITOR ? Monitor : Laptop;
+  const Icon = categoryIcon(category);
   return (
     <div className="flex size-full items-center justify-center bg-surface-2 text-text-muted">
       <Icon aria-hidden className={cn("size-10", iconClassName)} />

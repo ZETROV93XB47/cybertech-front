@@ -62,6 +62,51 @@ function rateLimited(
     : { formError: ERRORS.rateLimited(seconds), retryAfterSeconds: seconds };
 }
 
+/** What a failed update shows, on top of the common error state. */
+type ProfileFailureDetails = Partial<
+  Pick<ProfileActionState, "formError" | "fieldErrors" | "needsSignIn" | "retryAfterSeconds">
+>;
+
+/**
+ * Message (and field errors) of a backend refusal.
+ *
+ * @param error - Backend error.
+ * @returns The details to show.
+ */
+function failureDetails(error: ApiError): ProfileFailureDetails {
+  switch (error.frontCode) {
+    case FrontErrorCode.INVALID:
+      return { fieldErrors: backendFieldErrors(error), formError: ERRORS.form };
+    case FrontErrorCode.UNAUTHENTICATED:
+      return { formError: ERRORS.sessionExpired, needsSignIn: true };
+    case FrontErrorCode.NOT_FOUND:
+      return { formError: ERRORS.notFound };
+    case FrontErrorCode.RATE_LIMITED:
+      return rateLimited(error.retryAfterSeconds);
+    case FrontErrorCode.UNAVAILABLE:
+      return { formError: ERRORS.unavailable };
+    case FrontErrorCode.FORBIDDEN:
+    case FrontErrorCode.ALREADY_EXISTS:
+    case FrontErrorCode.INSUFFICIENT_STOCK:
+    case FrontErrorCode.CONFLICT:
+    case FrontErrorCode.EMPTY_CART:
+    case FrontErrorCode.UNKNOWN:
+    case FrontErrorCode.REVIEW_REJECTED:
+    case FrontErrorCode.REVIEW_NOT_ALLOWED:
+    case FrontErrorCode.DISCOUNT_INVALID:
+    case FrontErrorCode.PAYMENT_FAILED:
+    case FrontErrorCode.PAYMENT_ALREADY_COMPLETED:
+    case FrontErrorCode.ORDER_LOCKED:
+    case FrontErrorCode.REFUND_FAILED:
+    case FrontErrorCode.ACCOUNT_INACTIVE:
+    case FrontErrorCode.CARD_EXPIRED:
+    case FrontErrorCode.NO_SAVED_CARD:
+      return { formError: ERRORS.unknown };
+    default:
+      return assertNever(error.frontCode);
+  }
+}
+
 /**
  * Builds the form state of a failed profile update.
  *
@@ -79,33 +124,5 @@ export function toProfileFailure(
   if (!(error instanceof ApiError)) {
     return { ...failed, formError: ERRORS.unknown };
   }
-  switch (error.frontCode) {
-    case FrontErrorCode.INVALID:
-      return { ...failed, fieldErrors: backendFieldErrors(error), formError: ERRORS.form };
-    case FrontErrorCode.UNAUTHENTICATED:
-      return { ...failed, formError: ERRORS.sessionExpired, needsSignIn: true };
-    case FrontErrorCode.NOT_FOUND:
-      return { ...failed, formError: ERRORS.notFound };
-    case FrontErrorCode.RATE_LIMITED:
-      return { ...failed, ...rateLimited(error.retryAfterSeconds) };
-    case FrontErrorCode.UNAVAILABLE:
-      return { ...failed, formError: ERRORS.unavailable };
-    case FrontErrorCode.FORBIDDEN:
-    case FrontErrorCode.ALREADY_EXISTS:
-    case FrontErrorCode.INSUFFICIENT_STOCK:
-    case FrontErrorCode.CONFLICT:
-    case FrontErrorCode.EMPTY_CART:
-    case FrontErrorCode.UNKNOWN:
-    case FrontErrorCode.DISCOUNT_INVALID:
-    case FrontErrorCode.PAYMENT_FAILED:
-    case FrontErrorCode.PAYMENT_ALREADY_COMPLETED:
-    case FrontErrorCode.ORDER_LOCKED:
-    case FrontErrorCode.REFUND_FAILED:
-    case FrontErrorCode.ACCOUNT_INACTIVE:
-    case FrontErrorCode.CARD_EXPIRED:
-    case FrontErrorCode.NO_SAVED_CARD:
-      return { ...failed, formError: ERRORS.unknown };
-    default:
-      return assertNever(error.frontCode);
-  }
+  return { ...failed, ...failureDetails(error) };
 }

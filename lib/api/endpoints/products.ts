@@ -239,14 +239,15 @@ async function categoryPhotos(category: CategoryKey): Promise<string[]> {
 }
 
 /**
- * Loads real product photos for every category tile of the home page.
+ * Loads real product photos for the category tiles of the home page.
  *
+ * @param categories - Categories shown (the active ones, `getActiveCategories`).
  * @returns Photo URLs by category; empty for a category without product or on failure.
+ * @see specs/004-catalog-promos-reviews/research.md R2
  */
-export async function getCategoryPhotos(): Promise<Record<CategoryKey, readonly string[]>> {
-  const [computers, monitors] = await Promise.all([
-    categoryPhotos(CategoryKey.COMPUTER),
-    categoryPhotos(CategoryKey.MONITOR),
-  ]);
-  return { [CategoryKey.COMPUTER]: computers, [CategoryKey.MONITOR]: monitors };
+export async function getCategoryPhotos(
+  categories: readonly CategoryKey[],
+): Promise<Partial<Record<CategoryKey, readonly string[]>>> {
+  const photos = await Promise.all(categories.map((category) => categoryPhotos(category)));
+  return Object.fromEntries(categories.map((category, index) => [category, photos[index] ?? []]));
 }

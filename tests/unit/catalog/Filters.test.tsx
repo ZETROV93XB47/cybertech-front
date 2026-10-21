@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { Filters } from "@/features/catalog/components/Filters";
 import { buildBrandFilter, buildFilterFacets } from "@/features/catalog/filter-facets";
+import { CATEGORY_ORDER } from "@/lib/constants/categories";
 import { CategoryKey } from "@/lib/enums/category-key";
 import { FacetKind } from "@/lib/enums/facet-kind";
 import { FacetSource } from "@/lib/enums/facet-source";
@@ -44,10 +45,12 @@ const COMPUTERS: SearchFilters = { ...EMPTY_SEARCH_FILTERS, category: CategoryKe
 function renderFilters(
   data: FacetData,
   filters: SearchFilters = COMPUTERS,
+  categories: readonly CategoryKey[] = CATEGORY_ORDER,
 ): ReturnType<typeof render> {
   return render(
     <Filters
       filters={filters}
+      categories={categories}
       facets={buildFilterFacets(SCHEMA, data, filters)}
       brandFilter={buildBrandFilter(data, filters)}
       facetSource={data.source}
@@ -56,6 +59,16 @@ function renderFilters(
 }
 
 describe("Filters", () => {
+  it("offers « Toutes » then the active categories only, in display order", () => {
+    renderFilters(DATA, COMPUTERS, [CategoryKey.COMPUTER, CategoryKey.SMARTPHONE]);
+    const group = screen.getByRole("group", { name: "Catégorie" });
+    const names = within(group)
+      .getAllByRole("radio")
+      .map((radio) => radio.closest("label")?.textContent);
+    expect(names).toEqual(["Toutes", "Ordinateurs portables", "Smartphones"]);
+    expect(within(group).getByRole("radio", { name: "Ordinateurs portables" })).toBeChecked();
+  });
+
   it("shows text values with their counts and disables a value at 0", () => {
     renderFilters(DATA);
     const gpu = screen.getByRole("group", { name: "Carte graphique" });

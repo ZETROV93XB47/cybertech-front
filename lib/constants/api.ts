@@ -80,6 +80,11 @@ export const BACKEND_PATHS = {
   productAvailability: `${API_BASE_PATH}/product/availability`,
   /** `GET` — public category JSON schema. Append the category key. */
   categorySchema: `${API_BASE_PATH}/product-category-schemas`,
+  /**
+   * `GET` — public list of the active categories, `[{ categoryKey, label }]` sorted by key
+   * (backend `28a15ae`).
+   */
+  categoriesActive: `${API_BASE_PATH}/product-category-schemas`,
   /** `GET` — public active discount campaigns. */
   activeDiscounts: `${API_BASE_PATH}/discounts/active`,
   /** `POST` — public registration (rate limited per IP). */
@@ -138,6 +143,18 @@ export const BACKEND_PATHS = {
   wishlistRemove: `${API_BASE_PATH}/wishlist/remove`,
   /** `GET` — paginated wishlist of the caller (`page`, `size`, `sort`). */
   wishlistMine: `${API_BASE_PATH}/wishlist/my-wishlist`,
+  /** `POST` — publishes a review of a bought product (USER; `201`, `403 COMMENT_POST_NOT_ALLOWED`, `409 ORDER_NOT_REVIEWABLE`). */
+  reviewCreate: `${API_BASE_PATH}/review/create`,
+  /** `PATCH` — edits a review of the caller (USER; `200`, `403 USER_NOT_AUTHOR_OF_REVIEW`, `404`). Append the review UUID. */
+  reviewUpdate: `${API_BASE_PATH}/review/update`,
+  /** `DELETE` — deletes a review of the caller (USER; `204`, `403`, `404`). Append the review UUID. */
+  reviewDelete: `${API_BASE_PATH}/review/delete`,
+  /** `GET` — products the caller can still review, one per order line (USER). */
+  reviewReviewable: `${API_BASE_PATH}/review/reviewable`,
+  /** `GET` — paginated reviews of the caller (USER; `page`, `size`, `sort`; backend `bddcafd`). */
+  reviewMine: `${API_BASE_PATH}/review/mine`,
+  /** `GET` — public reviews of a product with average and distribution (`page`). Append the product UUID. */
+  reviewProduct: `${API_BASE_PATH}/review/product`,
 } as const;
 
 /** Query parameter names used by backend endpoints. */
