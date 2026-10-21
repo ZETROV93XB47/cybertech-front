@@ -55,11 +55,10 @@ test.describe("home and catalog", () => {
     expect(catalog).toEqual(home);
   });
 
-  test("the home page opens on the laptop banner", async ({ page }) => {
+  test("the home page opens on the greeting and the carousel", async ({ page }) => {
     await page.goto("/");
-    const banner = page.locator("main img[src*='hero-laptop']");
-    await expect(banner).toBeVisible();
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByRole("region", { name: "À la une" })).toBeVisible();
   });
 
   test("the « Ordinateurs portables » tile leads to the filtered catalog", async ({ page }) => {

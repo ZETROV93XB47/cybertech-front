@@ -1,6 +1,7 @@
 /**
- * Home page (US1 FR-001, US3 FR-019): contextual or personal greeting, category tiles, active
- * offers, recently viewed products and best sellers.
+ * Home page (US1 FR-001, US3 FR-019): contextual or personal greeting, the carousel of categories
+ * and campaigns (feature 004 US3), category tiles, active offers, recently viewed products and
+ * best sellers.
  *
  * Feature 002, US4: same template as the catalog (`PageShell`, `PageHeader` without breadcrumb,
  * `SectionHeading`, `EmptyState`); every block shows real data only and is hidden without data
@@ -21,12 +22,13 @@ import { PageShell } from "@/components/layout/PageShell";
 import { SectionHeading } from "@/components/layout/SectionHeading";
 import { Welcome } from "@/features/auth/components/Welcome";
 import { CategoryTiles } from "@/features/catalog/components/CategoryTiles";
-import { HomeHero } from "@/features/catalog/components/HomeHero";
 import { DiscountBanner } from "@/features/catalog/components/DiscountBanner";
 import { ProductGrid } from "@/features/catalog/components/ProductGrid";
 import { RecentlyViewed } from "@/features/catalog/components/RecentlyViewed";
 import { HOME_MESSAGES } from "@/features/catalog/messages";
 import { COMMON_MESSAGES } from "@/features/common/messages";
+import { HomeCarousel } from "@/features/home/components/HomeCarousel";
+import { buildHomeSlides } from "@/features/home/home-slides";
 import { getActiveCategories } from "@/lib/api/endpoints/categories";
 import { getActiveDiscounts } from "@/lib/api/endpoints/discounts";
 import { getCategoryCounts } from "@/lib/api/endpoints/facets";
@@ -98,19 +100,18 @@ export default async function HomePage(): Promise<ReactNode> {
   ]);
   return (
     <PageShell>
-      <HomeHero>
-        <PageHeader
-          title={<Welcome className={PAGE_TITLE_CLASS} />}
-          subtitle={HOME_MESSAGES.intro}
-          actions={
-            <MagneticButton>
-              <Link href={CATALOG_PATH} className={PRIMARY_CTA_CLASS}>
-                {HOME_MESSAGES.searchCta}
-              </Link>
-            </MagneticButton>
-          }
-        />
-      </HomeHero>
+      <PageHeader
+        title={<Welcome className={PAGE_TITLE_CLASS} />}
+        subtitle={HOME_MESSAGES.intro}
+        actions={
+          <MagneticButton>
+            <Link href={CATALOG_PATH} className={PRIMARY_CTA_CLASS}>
+              {HOME_MESSAGES.searchCta}
+            </Link>
+          </MagneticButton>
+        }
+      />
+      <HomeCarousel slides={buildHomeSlides(categories, counts, discounts)} />
       <Enter index={HOME_SECTION_ORDER.CATEGORIES}>
         <section aria-labelledby="categories-title" className="flex flex-col gap-6">
           <SectionHeading id="categories-title">{HOME_MESSAGES.categoriesTitle}</SectionHeading>

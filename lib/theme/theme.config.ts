@@ -231,7 +231,8 @@ export const THEME = {
       liveTitle: { enabled: false, weightMin: 600, weightMax: 600, radiusPx: 0 },
       cardHoverLift: "-2px",
       // Reduced effects: no automatic rotation (FR-010), a soft fade on request only.
-      carousel: { autoplay: false, intervalMs: CAROUSEL_AUTOPLAY_INTERVAL_MS, crossFade: true },
+      // FR-010: reduced effects change slides on request only, without animation.
+      carousel: { autoplay: false, intervalMs: CAROUSEL_AUTOPLAY_INTERVAL_MS, crossFade: false },
     },
     [EffectsLevel.OFF]: EFFECTS_OFF,
   },

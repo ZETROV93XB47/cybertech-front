@@ -2,7 +2,6 @@
 
 | Fichier | Auteur | Source | Licence |
 |---|---|---|---|
-| `public/images/hero-laptop.jpg` (bannière de l'accueil) | Ludovic Delot | <https://unsplash.com/photos/pW6Q2ifY87M> | [Licence Unsplash](https://unsplash.com/license) : usage libre, y compris commercial, sans attribution obligatoire (créditée ici par courtoisie). |
 | `public/images/categories/computer.jpg` (catégorie Ordinateurs portables) | Ales Nesetril | <https://unsplash.com/photos/Im7lZjxeLhg> | [Licence Unsplash](https://unsplash.com/license) |
 | `public/images/categories/desktop.jpg` (catégorie Ordinateurs de bureau) | Daniel Eliashevskyi | <https://unsplash.com/photos/aTg26S0_OC0> | [Licence Unsplash](https://unsplash.com/license) |
 | `public/images/categories/monitor.jpg` (catégorie Écrans) | Fotis Fotopoulos | <https://unsplash.com/photos/LJ9KY8pIH3E> | [Licence Unsplash](https://unsplash.com/license) |

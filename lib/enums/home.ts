@@ -21,3 +21,11 @@ export enum CarouselPlayback {
   /** No rotation at all: reduced or disabled effects, reduced motion, or a single slide. */
   DISABLED = "disabled",
 }
+
+/** How the carousel switches slides (`data-transition` of a slide). */
+export enum SlideTransition {
+  /** Cross-fade, at full effects. */
+  FADE = "fade",
+  /** Instant switch: reduced or disabled effects, or reduced motion (FR-010). */
+  INSTANT = "instant",
+}

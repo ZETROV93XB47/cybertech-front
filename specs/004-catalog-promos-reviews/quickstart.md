@@ -206,3 +206,35 @@ Vérifié le 2026-10-21 (T028–T037) : backend `abe674d` sur 8081 (seule BLACK_
 | 18 | OK | connecté : confirmation puis « Réduction choisie : BLACK_FRIDAY » sur le panier (remise du devis : −23,99 € sur 119,95 €) |
 | 19 | OK | visiteur : clé gardée, « Me connecter » → Keycloak → panier avec « Réduction choisie : BLACK_FRIDAY » |
 | 20 | OK | `/promotions/INCONNUE` : « Campagne introuvable ou terminée », lien vers les promotions |
+
+### US3 — Carrousel d'accueil
+
+Vérifié le 2026-10-21 (T038–T047) : backend `abe674d` sur 8081 (5 catégories, BLACK_FRIDAY
+active : 6 diapositives C, P, C, C, C, C), front de l'utilisateur sur 3000.
+
+- Contrôles : `typecheck` OK, `lint` 0 warning, `test` 1 013 tests verts (100 fichiers), dont
+  `home-slides.test.ts` (8), `use-carousel.test.tsx` (10), `home-carousel.test.tsx` (12).
+- Le carrousel remplace la bannière photo de l'accueil (`HomeHero` et `hero-laptop.jpg`
+  supprimés, crédit retiré de `docs/credits.md`) ; le message d'accueil reste au-dessus.
+- Écart corrigé dans le thème : au niveau d'effets « réduit », `carousel.crossFade` valait
+  `true` alors que FR-010 demande un changement sans animation ; il vaut maintenant `false`.
+- Le helper axe des e2e (`tests/e2e/support/a11y.ts`) n'attend plus l'opacité 1 des éléments
+  `inert` : les diapositives cachées restent transparentes et ne sont pas perçues.
+- E2E (`--workers=1`) : `home-carousel.spec.ts` 6 OK (défilement seul, pause au survol,
+  « Suivant » jusqu'à « Smartphones » puis clic sur l'image, diapositive BLACK_FRIDAY, bouton
+  pause, `reducedMotion: "reduce"`), `home.spec.ts` 4 OK, `a11y.spec.ts` 4 OK,
+  `long-tasks.spec.ts` 2 OK (build de production).
+- Captures relues : `screenshots/us3/` (diapositive catégorie, diapositive campagne en pause,
+  focus clavier, effets réduits, accueil complet). Correctif : bloc de texte élargi, « Ordinateurs
+  portables » passait sur deux lignes.
+- Lighthouse desktop (build de production, port 3124, trois passages) : accueil 0,95–0,98
+  (LCP 1,12–1,47 s, CLS 0,002, TBT 0).
+
+| # | Résultat | Commentaire |
+|---|---|---|
+| 10 | OK | une diapositive à la fois, défilement toutes les 6 s, catégories et BLACK_FRIDAY alternées |
+| 11 | OK | pause au survol et au focus, reprise en sortant (e2e survol, tests unitaires focus) |
+| 12 | OK | « Suivant » jusqu'à « Smartphones », clic sur l'image → `/products?category=SMARTPHONE` |
+| 13 | OK | « Voir la promotion » → `/promotions/BLACK_FRIDAY` |
+| 14 | OK | bouton pause : plus de défilement ; onglet caché : pause (tests unitaires) |
+| 15 | OK | effets réduits ou `prefers-reduced-motion` : pas de lecture automatique ni de bouton pause, changement instantané |

@@ -22,9 +22,10 @@ async function settleAnimations(page: Page): Promise<void> {
     ),
   );
   // Motion animates the reveal on the main thread: wait until no visible element is faded.
+  // Hidden carousel slides stay transparent on purpose; they are `inert`, hence not perceived.
   await page.waitForFunction(() =>
     [...document.querySelectorAll<HTMLElement>("[style*='opacity']")]
-      .filter((element) => element.closest("[aria-hidden='true']") === null)
+      .filter((element) => element.closest("[aria-hidden='true'], [inert]") === null)
       .every((element) => getComputedStyle(element).opacity === "1"),
   );
 }
