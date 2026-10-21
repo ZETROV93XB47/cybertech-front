@@ -23,8 +23,9 @@
   la commande, jamais à des produits précis.
 - Le backend permet maintenant de lister les avis publics d'un produit (note moyenne,
   répartition, avis paginés avec le prénom de l'auteur) et les produits qu'un client peut
-  noter (un par couple produit–commande payée). La fiche produit affiche aujourd'hui un bloc
-  d'avis toujours vide.
+  noter (un par couple produit–commande payée), et, depuis le 2026-10-20 (`bddcafd`), les avis
+  publiés par le client lui-même (`GET /review/mine`, paginé, du plus récent au plus ancien).
+  La fiche produit affiche aujourd'hui un bloc d'avis toujours vide.
 
 ## Clarifications
 
@@ -37,6 +38,13 @@
   image de site marchand ni visuel de marque protégé.
 - Q: Où mène un clic sur une promotion ? → A: Vers la page de la campagne (avantage,
   conditions, « Appliquer à mon panier »), une campagne ne visant aucun produit précis.
+
+### Session 2026-10-21
+
+- Q: Le backend liste maintenant mes avis (`GET /review/mine`, prompt §13 livré) : que
+  devient « Mes avis » ? → A: « Mes avis » a deux parties : « À noter » (produits notables) et
+  « Mes avis publiés » (paginée, plus récents d'abord) ; chaque avis publié peut être modifié
+  ou supprimé à tout moment, pas seulement juste après sa publication.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -181,11 +189,13 @@ En tant que client, je veux noter et commenter les produits que j'ai achetés, e
 des autres clients sur la fiche d'un produit.
 
 - « Mes avis » (espace compte) liste les produits que je peux noter (un par couple
-  produit–commande payée), avec le nom du produit et la date de la commande.
+  produit–commande payée), avec le nom du produit et la date de la commande, puis les avis que
+  j'ai déjà publiés (produit, note, commentaire, date, « modifié » le cas échéant), paginés du
+  plus récent au plus ancien.
 - Je donne une note de 1 à 5 étoiles et, si je veux, un commentaire (1 000 caractères au
   plus). Un commentaire refusé par la modération automatique est expliqué sans culpabiliser,
   et ma saisie est gardée pour que je la reformule.
-- Juste après la publication, je peux modifier ou supprimer mon avis.
+- Je peux modifier ou supprimer chacun de mes avis publiés, à tout moment, depuis « Mes avis ».
 - Le détail d'une commande payée propose « Donner mon avis » sur chacun de ses produits encore
   notables.
 - La fiche produit affiche la note moyenne, la répartition des notes et les avis publics
@@ -201,20 +211,25 @@ produit 4 étoiles avec un commentaire, puis ouvrir sa fiche et y lire l'avis av
 **Acceptance Scenarios**:
 
 1. **Given** une commande payée, **When** le client ouvre « Mes avis », **Then** chaque
-   produit notable est listé avec la date de sa commande ; un produit acheté deux fois apparaît
-   deux fois.
+   produit notable est listé avec la date de sa commande ; un produit acheté dans deux commandes
+   apparaît pour chacune tant qu'il n'est pas noté, puis quitte la liste dès qu'un avis est
+   publié (un avis par produit, règle du backend).
 2. **Given** le formulaire d'avis, **When** il choisit une note et publie, **Then** l'avis est
    confirmé, le produit quitte la liste des produits à noter et l'avis apparaît sur la fiche.
 3. **Given** un commentaire refusé par la modération, **When** la réponse arrive, **Then** un
    message bienveillant explique le refus, la note et le commentaire restent dans le formulaire.
-4. **Given** un avis tout juste publié, **When** le client clique « Modifier » ou
-   « Supprimer » (avec confirmation), **Then** l'avis est mis à jour ou retiré.
+4. **Given** un avis publié (tout juste ou il y a longtemps), **When** le client clique
+   « Modifier » ou « Supprimer » (avec confirmation) dans « Mes avis publiés », **Then** l'avis
+   est mis à jour ou retiré, sur « Mes avis » comme sur la fiche du produit.
 5. **Given** un produit sans avis, **When** un visiteur ouvre sa fiche, **Then** le bloc d'avis
    indique qu'il n'y a pas encore d'avis, sans note fictive.
 6. **Given** un produit avec plus d'avis qu'une page, **When** le visiteur demande la suite,
    **Then** les avis suivants s'affichent.
-7. **Given** aucun produit à noter, **When** le client ouvre « Mes avis », **Then** un état vide
-   illustré l'invite à commander.
+7. **Given** aucun produit à noter et aucun avis publié, **When** le client ouvre « Mes avis »,
+   **Then** un état vide illustré l'invite à commander.
+8. **Given** des avis publiés, **When** le client ouvre « Mes avis », **Then** ils sont listés
+   sous « Mes avis publiés », du plus récent au plus ancien, avec une page suivante s'il y en a
+   plus de dix ; un avis supprimé rend son produit de nouveau notable.
 
 ---
 
@@ -236,6 +251,8 @@ produit 4 étoiles avec un commentaire, puis ouvrir sa fiche et y lire l'avis av
 - Session expirée pendant la publication d'un avis : la saisie est gardée, invitation à se
   reconnecter, aucune publication automatique.
 - Produit noté retiré du catalogue : l'avis reste listable, le lien vers la fiche est retiré.
+- Avis modifié ou supprimé depuis un autre onglet : la liste est rafraîchie après l'action ;
+  un avis devenu introuvable est retiré de la liste avec un message.
 
 ## Requirements *(mandatory)*
 
@@ -294,14 +311,17 @@ produit 4 étoiles avec un commentaire, puis ouvrir sa fiche et y lire l'avis av
 **Avis**
 
 - **FR-015**: « Mes avis » (espace compte, navigation du compte et menu avatar) MUST lister les
-  produits notables du client (produit, date de la commande) et un état vide illustré.
+  produits notables du client (produit, date de la commande), puis ses avis publiés (produit,
+  note, commentaire, date, mention « modifié »), paginés du plus récent au plus ancien, et un
+  état vide illustré quand il n'y a ni l'un ni l'autre.
 - **FR-016**: Le formulaire d'avis MUST demander une note de 1 à 5 (étoiles utilisables au
   clavier) et un commentaire facultatif de 1 000 caractères au plus, avec un compteur.
 - **FR-017**: Un commentaire refusé par la modération MUST être expliqué sans culpabiliser, en
   gardant la saisie ; les autres refus (produit déjà noté, commande non notable) MUST avoir un
   message dédié.
-- **FR-018**: Un avis tout juste publié MUST pouvoir être modifié ou supprimé (suppression
-  confirmée) depuis la même page.
+- **FR-018**: Chaque avis publié du client MUST pouvoir être modifié (note, commentaire, mêmes
+  règles que FR-016 et FR-017) ou supprimé (suppression confirmée) depuis « Mes avis », à tout
+  moment ; la liste et la fiche du produit reflètent le changement.
 - **FR-019**: Le détail d'une commande payée MUST proposer « Donner mon avis » pour chacun de
   ses produits encore notables.
 - **FR-020**: La fiche produit MUST afficher la note moyenne, la répartition des notes, le
@@ -325,6 +345,8 @@ produit 4 étoiles avec un commentaire, puis ouvrir sa fiche et y lire l'avis av
 - **Produit à noter** : produit, commande d'origine, date de la commande.
 - **Avis** : note (1–5), commentaire facultatif, date, prénom de l'auteur (public) ; lié à un
   produit et à une commande.
+- **Mon avis** : avis vu par son auteur : produit (nom), commande d'origine, note,
+  commentaire, dates de création et de modification.
 - **Résumé des avis d'un produit** : note moyenne, nombre d'avis, répartition par note.
 
 ## Success Criteria *(mandatory)*
@@ -359,9 +381,9 @@ produit 4 étoiles avec un commentaire, puis ouvrir sa fiche et y lire l'avis av
 
 ## Dépendances backend
 
-- **Liste de mes avis** (non bloquante) : aucun service ne liste les avis d'un client ; un avis
-  ne peut donc être modifié ou supprimé que juste après sa publication. À demander
-  (`docs/backend/backend-prompts-lot2.md`, nouveau prompt) : `GET /review/mine` paginé.
+- **Liste de mes avis** : **livrée** par le backend `bddcafd` (`backend-prompts-lot2.md`
+  §13) : `GET /review/mine` paginé (`PagedModel<MyReviewDto>`, 10 par page, plus récents
+  d'abord).
 - **Liste des catégories** (non bloquante) : aucun service ne liste les catégories ; le front
   garde la liste des cinq clés.
 - **Images des campagnes** (non bloquante) : le backend ne fournit pas de visuel ; le front
