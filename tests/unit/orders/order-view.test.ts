@@ -115,17 +115,30 @@ describe("toOrderView", () => {
 
 describe("buildOrderTimeline", () => {
   it("marks the steps before, at and after the current status", () => {
-    const { steps, outcome } = buildOrderTimeline(OrderStatus.PAID);
+    const { steps, outcome } = buildOrderTimeline(OrderStatus.SHIPPED);
     expect(steps.map((step) => step.state)).toEqual([
+      TimelineStepState.DONE,
+      TimelineStepState.DONE,
       TimelineStepState.DONE,
       TimelineStepState.DONE,
       TimelineStepState.CURRENT,
       TimelineStepState.UPCOMING,
-      TimelineStepState.UPCOMING,
-      TimelineStepState.UPCOMING,
     ]);
     expect(outcome).toBeNull();
   });
+
+  it.each([OrderStatus.PAID, OrderStatus.AWAITING_SHIPPING])(
+    "shows %s as paid, now being prepared",
+    (status) => {
+      const { steps } = buildOrderTimeline(status);
+      expect(steps.find((step) => step.status === OrderStatus.PAID)?.state).toBe(
+        TimelineStepState.DONE,
+      );
+      expect(steps.find((step) => step.state === TimelineStepState.CURRENT)?.status).toBe(
+        OrderStatus.AWAITING_SHIPPING,
+      );
+    },
+  );
 
   it("shows a refused payment as an outcome after the second step", () => {
     const { steps, outcome } = buildOrderTimeline(OrderStatus.PAYMENT_FAILED);

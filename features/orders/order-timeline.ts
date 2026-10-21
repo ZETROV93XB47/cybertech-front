@@ -6,6 +6,10 @@
  * as done are the last ones that status implies for sure (a returned order was delivered, a
  * refunded one was paid…), never a guess.
  *
+ * A paid order is already being prepared for the customer: « Payée » is shown done and
+ * « En préparation » current, even though the backend keeps `PAID` (and the order editable)
+ * until its shipping grace period ends.
+ *
  * @see specs/003-account-orders/spec.md FR-024
  * @see specs/003-account-orders/data-model.md §5
  */
@@ -43,9 +47,10 @@ interface TimelinePosition {
  */
 function positionOf(status: OrderStatus): TimelinePosition {
   switch (status) {
+    case OrderStatus.PAID:
+      return { reached: OrderStatus.AWAITING_SHIPPING, isCurrent: true, outcome: null };
     case OrderStatus.CREATED:
     case OrderStatus.AWAITING_PAYMENT:
-    case OrderStatus.PAID:
     case OrderStatus.AWAITING_SHIPPING:
     case OrderStatus.SHIPPED:
     case OrderStatus.DELIVERED:

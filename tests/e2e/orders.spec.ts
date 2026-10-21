@@ -127,7 +127,8 @@ test("orders are listed, filtered, edited and cancelled", async ({ page, context
 
   // Detail of the second order: breakdown and timeline.
   await orderRows(page).first().click();
-  await expect(page.locator(`li[aria-current="step"]`)).toContainText("Payée");
+  // A paid order is shown as being prepared (« Payée » done).
+  await expect(page.locator(`li[aria-current="step"]`)).toContainText("En préparation");
   await expect(page.getByText("Sous-total")).toBeVisible();
   const totalBefore = (await page.getByTestId("order-total").textContent()) ?? "";
   const discountRow = page.getByText(/^Remise [A-Z_]+$/);
