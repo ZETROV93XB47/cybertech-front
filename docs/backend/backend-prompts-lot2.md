@@ -634,3 +634,65 @@ Mets à jour progress.md et l'OpenAPI.
 
 Livré par le backend 14252d5 (2026-10-21) : `sort` absent = RELEVANCE, valeur inconnue → 400
 MALFORMED_JSON. Côté front, le sélecteur est affiché et les types régénérés (`npm run gen:api`).
+
+## 17. Modération des commentaires injoignable : mauvais chemin, hôte local, code d'erreur
+
+````text
+Objectif : que les commentaires d'avis soient vraiment modérés, en local comme en déploiement,
+et que le front distingue « commentaire refusé » de « modération indisponible » (feature 004 du
+front, US5 : avis).
+
+Constat 1 — mauvais chemin (backend 14252d5) :
+- L'app Flask (src/main/java/com/novatech/cybertech/api/external/moderation/app.py) n'expose que
+  POST /api/v1/moderation/analyze.
+- Le backend appelle http://moderation-api:5000/analyze : application.properties:50,
+  application-prod.properties:123 (et son commentaire l.121 « with the /analyze endpoint »),
+  k8s/helm/charts/cybertech-app-chart/values.yaml:120. Le commentaire de
+  moderation-api-chart/values.yaml l.6-7 décrit pourtant le bon chemin.
+- Résultat : 404 sur chaque appel, même dans Docker ou Kubernetes ; CommentModerationClient passe
+  par moderationUnavailable et refuse tout commentaire (fail-closed). Seules les notes sans
+  commentaire sont publiées.
+- Vérifié le 2026-10-21 en appelant le conteneur directement : POST /analyze → 404 ;
+  POST /api/v1/moderation/analyze avec « Très bon produit, livré vite. » → isHateful false ;
+  avec un texte insultant → isHateful true (score 0,99).
+
+Constat 2 — hôte injoignable en local :
+- En développement, le backend tourne depuis IntelliJ sur la machine (localhost:8081), hors du
+  réseau Docker ecommerce-net : le nom moderation-api ne s'y résout pas. Le docker-compose publie
+  pourtant le port 5000 (moderation-api: ports "5000:5000"). Les logs du conteneur ne montrent
+  aucun appel du backend.
+
+Constat 3 — même code pour un refus et une panne :
+- moderationUnavailable lève CommentPostNotAllowedException (403 COMMENT_POST_NOT_ALLOWED), le
+  même code qu'un commentaire jugé haineux. Le front ne peut pas savoir s'il doit dire
+  « reformule ton commentaire » ou « réessaie dans un instant » : il affiche aujourd'hui
+  « reformule-le » alors que le texte n'est pas en cause.
+
+Travail demandé :
+1. Chemin : moderation.api.url=http://moderation-api:5000/api/v1/moderation/analyze dans
+   application.properties, application-prod.properties (commentaire l.121 corrigé) et
+   cybertech-app-chart/values.yaml (moderationApi.url).
+2. Lancement local : permettre de pointer sur le port publié sans modifier le fichier commun,
+   par exemple moderation.api.url=${MODERATION_API_URL:http://moderation-api:5000/api/v1/moderation/analyze}
+   et une ligne dans le README / progress.md « depuis IntelliJ :
+   MODERATION_API_URL=http://localhost:5000/api/v1/moderation/analyze ». (Ou un profil local, au
+   choix, tant que le lancement IntelliJ documenté fonctionne sans retouche.)
+3. Code distinct pour la panne : nouvelle exception ModerationUnavailableException →
+   503 MODERATION_UNAVAILABLE (errorCodeType TECHNICAL), levée par moderationUnavailable ;
+   COMMENT_POST_NOT_ALLOWED (403) reste réservé à un commentaire jugé haineux. Un statut non 2xx
+   du service (404, 400, 5xx) compte comme indisponibilité, pas comme refus. Fail-closed
+   conservé : aucun commentaire non modéré n'est publié.
+4. Ajouter MODERATION_UNAVAILABLE à l'énumération des codes d'erreur publiée dans l'OpenAPI.
+5. Tests :
+   - client : URL configurée appelée avec le bon chemin ; 404 / 5xx / délai → 503
+     MODERATION_UNAVAILABLE après les tentatives Resilience4j ; isHateful true → 403
+     COMMENT_POST_NOT_ALLOWED ; isHateful false → avis publié ;
+   - IT create et update d'avis avec un service de modération simulé (WireMock ou MockRestServiceServer)
+     pour les trois cas ; une note seule ne déclenche aucun appel (comportement 8cc5ded inchangé).
+
+Côté front (feature 004) : FrontErrorCode MODERATION_UNAVAILABLE ajouté au mapping (lib/api/errors.ts)
+avec un message « La vérification des commentaires est indisponible pour le moment : réessaie
+dans un instant, ta note et ton texte sont gardés », sans inviter à reformuler.
+
+Mets à jour progress.md et l'OpenAPI (le front régénère ses types avec npm run gen:api).
+````
