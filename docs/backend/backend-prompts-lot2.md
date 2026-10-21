@@ -626,9 +626,11 @@ Travail demandé :
 - Tests : un test par valeur de tri sur un petit jeu indexé (ordre attendu, pagination stable
   entre deux pages), produit sans avis en dernier pour RATING_DESC, `sort` absent = ordre actuel.
 
-Côté front (feature 004) : le sélecteur « Trier par » est prêt et masqué
-(PRODUCT_SORT_AVAILABLE = false dans lib/constants/catalog.ts) ; il sera activé dès cette
+Côté front (feature 004) : le sélecteur « Trier par » est prêt et sera activé dès cette
 livraison.
 
 Mets à jour progress.md et l'OpenAPI.
 ````
+
+Livré par le backend 14252d5 (2026-10-21) : `sort` absent = RELEVANCE, valeur inconnue → 400
+MALFORMED_JSON. Côté front, le sélecteur est affiché et les types régénérés (`npm run gen:api`).

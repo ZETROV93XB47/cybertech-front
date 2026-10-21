@@ -51,7 +51,16 @@ export const SearchFiltersSchema = z.object({
 export type SearchFilters = z.infer<typeof SearchFiltersSchema>;
 
 /** Body of `POST /product/search`, as generated from the backend OpenAPI. */
-export type ProductSearchRequest = components["schemas"]["ProductSearchRequestDto"];
+export type ProductSearchRequest = Omit<
+  components["schemas"]["ProductSearchRequestDto"],
+  "sort"
+> & {
+  /**
+   * Order of the whole result (backend `14252d5`); absent means `RELEVANCE`. The generated type
+   * marks it required because of its `@default`, the backend accepts it missing.
+   */
+  sort?: components["schemas"]["ProductSearchRequestDto"]["sort"];
+};
 
 /** Filters with nothing selected: the whole catalog, first page. */
 export const EMPTY_SEARCH_FILTERS: SearchFilters = {
@@ -121,12 +130,6 @@ export function toProductSearchRequest(
 }
 
 /**
- * Body of `POST /product/search` with the sort requested in backend prompt §16, not yet in the
- * generated OpenAPI types (regenerate with `npm run gen:api` once it ships).
- */
-export type ProductSearchBody = ProductSearchRequest & { sort?: BackendProductSort };
-
-/**
  * Backend value of an order of the results.
  *
  * @param sort - Order chosen in « Trier par ».
@@ -151,22 +154,17 @@ export function toBackendSort(sort: ProductSort): BackendProductSort {
 }
 
 /**
- * Body of the product search, with the order of the results when the backend sorts them. The
- * facets keep {@link toProductSearchRequest}: the order changes neither the counts nor their
- * cache entry.
+ * Body of the product search, with the order of the results. The facets keep
+ * {@link toProductSearchRequest}: the order changes neither the counts nor their cache entry.
  *
  * @param filters - Valid filters, with their optional order.
  * @param size - Page size.
- * @param sortAvailable - Whether the backend sorts (`PRODUCT_SORT_AVAILABLE`).
- * @returns The request body.
+ * @returns The request body; no `sort` for the relevance (the backend default).
+ * @see docs/backend/backend-prompts-lot2.md §16
  */
-export function toProductSearchBody(
-  filters: SearchFilters,
-  size: number,
-  sortAvailable: boolean,
-): ProductSearchBody {
-  const request: ProductSearchBody = toProductSearchRequest(filters, size);
-  if (sortAvailable && filters.sort !== undefined) {
+export function toProductSearchBody(filters: SearchFilters, size: number): ProductSearchRequest {
+  const request = toProductSearchRequest(filters, size);
+  if (filters.sort !== undefined) {
     request.sort = toBackendSort(filters.sort);
   }
   return request;

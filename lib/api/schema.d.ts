@@ -141,7 +141,7 @@ export interface paths {
         put?: never;
         /**
          * Search products
-         * @description Searches products using filters such as name, category, brand, price range, attributes, etc.
+         * @description Searches products using filters such as name, category, brand, price range, attributes, etc. The optional sort (RELEVANCE, NAME_ASC, PRICE_ASC, PRICE_DESC, RATING_DESC) orders the whole result before pagination; an unknown value is a 400 MALFORMED_JSON.
          */
         post: operations["searchProducts"];
         delete?: never;
@@ -1657,6 +1657,12 @@ export interface components {
             page?: number;
             /** Format: int32 */
             size?: number;
+            /**
+             * @description Order of the whole result set, before pagination; absent = RELEVANCE. Ties are broken by product uuid, so pages are stable. RATING_DESC lists products without reviews last.
+             * @default RELEVANCE
+             * @enum {string}
+             */
+            sort: "RELEVANCE" | "NAME_ASC" | "PRICE_ASC" | "PRICE_DESC" | "RATING_DESC";
         };
         RangeFilter: {
             /** Format: double */

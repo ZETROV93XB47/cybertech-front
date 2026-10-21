@@ -53,19 +53,14 @@ describe("sort in the search body", () => {
     sort: ProductSort.PRICE_DESC,
   };
 
-  it("sends the backend value once the backend sorts", () => {
-    expect(toProductSearchBody(filters, SIZE, true)).toEqual({
-      ...toProductSearchRequest(filters, SIZE),
-      sort: BackendProductSort.PRICE_DESC,
-    });
-  });
-
-  it("sends nothing while the backend cannot sort", () => {
-    expect(toProductSearchBody(filters, SIZE, false)).not.toHaveProperty("sort");
+  it("sends the backend value of the order", () => {
+    const { sort, ...rest } = toProductSearchBody(filters, SIZE);
+    expect(sort).toBe(BackendProductSort.PRICE_DESC);
+    expect(rest).toEqual(toProductSearchRequest(filters, SIZE));
   });
 
   it("sends nothing for the relevance", () => {
-    expect(toProductSearchBody(EMPTY_SEARCH_FILTERS, SIZE, true)).not.toHaveProperty("sort");
+    expect(toProductSearchBody(EMPTY_SEARCH_FILTERS, SIZE)).not.toHaveProperty("sort");
   });
 
   it("never puts the order in the facets body", () => {

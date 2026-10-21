@@ -1,9 +1,8 @@
 /**
  * Sort orders of the catalog results (« Trier par »).
  *
- * The values are the ones written in the URL (`?sort=price-asc`). The backend sort is requested
- * in `docs/backend/backend-prompts-lot2.md` §16; until it ships, the selector stays hidden
- * (`PRODUCT_SORT_AVAILABLE`).
+ * The values are the ones written in the URL (`?sort=price-asc`); the backend sorts the whole
+ * result before pagination (backend `14252d5`, `docs/backend/backend-prompts-lot2.md` §16).
  *
  * @see docs/backend/backend-prompts-lot2.md §16
  */

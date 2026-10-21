@@ -23,7 +23,6 @@ import {
   CATEGORY_TILE_PHOTOS,
   PRODUCTS_CACHE_TAG,
   PRODUCTS_REVALIDATE_SECONDS,
-  PRODUCT_SORT_AVAILABLE,
   SEARCH_PAGE_SIZE,
 } from "@/lib/constants/catalog";
 import { CategoryKey } from "@/lib/enums/category-key";
@@ -134,7 +133,7 @@ export async function searchProducts(
   const page = await backendFetch(BACKEND_PATHS.productSearch, {
     schema: LoosePageSchema,
     method: HttpMethod.POST,
-    body: toProductSearchBody(filters, size, PRODUCT_SORT_AVAILABLE),
+    body: toProductSearchBody(filters, size),
     nextCache: CATALOG_CACHE,
   });
   return { content: toValidCards(page.content, "search"), page: page.page };

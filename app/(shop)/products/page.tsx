@@ -38,7 +38,6 @@ import {
 import { getActiveCategories, getCategorySchema } from "@/lib/api/endpoints/categories";
 import { getFacets } from "@/lib/api/endpoints/facets";
 import { searchProducts } from "@/lib/api/endpoints/products";
-import { PRODUCT_SORT_AVAILABLE } from "@/lib/constants/catalog";
 import { CATALOG_PATH } from "@/lib/constants/routes";
 import type { CategoryKey } from "@/lib/enums/category-key";
 import { PageWidth } from "@/lib/enums/page-width";
@@ -177,11 +176,9 @@ export default async function ProductsPage({
         >
           <div className="flex flex-wrap items-start justify-between gap-4">
             <ActiveFilters filters={filters} facets={facets} />
-            {PRODUCT_SORT_AVAILABLE && (
-              <div className="ml-auto">
-                <SortSelect filters={filters} />
-              </div>
-            )}
+            <div className="ml-auto">
+              <SortSelect filters={filters} />
+            </div>
           </div>
           {results.content.length === 0 ? (
             <EmptyState

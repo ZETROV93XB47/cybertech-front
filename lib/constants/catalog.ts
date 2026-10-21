@@ -7,16 +7,6 @@
 /** Number of products per page on the product list. */
 export const SEARCH_PAGE_SIZE = 24;
 
-/**
- * Whether the backend sorts the search results (`ProductSearchRequestDto.sort`).
- *
- * `false` until the backend ships the sort requested in `docs/backend/backend-prompts-lot2.md`
- * §16: the « Trier par » selector stays hidden and no sort is sent, because sorting only the
- * 24 products of the page shown would mislead. Switch to `true` with that delivery.
- */
-// Widened to `boolean`: the flag is meant to flip, its uses are not dead code.
-export const PRODUCT_SORT_AVAILABLE = false as boolean;
-
 /** Number of best sellers shown on the home page. */
 export const BEST_SELLERS_SIZE = 8;
 
