@@ -18,6 +18,8 @@ import {
 } from "@/lib/constants/catalog";
 import { Brand } from "@/lib/enums/brand";
 import { CategoryKey } from "@/lib/enums/category-key";
+import { BackendProductSort, ProductSort } from "@/lib/enums/product-sort";
+import { assertNever } from "@/lib/assert-never";
 
 /** Bounds of a numeric attribute filter; each bound is optional. */
 export const NumericRangeSchema = z.object({
@@ -38,6 +40,11 @@ export const SearchFiltersSchema = z.object({
   attributes: z.record(z.string(), z.array(z.string().min(1))),
   numericRanges: z.record(z.string(), NumericRangeSchema),
   page: z.int().nonnegative(),
+  /** Order of the results; absent for the relevance (the default). Not a filter. */
+  sort: z
+    .enum(ProductSort)
+    .refine((sort) => sort !== ProductSort.RELEVANCE)
+    .optional(),
 });
 
 /** Filters of the product list. */
@@ -109,6 +116,58 @@ export function toProductSearchRequest(
   }
   if (Object.keys(filters.numericRanges).length > 0) {
     request.numericRanges = filters.numericRanges;
+  }
+  return request;
+}
+
+/**
+ * Body of `POST /product/search` with the sort requested in backend prompt §16, not yet in the
+ * generated OpenAPI types (regenerate with `npm run gen:api` once it ships).
+ */
+export type ProductSearchBody = ProductSearchRequest & { sort?: BackendProductSort };
+
+/**
+ * Backend value of an order of the results.
+ *
+ * @param sort - Order chosen in « Trier par ».
+ * @returns The `ProductSearchRequestDto.sort` value.
+ * @see docs/backend/backend-prompts-lot2.md §16
+ */
+export function toBackendSort(sort: ProductSort): BackendProductSort {
+  switch (sort) {
+    case ProductSort.RELEVANCE:
+      return BackendProductSort.RELEVANCE;
+    case ProductSort.NAME_ASC:
+      return BackendProductSort.NAME_ASC;
+    case ProductSort.PRICE_ASC:
+      return BackendProductSort.PRICE_ASC;
+    case ProductSort.PRICE_DESC:
+      return BackendProductSort.PRICE_DESC;
+    case ProductSort.RATING_DESC:
+      return BackendProductSort.RATING_DESC;
+    default:
+      return assertNever(sort);
+  }
+}
+
+/**
+ * Body of the product search, with the order of the results when the backend sorts them. The
+ * facets keep {@link toProductSearchRequest}: the order changes neither the counts nor their
+ * cache entry.
+ *
+ * @param filters - Valid filters, with their optional order.
+ * @param size - Page size.
+ * @param sortAvailable - Whether the backend sorts (`PRODUCT_SORT_AVAILABLE`).
+ * @returns The request body.
+ */
+export function toProductSearchBody(
+  filters: SearchFilters,
+  size: number,
+  sortAvailable: boolean,
+): ProductSearchBody {
+  const request: ProductSearchBody = toProductSearchRequest(filters, size);
+  if (sortAvailable && filters.sort !== undefined) {
+    request.sort = toBackendSort(filters.sort);
   }
   return request;
 }

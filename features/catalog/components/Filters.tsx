@@ -5,7 +5,8 @@
  *
  * A plain `GET` form on `/products`: without JavaScript it submits the native way and the page
  * redirects to the canonical URL. With JavaScript, checkboxes and radios apply at once and the
- * form navigates to the canonical URL built by {@link buildSearchUrl}, so the URL stays the only
+ * form navigates to the canonical URL built by {@link buildSearchUrl} (the chosen order, « Trier
+ * par », rides along in a hidden field), so the URL stays the only
  * state of the filters (shareable, reloadable, back button). Brand and attribute values show
  * their counts when the facets endpoint gives them (FR-004).
  *
@@ -226,6 +227,9 @@ export function Filters({
       aria-busy={isPending}
       className="flex flex-col gap-6"
     >
+      {filters.sort !== undefined && (
+        <input type="hidden" name={SearchParam.SORT} value={filters.sort} />
+      )}
       <label className="flex flex-col gap-2 text-sm">
         <span className={LEGEND}>{LIST_MESSAGES.keywordLabel}</span>
         <input

@@ -103,9 +103,7 @@ describe("HomeCarousel", () => {
       "/promotions/BLACK_FRIDAY",
       "/promotions/BLACK_FRIDAY",
     ]);
-    expect(within(campaign!).getByRole("link", { name: "Voir la promotion" })).toBe(
-      links[1],
-    );
+    expect(within(campaign!).getByRole("link", { name: "Voir la promotion" })).toBe(links[1]);
   });
 
   it("shows the title, tagline, count and CTA of a category slide", () => {

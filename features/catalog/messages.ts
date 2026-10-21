@@ -5,6 +5,7 @@
  */
 import { Brand } from "@/lib/enums/brand";
 import { CategoryKey } from "@/lib/enums/category-key";
+import { ProductSort } from "@/lib/enums/product-sort";
 import { ShippingProvider, ShippingType } from "@/lib/enums/shipping";
 import { UI_LOCALE } from "@/lib/format";
 
@@ -253,6 +254,8 @@ export const LIST_MESSAGES = {
   booleanYes: "Oui",
   apply: "Appliquer les filtres",
   reset: "Réinitialiser les filtres",
+  sortLabel: "Trier par",
+  sortSubmit: "Trier",
   emptyTitle: "Aucun produit ne correspond à ces filtres",
   emptyBody:
     "Élargis la fourchette de prix, retire une marque ou réinitialise les filtres pour tout revoir.",
@@ -377,3 +380,12 @@ export const REVIEW_MESSAGES = {
     "Une fois ta commande reçue, tu pourras noter ce produit et partager ton expérience avec les autres clients.",
   listLabel: "Avis des clients",
 } as const;
+
+/** Labels of the orders of « Trier par ». */
+export const SORT_LABELS: Readonly<Record<ProductSort, string>> = {
+  [ProductSort.RELEVANCE]: "Pertinence",
+  [ProductSort.NAME_ASC]: "Nom, de A à Z",
+  [ProductSort.PRICE_ASC]: "Prix croissant",
+  [ProductSort.PRICE_DESC]: "Prix décroissant",
+  [ProductSort.RATING_DESC]: "Mieux notés",
+};

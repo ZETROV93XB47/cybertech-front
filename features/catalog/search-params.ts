@@ -24,7 +24,7 @@ import { Brand } from "@/lib/enums/brand";
 import { RangeBound, SearchParam, SearchParamPrefix } from "@/lib/enums/search-param";
 import { FacetKind } from "@/lib/enums/facet-kind";
 import { toCategoryKey, type CategoryFacet } from "@/lib/schemas/category";
-import type { NumericRange, SearchFilters } from "@/lib/schemas/search";
+import { SearchFiltersSchema, type NumericRange, type SearchFilters } from "@/lib/schemas/search";
 
 /** Query parameters as Next.js passes them to a page, or as `URLSearchParams`. */
 export type SearchParamsInput =
@@ -260,6 +260,17 @@ function readKeyword(value: string | undefined): string | undefined {
 }
 
 /**
+ * Reads the order of the results.
+ *
+ * @param value - Raw `sort` parameter.
+ * @returns A known non-default order, or `undefined` (relevance) for a missing, unknown or
+ *   `relevance` value.
+ */
+function readSort(value: string | undefined): SearchFilters["sort"] {
+  return SearchFiltersSchema.shape.sort.safeParse(value).data;
+}
+
+/**
  * Parses the product list query parameters.
  *
  * @param input - Page search params, `URLSearchParams` or form data turned into params.
@@ -274,6 +285,7 @@ export function parseSearchParams(input: SearchParamsInput): SearchFilters {
     .flatMap((value) => BrandSchema.safeParse(value).data ?? [])
     .sort();
   const page = readInteger(raw.single.get(SearchParam.PAGE)) ?? FIRST_PAGE_NUMBER;
+  const sort = readSort(raw.single.get(SearchParam.SORT));
   return {
     ...(keyword === undefined ? {} : { keyword }),
     ...(category === undefined ? {} : { category }),
@@ -282,6 +294,7 @@ export function parseSearchParams(input: SearchParamsInput): SearchFilters {
     attributes: category === undefined ? {} : readAttributes(raw.attributes),
     numericRanges: category === undefined ? {} : readRanges(raw),
     page: Math.max(page, FIRST_PAGE_NUMBER) - FIRST_PAGE_NUMBER,
+    ...(sort === undefined ? {} : { sort }),
   };
 }
 
@@ -324,6 +337,7 @@ export function buildSearchQuery(filters: SearchFilters): string {
   )) {
     params.append(`${SearchParamPrefix.RANGE}${key}`, formatRange(range));
   }
+  if (filters.sort !== undefined) params.append(SearchParam.SORT, filters.sort);
   if (filters.page > 0) params.append(SearchParam.PAGE, String(filters.page + FIRST_PAGE_NUMBER));
   return params.toString();
 }

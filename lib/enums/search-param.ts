@@ -18,6 +18,8 @@ export enum SearchParam {
   PRICE_MAX = "max",
   /** One-based page number. */
   PAGE = "page",
+  /** Order of the results (`ProductSort`), absent for the relevance. */
+  SORT = "sort",
   /** Selected photo on the product page (zero-based), so the gallery works without JavaScript. */
   PHOTO = "photo",
 }

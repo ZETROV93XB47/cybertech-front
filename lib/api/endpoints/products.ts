@@ -23,6 +23,7 @@ import {
   CATEGORY_TILE_PHOTOS,
   PRODUCTS_CACHE_TAG,
   PRODUCTS_REVALIDATE_SECONDS,
+  PRODUCT_SORT_AVAILABLE,
   SEARCH_PAGE_SIZE,
 } from "@/lib/constants/catalog";
 import { CategoryKey } from "@/lib/enums/category-key";
@@ -41,7 +42,7 @@ import {
 } from "@/lib/schemas/product";
 import {
   EMPTY_SEARCH_FILTERS,
-  toProductSearchRequest,
+  toProductSearchBody,
   type SearchFilters,
 } from "@/lib/schemas/search";
 import { UUID_LIST_SEPARATOR } from "@/lib/schemas/uuid-list";
@@ -126,13 +127,14 @@ export async function searchProducts(
         Object.keys(filters.attributes).length + Object.keys(filters.numericRanges).length,
       page: filters.page,
       size,
+      sort: filters.sort,
     },
     "Searching products",
   );
   const page = await backendFetch(BACKEND_PATHS.productSearch, {
     schema: LoosePageSchema,
     method: HttpMethod.POST,
-    body: toProductSearchRequest(filters, size),
+    body: toProductSearchBody(filters, size, PRODUCT_SORT_AVAILABLE),
     nextCache: CATALOG_CACHE,
   });
   return { content: toValidCards(page.content, "search"), page: page.page };

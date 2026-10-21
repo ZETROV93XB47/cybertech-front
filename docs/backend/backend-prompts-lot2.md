@@ -588,3 +588,47 @@ Livré par le backend abe674d (2026-10-21). Le statut d'une commande non notable
 
 Mets à jour progress.md et l'OpenAPI (le front régénère ses types avec npm run gen:api).
 ````
+
+## 16. Tri des résultats du catalogue
+
+````text
+Objectif : que le front propose « Trier par » au-dessus des résultats du catalogue
+(pertinence, nom A → Z, prix croissant, prix décroissant, mieux notés), appliqué à tout le
+résultat de la recherche et pas seulement à la page affichée.
+
+Constat (backend abe674d) :
+- ProductSearchRequestDto (POST /product/search) n'a aucun champ de tri ;
+  ProductSearchServiceImp construit PageRequest.of(page, size) sans Sort : l'ordre est celui du
+  score Elasticsearch.
+- ProductDocument.name est un champ Text (analyzer french) : on ne peut pas trier dessus tel
+  quel.
+- ProductDocument.averageRating et reviewCount existent mais sont commentés : aucune note
+  n'est indexée, le tri « mieux notés » est impossible.
+
+Travail demandé :
+- Ajouter un enum ProductSearchSort { RELEVANCE, NAME_ASC, PRICE_ASC, PRICE_DESC, RATING_DESC }
+  et un champ optionnel `sort` à ProductSearchRequestDto (absent = RELEVANCE, valeur inconnue →
+  400 de validation habituel).
+- Index : sous-champ keyword de `name` avec un normalizer lowercase + asciifolding (« Écran »
+  trié avec les E) ; réactiver averageRating (Double, null sans avis) et reviewCount (Integer, 0
+  sans avis), alimentés à la réindexation et mis à jour à chaque création / modification /
+  suppression d'avis publié (même transaction ou événement après commit).
+- Traduction du tri :
+  - RELEVANCE : _score desc puis uuid (tie-break stable) ;
+  - NAME_ASC : name.keyword asc ;
+  - PRICE_ASC / PRICE_DESC : price ;
+  - RATING_DESC : averageRating desc (produits sans avis en dernier, missing _last), puis
+    reviewCount desc ;
+  - toujours un tie-break final sur uuid pour une pagination stable.
+- Le tri ne change pas les facettes (POST /product/search/facets) ni le filtre.
+- OpenAPI : documenter `sort` et ses valeurs (le front régénère ses types avec
+  npm run gen:api).
+- Tests : un test par valeur de tri sur un petit jeu indexé (ordre attendu, pagination stable
+  entre deux pages), produit sans avis en dernier pour RATING_DESC, `sort` absent = ordre actuel.
+
+Côté front (feature 004) : le sélecteur « Trier par » est prêt et masqué
+(PRODUCT_SORT_AVAILABLE = false dans lib/constants/catalog.ts) ; il sera activé dès cette
+livraison.
+
+Mets à jour progress.md et l'OpenAPI.
+````
