@@ -8,10 +8,10 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
 /**
- * Entries of the bar, in order: the « Accueil » link and the « Catalogue » menu trigger, which
- * groups the categories (feature 004, US2). « Promotions » comes with US4.
+ * Entries of the bar, in order: « Accueil », the « Catalogue » menu trigger, which groups the
+ * categories (feature 004, US2), and « Promotions » (US4).
  */
-const NAV_LINKS = ["Accueil", "Catalogue"];
+const NAV_LINKS = ["Accueil", "Catalogue", "Promotions"];
 
 /** Upper bound of Tab presses to reach a header control (avoids an endless loop). */
 const MAX_TABS = 20;
@@ -101,6 +101,7 @@ test.describe("navigation bar", () => {
       ["/products", "Catalogue"],
       ["/products?category=COMPUTER", "Catalogue"],
       [computer, "Catalogue"],
+      ["/promotions", "Promotions"],
       ["/cart", null],
       ["/register", null],
       ["/login?error=Configuration", null],

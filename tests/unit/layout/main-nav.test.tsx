@@ -1,4 +1,4 @@
-import { act, screen, within } from "@testing-library/react";
+import { act, screen } from "@testing-library/react";
 import { axe } from "jest-axe";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -35,10 +35,10 @@ function renderAt(pathname: string, search = ""): ReturnType<typeof renderWithPr
   return renderWithProviders(<MainNav {...NAV_PROPS} />);
 }
 
-/** Entries of the main navigation (« Accueil » link, « Catalogue » trigger), in order. */
+/** Entries of the main navigation (links and « Catalogue » trigger), in order. */
 function navLinks(): HTMLElement[] {
-  const nav = within(screen.getByRole("navigation", { name: "Navigation principale" }));
-  return [...nav.getAllByRole("link"), ...nav.getAllByRole("button")];
+  const nav = screen.getByRole("navigation", { name: "Navigation principale" });
+  return [...nav.querySelectorAll<HTMLElement>(":is(a, button)")];
 }
 
 afterEach(() => {
@@ -48,10 +48,15 @@ afterEach(() => {
 });
 
 describe("MainNav", () => {
-  it("shows the Accueil link and the Catalogue menu trigger (categories live in the menu)", async () => {
+  it("shows Accueil, the Catalogue menu trigger and Promotions (categories live in the menu)", async () => {
     const { container } = renderAt("/");
-    expect(navLinks().map((link) => link.textContent)).toEqual(["Accueil", "Catalogue"]);
+    expect(navLinks().map((link) => link.textContent)).toEqual([
+      "Accueil",
+      "Catalogue",
+      "Promotions",
+    ]);
     expect(screen.getByRole("link", { name: "Accueil" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "Promotions" })).toHaveAttribute("href", "/promotions");
     expect(screen.queryByRole("link", { name: "Ordinateurs" })).not.toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
   });
@@ -61,6 +66,8 @@ describe("MainNav", () => {
     ["/products", "", "Catalogue"],
     ["/products", "category=COMPUTER&page=2", "Catalogue"],
     ["/products", "category=SMARTWATCH", "Catalogue"],
+    ["/promotions", "", "Promotions"],
+    ["/promotions/BLACK_FRIDAY", "", "Promotions"],
   ])("marks exactly one current link on %s?%s", (pathname, search, current) => {
     renderAt(pathname, search);
     const currentLinks = navLinks().filter((link) => link.getAttribute("aria-current") === "page");
@@ -91,7 +98,7 @@ describe("MainNav", () => {
 
   it("has a static version without current link", () => {
     renderWithProviders(<StaticMainNav {...NAV_PROPS} />);
-    expect(navLinks()).toHaveLength(2);
+    expect(navLinks()).toHaveLength(3);
     expect(navLinks().filter((link) => link.hasAttribute("aria-current"))).toHaveLength(0);
   });
 });

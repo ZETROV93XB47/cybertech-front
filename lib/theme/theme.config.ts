@@ -252,6 +252,14 @@ export const THEME = {
     hero: { width: 2400, height: 1600, sizes: "(min-width: 1200px) 1152px, 100vw" },
     // Carousel slides and campaign photos: 16:9 files, full content width at most.
     slide: { width: 1920, height: 1080, sizes: "(min-width: 1200px) 1152px, 100vw" },
+    // Promotions grid: 3 columns from `lg`, 2 from `sm`, 16:9 photos.
+    campaignCard: {
+      width: 1920,
+      height: 1080,
+      sizes: "(min-width: 1024px) 384px, (min-width: 640px) 50vw, 100vw",
+    },
+    // Campaign page: photo beside the details from `lg` (half of 1152px).
+    campaignDetail: { width: 1920, height: 1080, sizes: "(min-width: 1024px) 576px, 100vw" },
   },
   layout: {
     containerMaxWidth: "1200px",

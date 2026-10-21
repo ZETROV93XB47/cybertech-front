@@ -16,3 +16,17 @@ export enum CampaignImageKey {
   SPRING_SALES = "SPRING_SALES",
   BUY_ONE_GET_ONE_FREE = "BUY_ONE_GET_ONE_FREE",
 }
+
+/**
+ * Result of « Appliquer à mon panier » on a campaign page.
+ *
+ * @see specs/004-catalog-promos-reviews/data-model.md §4
+ */
+export enum ApplyCampaignOutcome {
+  /** Signed in: the key is preselected for the cart and the checkout. */
+  APPLIED = "applied",
+  /** Visitor: the key is kept for the tab, discounts need an account. */
+  SIGN_IN_NEEDED = "sign-in-needed",
+  /** The browser refuses `sessionStorage` (strict private browsing). */
+  STORAGE_UNAVAILABLE = "storage-unavailable",
+}

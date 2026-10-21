@@ -200,6 +200,10 @@ export interface ThemeMedia {
   readonly hero: MediaSize;
   /** Photo of a home carousel slide or of a campaign (16:9 files in `public/images/`). */
   readonly slide: MediaSize;
+  /** Campaign photo on a card of the « Promotions » page (same grid as the product cards). */
+  readonly campaignCard: MediaSize;
+  /** Campaign photo on its own page (half of the content width on large screens). */
+  readonly campaignDetail: MediaSize;
 }
 
 /** Page layout tokens. */

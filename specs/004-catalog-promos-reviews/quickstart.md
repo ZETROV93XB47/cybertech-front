@@ -173,3 +173,36 @@ Vérifié le 2026-10-21 (T022–T027) : backend `abe674d` sur 8081, front de l'u
 | 7 | OK | Tab, Entrée, Tab, Entrée → catalogue filtré ; Échap referme et rend le focus (e2e) |
 | 8 | OK | sur une fiche smartphone, « Catalogue » courant et « Smartphones » marqué (e2e) |
 | 9 | OK | panneau statique aux effets réduits, désactivés ou avec `prefers-reduced-motion` (tests unitaires) |
+
+### US4 — Promotions
+
+Vérifié le 2026-10-21 (T028–T037) : backend `abe674d` sur 8081 (seule BLACK_FRIDAY active,
+−20 %, sans condition), front de l'utilisateur sur 3000.
+
+- Contrôles : `typecheck` OK, `lint` 0 warning, `test` 981 tests verts (97 fichiers), dont
+  `campaign-view.test.ts` (12), `promotions-pages.test.tsx` (10), `apply-campaign.test.tsx`
+  (6).
+- Vitest importe maintenant les photos comme Next (`src`, taille, flou) grâce à un petit
+  plugin de `vitest.config.mts`, pour tester `next/image` avec les imports statiques.
+- Avantage et conditions repris de `describeDiscountOffer` (bloc réduction de 003) : le panier
+  et les pages promotions formulent une campagne de la même façon ; seul « Sans date de fin »
+  est ajouté.
+- E2E (`--workers=1`) : `promotions.spec.ts` 4 OK, `navigation.spec.ts` 7 OK (barre
+  « Accueil · Catalogue · Promotions »), `a11y.spec.ts` 4 OK, `discount.spec.ts` 1 OK et
+  1 ignoré (aucune campagne locale avec minimum de commande, comme avant).
+- Captures relues : `screenshots/us4/` (liste, page de campagne, appliquée connecté, visiteur,
+  panier avec « Réduction choisie : BLACK_FRIDAY », introuvable). Correctif : « Voir le
+  catalogue » passait sous le message de confirmation ; les deux boutons sont maintenant sur
+  la même ligne, le message dessous. État vide non reproductible en local (BLACK_FRIDAY ne se
+  désactive pas sans l'administration) : couvert par les tests unitaires.
+- Lighthouse desktop (build de production, port 3124, deux passages) : `/promotions`
+  0,99–1,00 (LCP 0,77–0,89 s, CLS 0,002, TBT ≤ 10 ms), `/promotions/BLACK_FRIDAY` 0,99
+  (LCP 0,83–0,90 s, CLS 0,003, TBT ≤ 33 ms).
+
+| # | Résultat | Commentaire |
+|---|---|---|
+| 16 | OK | « Promotions » courant dans la barre ; BLACK_FRIDAY avec photo, « −20 % », « Sans date de fin » ; pas de « aucune remise » |
+| 17 | OK | « −20 % », « Sans date de fin », « Appliquer à mon panier », « Voir le catalogue » |
+| 18 | OK | connecté : confirmation puis « Réduction choisie : BLACK_FRIDAY » sur le panier (remise du devis : −23,99 € sur 119,95 €) |
+| 19 | OK | visiteur : clé gardée, « Me connecter » → Keycloak → panier avec « Réduction choisie : BLACK_FRIDAY » |
+| 20 | OK | `/promotions/INCONNUE` : « Campagne introuvable ou terminée », lien vers les promotions |

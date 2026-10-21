@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * Main navigation: « Accueil » and the « Catalogue » menu, which groups every active category
- * (FR-025, feature 004 US2). « Promotions » comes with US4.
+ * Main navigation: « Accueil », the « Catalogue » menu, which groups every active category
+ * (FR-025, feature 004 US2), and « Promotions » (FR-006, feature 004 US4).
  *
  * The current section carries `aria-current="page"` and a gold underline, so it is never
  * conveyed by colour alone (FR-026); the current category is marked inside the menu. Every entry
@@ -18,7 +18,8 @@ import { NavigationMenu } from "radix-ui";
 import type { ReactNode } from "react";
 
 import { SITE_MESSAGES } from "@/features/common/messages";
-import { CATALOG_PATH, HOME_PATH } from "@/lib/constants/routes";
+import { PROMOTIONS_MESSAGES } from "@/features/promotions/messages";
+import { CATALOG_PATH, HOME_PATH, PROMOTIONS_PATH } from "@/lib/constants/routes";
 import type { CategoryKey } from "@/lib/enums/category-key";
 import { NavSection } from "@/lib/enums/nav-section";
 import { cn } from "@/lib/utils";
@@ -56,8 +57,38 @@ const NO_CURRENT_PAGE: CurrentPage = {
   isAllCatalog: false,
 };
 
+/** Props of {@link NavLink}. */
+interface NavLinkProps {
+  readonly href: string;
+  readonly label: string;
+  readonly isCurrent: boolean;
+}
+
 /**
- * The navigation landmark with « Accueil » and the « Catalogue » menu.
+ * Plain link of the bar, underlined when current.
+ *
+ * @param props - Address, label and current state.
+ * @returns The navigation item.
+ */
+function NavLink({ href, label, isCurrent }: NavLinkProps): ReactNode {
+  return (
+    <NavigationMenu.Item>
+      <NavigationMenu.Link asChild active={isCurrent}>
+        <Link
+          href={href}
+          aria-current={isCurrent ? "page" : undefined}
+          className={cn(NAV_ITEM_CLASS, isCurrent ? "text-text" : "text-text-muted")}
+        >
+          {label}
+          {isCurrent && <NavUnderline />}
+        </Link>
+      </NavigationMenu.Link>
+    </NavigationMenu.Item>
+  );
+}
+
+/**
+ * The navigation landmark with « Accueil », the « Catalogue » menu and « Promotions ».
  *
  * @param props - Categories, counts and current page.
  * @returns The navigation.
@@ -68,7 +99,6 @@ function NavItems({
   current,
 }: MainNavProps & { readonly current: CurrentPage }): ReactNode {
   const menu = useCatalogMenuState();
-  const isHome = current.section === NavSection.HOME;
   return (
     <NavigationMenu.Root
       aria-label={SITE_MESSAGES.mainNavigation}
@@ -77,18 +107,11 @@ function NavItems({
       className="flex-1"
     >
       <NavigationMenu.List className="flex items-center gap-1">
-        <NavigationMenu.Item>
-          <NavigationMenu.Link asChild active={isHome}>
-            <Link
-              href={HOME_PATH}
-              aria-current={isHome ? "page" : undefined}
-              className={cn(NAV_ITEM_CLASS, isHome ? "text-text" : "text-text-muted")}
-            >
-              {SITE_MESSAGES.homeNavLink}
-              {isHome && <NavUnderline />}
-            </Link>
-          </NavigationMenu.Link>
-        </NavigationMenu.Item>
+        <NavLink
+          href={HOME_PATH}
+          label={SITE_MESSAGES.homeNavLink}
+          isCurrent={current.section === NavSection.HOME}
+        />
         <CatalogMenu
           categories={categories}
           counts={counts}
@@ -97,6 +120,11 @@ function NavItems({
           isAllCatalogCurrent={current.isAllCatalog}
           isOpen={menu.value === CATALOG_MENU_VALUE}
           onTriggerClick={menu.onTriggerClick}
+        />
+        <NavLink
+          href={PROMOTIONS_PATH}
+          label={PROMOTIONS_MESSAGES.navLink}
+          isCurrent={current.section === NavSection.PROMOTIONS}
         />
       </NavigationMenu.List>
     </NavigationMenu.Root>
