@@ -15,7 +15,8 @@
   (`MONITOR`, 410), smartphones (`SMARTPHONE`, 616) et montres connectées (`SMARTWATCH`, 315).
   Le front n'en connaît que deux : les produits des trois autres s'affichent sans libellé ni
   icône de catégorie, ne sont pas filtrables par catégorie et n'apparaissent dans aucun
-  raccourci. Aucun service ne liste les catégories : leur liste est connue du front.
+  raccourci. Depuis le 2026-10-21 (`28a15ae`), `GET /product-category-schemas` liste les
+  catégories actives (clé et libellé anglais), sans authentification.
 - L'en-tête affiche « Catalogue », « Ordinateurs » et « Écrans » côte à côte ; avec cinq
   catégories, cette rangée ne tient plus.
 - Les campagnes de réduction actives ne sont visibles que sous forme de bandeau ; seule
@@ -45,6 +46,11 @@
   devient « Mes avis » ? → A: « Mes avis » a deux parties : « À noter » (produits notables) et
   « Mes avis publiés » (paginée, plus récents d'abord) ; chaque avis publié peut être modifié
   ou supprimé à tout moment, pas seulement juste après sa publication.
+- Q: D'où vient la liste des catégories ? → A: De `GET /product-category-schemas` (backend
+  `28a15ae`) : seules les catégories actives sont proposées ; le front garde le nom français,
+  l'icône, l'ordre et la photo de chaque catégorie qu'il connaît.
+- Q: Le backend accepte deux avis du même produit (deux onglets) : faut-il l'empêcher ? → A:
+  Non, ce n'est pas grave ; le front ne propose que les produits encore notables.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -368,8 +374,10 @@ produit 4 étoiles avec un commentaire, puis ouvrir sa fiche et y lire l'avis av
 
 ## Assumptions
 
-- Les cinq catégories sont fixes pour cette feature ; une sixième catégorie s'afficherait avec
-  le libellé générique jusqu'à une mise à jour du front.
+- Les cinq catégories sont connues du front pour cette feature ; une catégorie désactivée
+  côté backend disparaît du menu, des tuiles et du carrousel ; une sixième catégorie active
+  mais inconnue du front n'y apparaît pas encore (signalée dans les logs) et ses produits
+  s'affichent avec le libellé générique jusqu'à une mise à jour du front.
 - Les images (cinq catégories, BLACK_FRIDAY et les autres campagnes connues du backend :
   WINTER_SALES, SPRING_SALES, BUY_ONE_GET_ONE_FREE, plus une image générique) sont des photos
   Unsplash ou Pexels, libres d'usage, choisies pour l'ambiance (sans logo lisible).
@@ -384,8 +392,11 @@ produit 4 étoiles avec un commentaire, puis ouvrir sa fiche et y lire l'avis av
 - **Liste de mes avis** : **livrée** par le backend `bddcafd` (`backend-prompts-lot2.md`
   §13) : `GET /review/mine` paginé (`PagedModel<MyReviewDto>`, 10 par page, plus récents
   d'abord).
-- **Liste des catégories** (non bloquante) : aucun service ne liste les catégories ; le front
-  garde la liste des cinq clés.
+- **Liste des catégories** : **livrée** par le backend `28a15ae` :
+  `GET /product-category-schemas` (public) → `[{ categoryKey, label }]` des catégories
+  actives, triées par clé.
+- **Note sans commentaire** : **corrigée** par le backend `8cc5ded` : une note seule n'est
+  plus envoyée à la modération.
 - **Images des campagnes** (non bloquante) : le backend ne fournit pas de visuel ; le front
   associe une image par clé connue et une image générique sinon.
 

@@ -45,7 +45,8 @@ résultat).
 
 | Appel | Endpoint Spring | Cache | Utilisé par |
 |---|---|---|---|
-| `getCategoryCounts()` (étendu) | `POST /product/search/facets` × 5 | 300 s (existant) | accueil, menu « Catalogue », carrousel |
+| `getActiveCategories()` | `GET /product-category-schemas` (public, backend `28a15ae`) | 3 600 s, tag `categories` | menu « Catalogue », tuiles, carrousel, filtre du catalogue |
+| `getCategoryCounts(categories)` (étendu) | `POST /product/search/facets` × catégories actives | 300 s (existant) | accueil, menu « Catalogue », carrousel |
 | `getCategoryPhotos()` (étendu) | `POST /product/search` × 5 | 300 s (existant) | tuiles de l'accueil |
 | `getCategorySchema(key)` (existant) | `GET /product-category-schemas/{key}` | 3 600 s | filtres du catalogue, fiche |
 | `getActiveDiscounts()` (existant) | `GET /discounts/active` | existant, tag `discounts` | accueil (carrousel), `/promotions`, `/promotions/[key]` |

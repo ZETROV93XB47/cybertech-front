@@ -10,9 +10,10 @@ cite ce qui a été vérifié sur le backend en marche ou dans son code.
   `getCategoryPhotos`, `CATEGORY_LABELS`) énumère les deux clés à la main. Le backend sert les
   cinq schémas actifs (`GET /product-category-schemas/{key}` : `COMPUTER` « Computers »,
   `DESKTOP` « Desktop computers », `MONITOR`, `SMARTPHONE`, `SMARTWATCH`) et les produits
-  (576, 262, 410, 616, 315 au 2026-10-21, `totalHits` des facettes). Aucun endpoint public ne
-  liste les catégories (seul l'admin a `get/all`). Les 43 marques du backend sont déjà toutes
-  dans `Brand` (APPLE, SAMSUNG, WITHINGS… comprises).
+  (576, 262, 410, 616, 315 au 2026-10-21, `totalHits` des facettes). Depuis `28a15ae`,
+  `GET /product-category-schemas` (public) liste les catégories actives
+  (`ProductCategoryResponseDto` : `categoryKey`, `label` anglais), triées par clé. Les 43
+  marques du backend sont déjà toutes dans `Brand` (APPLE, SAMSUNG, WITHINGS… comprises).
 - **Decision** : `CategoryKey` passe à cinq valeurs ; l'ordre d'affichage est une constante
   `CATEGORY_ORDER` (`lib/constants/categories.ts`) ; libellés dans `CATEGORY_LABELS`
   (`features/catalog/messages.ts`), icônes dans `features/catalog/category-icons.ts`
@@ -20,13 +21,21 @@ cite ce qui a été vérifié sur le backend en marche ou dans son code.
   `GENERIC_CATEGORY_ICON` (Package) pour une clé inconnue. Toutes les fonctions qui listaient
   les deux clés itèrent sur `CATEGORY_ORDER` (`Promise.all`) et renvoient un
   `Record<CategoryKey, …>` : le compilateur signale tout oubli.
-- **Rationale** : une table typée par l'enum rend l'ajout d'une sixième catégorie mécanique et
-  vérifiée (`Record` exhaustif, `switch` + `assertNever`). La traduction reste côté front : le
-  `label` du backend est en anglais.
-- **Alternatives** : lire les catégories depuis l'endpoint admin (exige un jeton admin, écarté) ;
-  dériver les catégories des facettes globales (pas de libellé, ordre instable, écarté).
+- **Catégories proposées** : `getActiveCategories()` lit `GET /product-category-schemas`
+  (cache 3 600 s, tag `categories`, comme les schémas) et renvoie les `CategoryKey` actives
+  dans l'ordre de `CATEGORY_ORDER`. Une catégorie désactivée disparaît du menu, des tuiles et
+  du carrousel ; une clé active inconnue du front est ignorée et signalée par un `warn`
+  (`catalog.categories`) ; si l'appel échoue, repli sur `CATEGORY_ORDER` complet (`warn`),
+  pour que la navigation ne disparaisse jamais.
+- **Rationale** : la liste des catégories proposées suit le backend ; nom français, icône,
+  ordre et photo restent côté front (le `label` du backend est en anglais), dans une table
+  typée par l'enum qui rend l'ajout d'une sixième catégorie mécanique et vérifiée (`Record`
+  exhaustif, `switch` + `assertNever`).
+- **Alternatives** : afficher une clé inconnue avec le libellé anglais du backend (mélange de
+  langues, pas d'icône ni de photo, filtre d'URL non typé : écarté) ; ignorer l'endpoint et
+  garder une liste fixe (ne verrait pas une catégorie désactivée : écarté).
 
-## R2 — Comptes et photos des cinq catégories
+## R2 — Comptes et photos des catégories actives
 
 - **Decision** : `getCategoryCounts()` et `getCategoryPhotos()` lancent un appel par catégorie
   en parallèle, avec le cache serveur existant (facettes 300 s, recherche de photos 300 s) ;
@@ -145,17 +154,15 @@ cite ce qui a été vérifié sur le backend en marche ou dans son code.
 - **Rationale** : lectures en RSC, écritures en Server Actions : pas de jeton côté client,
   revalidation ciblée ; seule la pagination publique a besoin d'une route.
 
-## R9 — Risques backend à vérifier pendant la US5
+## R9 — Note seule et doublon (révisée le 2026-10-21)
 
-- **Note seule** : la modération est appelée même sans commentaire (`moderate(null)`) et
-  échoue fermée ; une note sans commentaire pourrait être refusée. À vérifier au premier test
-  réel ; si c'est le cas : message dédié (« ajoute quelques mots ») et prompt backend §15
-  (ne pas modérer un commentaire vide). Le front n'envoie jamais un commentaire fait
-  d'espaces (`trim()` puis omis).
-- **Doublon** : `POST /review/create` n'interdit pas un deuxième avis du même produit ; seul
-  `reviewable` le cache. Deux onglets peuvent donc publier deux fois. Le front n'offre que les
-  éléments de `reviewable` et rafraîchit la liste après chaque publication ; un prompt backend
-  §15 demandera `409 REVIEW_ALREADY_EXISTS`.
+- **Note seule** : corrigée par le backend `8cc5ded` (une note sans commentaire n'est plus
+  envoyée à la modération) ; le front n'envoie jamais un commentaire fait d'espaces
+  (`trim()` puis omis) et vérifie la publication d'une note seule en e2e.
+- **Doublon** : `POST /review/create` accepte un deuxième avis du même produit (deux
+  onglets) ; accepté tel quel par le propriétaire du projet (2026-10-21), aucun prompt
+  backend. Le front n'offre que les éléments de `reviewable` et rafraîchit la liste après
+  chaque publication.
 
 ## R10 — Navigation du compte
 

@@ -8,7 +8,9 @@ pour la connexion). Décisions : [research.md](./research.md). Routes :
 
 ## 1. Préparation
 
-1. **Backend** (vérifié au commit `bddcafd` le 2026-10-21) :
+1. **Backend** (vérifié au commit `8cc5ded` le 2026-10-21) :
+   - `curl -s -H 'X-API-VERSION: 1.0' http://localhost:8081/api/v1/services/product-category-schemas`
+     → les cinq catégories actives (`categoryKey`, `label`) ;
    - les cinq schémas répondent :
      `curl -s -H 'X-API-VERSION: 1.0' http://localhost:8081/api/v1/services/product-category-schemas/SMARTWATCH`
      → `active: true` (idem `COMPUTER`, `DESKTOP`, `MONITOR`, `SMARTPHONE`) ;
@@ -43,6 +45,7 @@ pour la connexion). Décisions : [research.md](./research.md). Routes :
 | 3 | Ouvrir une montre connectée | fil d'Ariane « Montres connectées », icône montre |
 | 4 | Ajouter un smartphone au panier et au comparateur | libellé et icône de catégorie partout |
 | 5 | Accueil | cinq tuiles avec leur nombre de produits |
+| 5 bis | Catégorie désactivée côté backend (si l'admin le permet) | absente du menu, des tuiles et du carrousel ; ses produits gardent leur libellé |
 
 ### US2 — Menu « Catalogue »
 
@@ -84,7 +87,7 @@ pour la connexion). Décisions : [research.md](./research.md). Routes :
 | 24 | Modifier la note de cet avis (plus tard, après rechargement) | mise à jour sur « Mes avis » et sur la fiche |
 | 25 | Supprimer (confirmation) | avis retiré, produit de nouveau notable |
 | 26 | Commentaire injurieux | refus bienveillant, saisie gardée |
-| 27 | Note seule, sans commentaire | publiée, ou refus expliqué si la modération refuse un commentaire vide (research R9, à consigner ci-dessous) |
+| 27 | Note seule, sans commentaire | publiée (backend `8cc5ded`, research R9) |
 | 28 | Détail d'une commande payée | « Donner mon avis » sur chaque produit encore notable |
 | 29 | Fiche d'un produit sans avis | état vide honnête, aucune note fictive |
 

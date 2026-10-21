@@ -43,13 +43,14 @@ desktop
 **Performance Goals**: budgets du lot 1 (LCP ≤ 2,5 s, CLS ≤ 0,1, TBT ≤ 200 ms) sur l'accueil
 avec carrousel, `/promotions` et une fiche avec avis (SC-006)
 
-**Constraints**: pas d'endpoint public listant les catégories ; avis : un par produit et par
-client (côté `reviewable`), modération appelée même sans commentaire (R9) ; `reviewable`
-exclut `AWAITING_SHIPPING` ; campagnes sans visuel ; 5 inscriptions par minute pour les e2e
+**Constraints**: catégories actives lues sur `GET /product-category-schemas` (libellés
+anglais : traduction côté front) ; un avis par produit seulement côté `reviewable` (doublon
+accepté, R9) ; `reviewable` exclut `AWAITING_SHIPPING` ; campagnes sans visuel ; 5
+inscriptions par minute pour les e2e
 
 **Scale/Scope**: 3 pages ajoutées (`/promotions`, `/promotions/[key]`, `/account/reviews`),
 5 pages ou composants majeurs modifiés (accueil, catalogue, fiche, en-tête, détail de
-commande) ; 1 route BFF, 3 Server Actions, 6 endpoints backend nouvellement consommés ;
+commande) ; 1 route BFF, 3 Server Actions, 7 endpoints backend nouvellement consommés ;
 10 photos ; 5 user stories
 
 ## Constitution Check
@@ -155,7 +156,8 @@ déjà la fiche. Le menu rejoint `components/layout/` avec la barre de navigatio
 
 | Page / composant | Côté Next | Endpoint Spring | Cache |
 |---|---|---|---|
-| Menu « Catalogue », tuiles, carrousel – comptes | RSC → `getCategoryCounts()` | `POST /product/search/facets` × 5 | 300 s |
+| Menu « Catalogue », tuiles, carrousel – catégories | RSC → `getActiveCategories()` | `GET /product-category-schemas` | 3 600 s |
+| Menu « Catalogue », tuiles, carrousel – comptes | RSC → `getCategoryCounts(categories)` | `POST /product/search/facets` × catégories actives | 300 s |
 | Catalogue – filtres | RSC → `getCategorySchema(key)` | `GET /product-category-schemas/{key}` | 3 600 s |
 | Carrousel, promotions | RSC → `getActiveDiscounts()` | `GET /discounts/active` | existant |
 | Fiche – avis | RSC → `getProductReviews(uuid, 0)` ; client → `GET /api/products/{uuid}/reviews?page=` | `GET /review/product/{uuid}` | 60 s, tag |
@@ -166,8 +168,9 @@ Détail : [contracts/bff-routes.md](./contracts/bff-routes.md).
 
 ## Ordre de livraison (une user story à la fois, arrêt et compte rendu entre deux)
 
-0. **Prérequis** : `CategoryKey` à cinq valeurs et table de référence (R1), `NavSection`
-   remanié, codes d'erreur des avis, constantes et routes.
+0. **Prérequis** : `npm run gen:api` (backend `8cc5ded`), `CategoryKey` à cinq valeurs et
+   table de référence, `getActiveCategories()` (R1), `NavSection` remanié, codes d'erreur des
+   avis, constantes et routes.
 1. **US1 Catégories (P1)** : libellés, icônes, comptes et photos des cinq catégories partout
    (catalogue, fiche, fil d'Ariane, panier, comparateur, commandes, wishlist), générique pour
    une clé inconnue.
@@ -178,15 +181,15 @@ Détail : [contracts/bff-routes.md](./contracts/bff-routes.md).
    `HomeCarousel`, remplacement de la bannière photo.
 4. **US4 Promotions (P2)** : `/promotions`, `/promotions/[key]`, « Appliquer à mon panier ».
 5. **US5 Avis (P2)** : fiche produit, « Mes avis » (à noter, publiés, modifier, supprimer),
-   « Donner mon avis » sur la commande ; vérification de R9 (note seule, doublon) et prompt
-   backend §15 si besoin.
+   « Donner mon avis » sur la commande ; note seule vérifiée en e2e (R9).
 6. **Polish** : audit visuel (captures avant / après), effets par niveau, axe, longues tâches,
    Lighthouse, documentation (`api-map.md` : endpoints d'avis et schémas des catégories).
 
 ## Tests
 
-- Unitaires : table des catégories (exhaustive, générique), `getCategoryCounts` (5 appels,
-  échec partiel) ; `resolveNavSection` / `resolveNavCategory` ; `buildHomeSlides` (alternance,
+- Unitaires : table des catégories (exhaustive, générique), `getActiveCategories` (ordre,
+  catégorie désactivée, clé inconnue ignorée, repli en cas d'échec), `getCategoryCounts`
+  (échec partiel) ; `resolveNavSection` / `resolveNavCategory` ; `buildHomeSlides` (alternance,
   0 campagne, campagne inconnue → image générique, plafond) ; `useCarousel` (minuterie, pause
   survol / focus / onglet caché, effets réduits, une diapositive) ; `toCampaignView` (chaque
   `calculationType`, conditions présentes ou absentes) ; schémas d'avis et test de type ;

@@ -45,12 +45,15 @@ Mapping `BackendErrorCode` → `FrontErrorCode` modifié dans `lib/api/errors.ts
 catégorie brute (`ProductResponseDto.category`, chaîne libre) via `toCategoryKey` et renvoient
 le générique pour une clé inconnue (FR-003, cas limite « catégorie inconnue »).
 
-### 2.2 Comptes et photos
+### 2.2 Catégories actives, comptes et photos
 
-- `getCategoryCounts(): Promise<Record<CategoryKey, number | null>>` : `totalHits` des
-  facettes de chaque catégorie, `null` en cas d'échec (compte masqué).
-- `getCategoryPhotos(): Promise<Record<CategoryKey, readonly string[]>>` : inchangé dans son
-  principe, cinq catégories.
+- `CategorySummarySchema` (`lib/schemas/category.ts`) : `ProductCategoryResponseDto` =
+  `{ categoryKey: string (≥ 1), label: string }` ; `z.array` pour la liste.
+- `getActiveCategories(): Promise<readonly CategoryKey[]>` : clés actives connues, dans
+  l'ordre de `CATEGORY_ORDER` ; clé inconnue ignorée (`warn`) ; échec → `CATEGORY_ORDER`.
+- `getCategoryCounts(categories): Promise<Partial<Record<CategoryKey, number | null>>>` :
+  `totalHits` des facettes de chaque catégorie active, `null` en cas d'échec (compte masqué).
+- `getCategoryPhotos(categories)` : photos produits des tuiles, catégories actives.
 
 ## 3. Accueil — diapositives
 
