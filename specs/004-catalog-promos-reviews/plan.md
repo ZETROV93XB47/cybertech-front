@@ -44,7 +44,8 @@ desktop
 avec carrousel, `/promotions` et une fiche avec avis (SC-006)
 
 **Constraints**: catégories actives lues sur `GET /product-category-schemas` (libellés
-anglais : traduction côté front) ; un avis par produit seulement côté `reviewable` (doublon
+anglais : traduction côté front) ; catégorie des lignes de panier et de commande fournie par le
+backend `abe674d` (R12) ; un avis par produit seulement côté `reviewable` (doublon
 accepté, R9) ; `reviewable` exclut `AWAITING_SHIPPING` ; campagnes sans visuel ; 5
 inscriptions par minute pour les e2e
 
@@ -168,7 +169,7 @@ Détail : [contracts/bff-routes.md](./contracts/bff-routes.md).
 
 ## Ordre de livraison (une user story à la fois, arrêt et compte rendu entre deux)
 
-0. **Prérequis** : `npm run gen:api` (backend `8cc5ded`), `CategoryKey` à cinq valeurs et
+0. **Prérequis** : `npm run gen:api` (backend `abe674d`), photos et crédits (R5), `CategoryKey` à cinq valeurs et
    table de référence, `getActiveCategories()` (R1), `NavSection` remanié, codes d'erreur des
    avis, constantes et routes.
 1. **US1 Catégories (P1)** : libellés, icônes, comptes et photos des cinq catégories partout
@@ -177,9 +178,11 @@ Détail : [contracts/bff-routes.md](./contracts/bff-routes.md).
 2. **US2 Menu « Catalogue » (P1)** : NavigationMenu, catégorie courante ; le lien
    « Promotions » de la barre est ajouté avec la US4, en même temps que sa page (aucun lien
    mort entre-temps).
-3. **US3 Carrousel (P2)** : photos et crédits, `buildHomeSlides`, `useCarousel`,
-   `HomeCarousel`, remplacement de la bannière photo.
-4. **US4 Promotions (P2)** : `/promotions`, `/promotions/[key]`, « Appliquer à mon panier ».
+3. **US4 Promotions (P2)** : `/promotions`, `/promotions/[key]`, « Appliquer à mon panier »,
+   lien « Promotions » de la barre. Livrée **avant** le carrousel pour que ses diapositives de
+   campagne ne pointent jamais vers une page absente.
+4. **US3 Carrousel (P2)** : `buildHomeSlides`, `useCarousel`, `HomeCarousel`, remplacement de
+   la bannière photo (photos et crédits préparés dans le socle).
 5. **US5 Avis (P2)** : fiche produit, « Mes avis » (à noter, publiés, modifier, supprimer),
    « Donner mon avis » sur la commande ; note seule vérifiée en e2e (R9).
 6. **Polish** : audit visuel (captures avant / après), effets par niveau, axe, longues tâches,

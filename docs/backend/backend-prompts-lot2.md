@@ -534,4 +534,57 @@ Travail demandé :
 
 En attendant, le front tient un PAYMENT_FAILED lu dans les 10 s qui suivent une relance pour
 périmé (RETRY_STALE_FAILURE_GRACE_MS) et continue de sonder.
+
+Livré par le backend f48acbf (2026-10-21) ; le délai de grâce du front reste en place, sans
+effet quand le statut est juste.
+````
+
+---
+
+## 15. Catégorie sur les lignes de panier et de commande, avis pendant la préparation
+
+````text
+Objectif : que le front affiche la catégorie de chaque produit du panier et des commandes, et
+qu'un client puisse noter un produit dès que sa commande est payée, y compris pendant sa
+préparation (feature 004 du front : catégories, avis).
+
+Constat 1 — catégorie absente des lignes (backend 8cc5ded) :
+- CartItemResponseDto et OrderItemResponseDto n'ont que productUuid, productName, quantity,
+  unitPrice, lineItemTotalPrice : aucune catégorie. Le front ne peut pas afficher « Smartphones »
+  ou « Montres connectées » sur une ligne de panier ou de commande sans relire chaque produit
+  (un GET /product/get par ligne, à chaque affichage).
+- WishlistResponseDto est déjà bon : il embarque le ProductResponseDto complet (category
+  comprise).
+
+Travail demandé :
+- Ajouter `category` (String, clé de ProductCategorySchemaEntity : COMPUTER, DESKTOP, MONITOR,
+  SMARTPHONE, SMARTWATCH…) à CartItemResponseDto et à OrderItemResponseDto, lue depuis le
+  produit de la ligne (sans requête supplémentaire : le produit est déjà chargé par les
+  mappers / JOIN FETCH existants ; vérifier l'absence de N+1 avec les tests existants).
+- Pour une commande, la catégorie est celle du produit au moment de la lecture (le produit
+  n'est pas figé dans la ligne) ; un produit supprimé depuis donne `category: null`.
+- OpenAPI : documenter le champ (nullable pour les lignes de commande).
+- Tests : mappers (catégorie présente), IT panier et commande (GET /cart/get,
+  GET /management/order/get/{uuid}, GET /management/order/mine) avec la catégorie attendue.
+
+Constat 2 — commande payée non notable pendant sa préparation :
+- ReviewManagementServiceImp.REVIEWABLE_ORDER_STATUSES = PAID, SHIPPED, DELIVERED.
+- Le batch ShipAllPaidOrdersTasklet / ShipOrderTransactionalDelegate passe chaque commande
+  PAID en AWAITING_SHIPPING. Entre ce passage et l'expédition, GET /review/reviewable ne
+  renvoie plus ses produits et POST /review/create répond 409 ORDER_NOT_REVIEWABLE : un client
+  qui vient de payer voit son produit disparaître de « À noter » puis réapparaître une fois la
+  commande expédiée.
+
+Travail demandé :
+- Ajouter OrderStatus.AWAITING_SHIPPING à REVIEWABLE_ORDER_STATUSES (une commande payée reste
+  notable tant qu'elle n'est ni annulée, ni remboursée, ni retournée).
+- Vérifier que findReviewableOrdersWithItemsByKeycloakIdAndStatusIn et la vérification de
+  create utilisent bien la même constante.
+- Tests : reviewable et create sur une commande AWAITING_SHIPPING (200 / 201) ; toujours 409
+  ORDER_NOT_REVIEWABLE sur AWAITING_PAYMENT, PAYMENT_FAILED, CANCELED, REFUNDED, RETURNED.
+
+Livré par le backend abe674d (2026-10-21). Le statut d'une commande non notable reste 409
+(contrat existant) ; le front s'aiguille sur errorCode.
+
+Mets à jour progress.md et l'OpenAPI (le front régénère ses types avec npm run gen:api).
 ````

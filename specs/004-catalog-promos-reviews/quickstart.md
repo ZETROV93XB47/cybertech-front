@@ -8,7 +8,7 @@ pour la connexion). Décisions : [research.md](./research.md). Routes :
 
 ## 1. Préparation
 
-1. **Backend** (vérifié au commit `8cc5ded` le 2026-10-21) :
+1. **Backend** (vérifié au commit `abe674d` le 2026-10-21) :
    - `curl -s -H 'X-API-VERSION: 1.0' http://localhost:8081/api/v1/services/product-category-schemas`
      → les cinq catégories actives (`categoryKey`, `label`) ;
    - les cinq schémas répondent :
@@ -43,7 +43,7 @@ pour la connexion). Décisions : [research.md](./research.md). Routes :
 | 1 | Catalogue, filtre « Smartphones » | 616 produits (valeur du jour), filtres propres aux smartphones (stockage, NFC, double SIM…) |
 | 2 | Idem pour les quatre autres catégories | nombre exact et filtres de la catégorie |
 | 3 | Ouvrir une montre connectée | fil d'Ariane « Montres connectées », icône montre |
-| 4 | Ajouter un smartphone au panier et au comparateur | libellé et icône de catégorie partout |
+| 4 | Ajouter un smartphone au panier (invité puis connecté) et au comparateur, le commander | libellé et icône de catégorie sur la carte, la fiche, le comparateur, les lignes du panier et de la commande, la wishlist |
 | 5 | Accueil | cinq tuiles avec leur nombre de produits |
 | 5 bis | Catégorie désactivée côté backend (si l'admin le permet) | absente du menu, des tuiles et du carrousel ; ses produits gardent leur libellé |
 
@@ -88,7 +88,7 @@ pour la connexion). Décisions : [research.md](./research.md). Routes :
 | 25 | Supprimer (confirmation) | avis retiré, produit de nouveau notable |
 | 26 | Commentaire injurieux | refus bienveillant, saisie gardée |
 | 27 | Note seule, sans commentaire | publiée (backend `8cc5ded`, research R9) |
-| 28 | Détail d'une commande payée | « Donner mon avis » sur chaque produit encore notable |
+| 28 | Détail d'une commande payée, puis en préparation (`AWAITING_SHIPPING`) | « Donner mon avis » sur chaque produit encore notable, dans les deux cas |
 | 29 | Fiche d'un produit sans avis | état vide honnête, aucune note fictive |
 
 ## 4. Performance

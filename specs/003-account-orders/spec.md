@@ -669,7 +669,8 @@ panier ; recharger : un seul produit reste, cœur plein sur sa carte.
   (`backend-prompts-lot2.md` §12) : la suppression est effective, une deuxième carte donne
   `409 BANK_CARD_ALREADY_EXISTS` et `PUT /bank-card/replace` échange la carte dans une seule
   transaction ; le BFF l'utilise pour « Remplacer ma carte » (plus de compte sans carte).
-- **Statut cohérent juste après une relance de paiement** (non bloquante) : la relance répond
+- **Statut cohérent juste après une relance de paiement** : **livré** par le backend
+  `f48acbf` (le délai de grâce du front reste, inoffensif). Constat d'origine : la relance répond
   `AWAITING_PAYMENT` mais le statut relu dans les secondes qui suivent peut encore être le
   `PAYMENT_FAILED` de la tentative précédente, jusqu'au webhook (`backend-prompts-lot2.md`
   §14) ; le front tient ce `PAYMENT_FAILED` pour périmé pendant

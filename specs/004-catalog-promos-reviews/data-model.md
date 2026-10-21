@@ -17,7 +17,6 @@ régénéré le 2026-10-21).
 | `CampaignImageKey` | `lib/enums/promotions.ts` | `BLACK_FRIDAY`, `WINTER_SALES`, `SPRING_SALES`, `BUY_ONE_GET_ONE_FREE` (clés codées dans `DiscountTypeResolver` du backend) | R5 |
 | `ApplyCampaignOutcome` | `lib/enums/promotions.ts` | `APPLIED = "applied"`, `SIGN_IN_NEEDED = "sign-in-needed"`, `STORAGE_UNAVAILABLE = "storage-unavailable"` | R7 |
 | `ReviewFormStatus` | `lib/enums/review.ts` | `IDLE = "idle"`, `SUCCESS = "success"`, `ERROR = "error"` | FR-016 à FR-018 |
-| `AccountSection` (complété) | navigation du compte | `REVIEWS = "reviews"` (+) | R10 |
 | `FrontErrorCode` (complété) | `lib/enums/error-code.ts` | `REVIEW_REJECTED = "review-rejected"`, `REVIEW_NOT_ALLOWED = "review-not-allowed"` | R8 |
 
 Mapping `BackendErrorCode` → `FrontErrorCode` modifié dans `lib/api/errors.ts` :
@@ -54,6 +53,13 @@ le générique pour une clé inconnue (FR-003, cas limite « catégorie inconnue
 - `getCategoryCounts(categories): Promise<Partial<Record<CategoryKey, number | null>>>` :
   `totalHits` des facettes de chaque catégorie active, `null` en cas d'échec (compte masqué).
 - `getCategoryPhotos(categories)` : photos produits des tuiles, catégories actives.
+
+### 2.3 Catégorie des lignes (R12)
+
+| Schéma | Champ ajouté | Règle |
+|---|---|---|
+| `AccountCartItemSchema` (`lib/schemas/cart.ts`) | `category` | `z.string().min(1).optional()` (`CartItemResponseDto.category`, backend `abe674d`) |
+| `OrderItemSchema` (`lib/schemas/order.ts`) | `category` | `z.string().min(1).nullish()` (`null` : produit supprimé depuis) |
 
 ## 3. Accueil — diapositives
 
@@ -155,5 +161,5 @@ produit notable ──publier──▶ avis publié ──modifier──▶ avis
 | `PRODUCT_REVIEWS_PAGE_SIZE` | `lib/constants/reviews.ts` | `10` | taille par défaut du backend |
 | `MY_REVIEWS_PAGE_SIZE` | `lib/constants/reviews.ts` | `10` | prompt §13 |
 | `PRODUCT_REVIEWS_REVALIDATE_SECONDS` | `lib/constants/reviews.ts` | `60` | fraîcheur de la fiche, revalidée par tag après chaque écriture |
-| `PROMOTIONS_PATH`, `promotionRoute(key)`, `ACCOUNT_REVIEWS_PATH` | `lib/constants/routes.ts` | `/promotions`, `/promotions/{key}`, `/account/reviews` | — |
+| `PROMOTIONS_PATH`, `promotionRoute(key)`, `ACCOUNT_PATHS.reviews`, `accountReviewRoute(…)` | `lib/constants/routes.ts` | `/promotions`, `/promotions/{key}`, `/account/reviews`, `/account/reviews?product=…&order=…` | « Mes avis » est ajouté à `ACCOUNT_SECTIONS` (`features/account/account-sections.ts`), source de `AccountNav` |
 | `BACKEND_PATHS.review*` | `lib/constants/api.ts` | `reviewCreate`, `reviewUpdate`, `reviewDelete`, `reviewReviewable`, `reviewMine`, `reviewProduct` | OpenAPI |

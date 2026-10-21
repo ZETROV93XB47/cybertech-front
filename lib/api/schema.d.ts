@@ -233,7 +233,7 @@ export interface paths {
         put?: never;
         /**
          * Retry payment for a failed order
-         * @description Retries the payment process for an order that is in PAYMENT_FAILED status. Checks stock availability before proceeding.
+         * @description Retries the payment process for an order that is in PAYMENT_FAILED status. Checks stock availability before proceeding. The order is persisted as AWAITING_PAYMENT until the payment webhook settles it (PAID or PAYMENT_FAILED); a late failure of an earlier attempt no longer overwrites it.
          */
         post: operations["retryPayment"];
         delete?: never;
@@ -813,7 +813,7 @@ export interface paths {
         };
         /**
          * List the products the caller can review
-         * @description Products the authenticated user has bought (order PAID, SHIPPED or DELIVERED) and not reviewed yet, with the order to reference in POST /create.
+         * @description Products the authenticated user has bought (order PAID, AWAITING_SHIPPING, SHIPPED or DELIVERED) and not reviewed yet, with the order to reference in POST /create.
          */
         get: operations["getReviewableProducts"];
         put?: never;
@@ -966,6 +966,26 @@ export interface paths {
          *     no-store — stock moves on every order. Unknown uuids are absent from the result.
          */
         get: operations["getAvailability"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/product-category-schemas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the product categories offered
+         * @description Returns every active category (key + label), sorted by category key. No authentication required.
+         */
+        get: operations["getActiveCategories"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1733,6 +1753,11 @@ export interface components {
             /** Format: uuid */
             productUuid?: string;
             productName?: string;
+            /**
+             * @description Category key of the product as it is now (not frozen at purchase time); null when the product no longer exists.
+             * @example SMARTPHONE
+             */
+            category?: string | null;
             /** Format: int32 */
             quantity?: number;
             unitPrice?: number;
@@ -1869,6 +1894,11 @@ export interface components {
             /** Format: uuid */
             productUuid?: string;
             productName?: string;
+            /**
+             * @description Category key of the product (ProductCategorySchemaEntity.categoryKey, e.g. SMARTPHONE).
+             * @example SMARTPHONE
+             */
+            category?: string;
             /** Format: int32 */
             quantity?: number;
             unitPrice?: number;
@@ -2219,6 +2249,10 @@ export interface components {
             /** Format: int32 */
             availableStock?: number;
             inStock?: boolean;
+        };
+        ProductCategoryResponseDto: {
+            categoryKey?: string;
+            label?: string;
         };
         PushPublicKeyResponseDto: {
             publicKey?: string;
@@ -2761,7 +2795,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Payment retried successfully (Order Paid) */
+            /** @description Payment retried: the order is AWAITING_PAYMENT until the payment webhook settles it */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -4955,6 +4989,37 @@ export interface operations {
             };
             /** @description Missing, malformed or more than 50 uuids */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    getActiveCategories: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-VERSION"?: "1.0";
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Categories retrieved successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductCategoryResponseDto"][];
+                };
+            };
+            /** @description Internal server error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -127,16 +127,17 @@ cite ce qui a été vérifié sur le backend en marche ou dans son code.
     `reviews` = `PagedModel<PublicReviewDto>` (`uuid`, `rating`, `comment`,
     `authorFirstName`, `createdAt`), 10 par page, `?page=` accepté (vérifié).
   - `GET /review/reviewable` (USER) → `ReviewableProductDto[]` (`productUuid`, `orderUuid`,
-    `productName`, `orderDate`) : commandes `PAID`, `SHIPPED`, `DELIVERED` (pas
-    `AWAITING_SHIPPING`), un élément par ligne de commande, **tous retirés dès que le produit a
-    un avis du client**.
+    `productName`, `orderDate`) : commandes `PAID`, `AWAITING_SHIPPING` (depuis `abe674d`),
+    `SHIPPED`, `DELIVERED`, un élément par ligne de commande, **tous retirés dès que le produit
+    a un avis du client**.
   - `GET /review/mine` (USER) → `PagedModel<MyReviewDto>` (`uuid`, `productUuid`,
     `productName`, `orderUuid`, `rating`, `comment`, `createdAt`, `updatedAt`), `page`, `size`,
     `sort`.
   - `POST /review/create` (`orderUuid`, `productUuid`, `rating` 1–5, `comment` ≤ 1 000) → 201 ;
     `PATCH /review/update/{uuid}` (`reviewUuid`, `rating`?, `comment`?) ; `DELETE
     /review/delete/{uuid}` → 204.
-  - Erreurs : `COMMENT_POST_NOT_ALLOWED` (modération, échec fermé), `ORDER_NOT_REVIEWABLE`,
+  - Erreurs : `403 COMMENT_POST_NOT_ALLOWED` (modération, échec fermé), `409
+    ORDER_NOT_REVIEWABLE` (contrat existant, gardé par le backend),
     `ORDER_DOESNT_BELONGS_TO_USER`, `USER_NOT_AUTHOR_OF_REVIEW`, `REVIEW_NOT_FOUND`,
     `PRODUCT_NOT_FOUND`.
 - **Decision** :
@@ -170,6 +171,16 @@ cite ce qui a été vérifié sur le backend en marche ou dans son code.
   « Mes commandes » et « Ma wishlist » ; le détail d'une commande affiche « Donner mon avis »
   pour chaque ligne présente dans `reviewable` pour cette commande (FR-019), lien vers
   `/account/reviews?product={uuid}&order={uuid}` qui ouvre le formulaire de ce produit.
+
+## R12 — Catégorie des lignes de panier et de commande
+
+- **Decision** : `category` (backend `abe674d`) est lu sur `CartItemResponseDto` (chaîne) et
+  `OrderItemResponseDto` (nullable : produit supprimé depuis) ; la wishlist l'a déjà dans son
+  `ProductResponseDto`. Le panier invité, qui ne garde que des UUID et des quantités, prend la
+  catégorie des données produit qu'il relit déjà pour s'afficher. Affichage par
+  `categoryLabel` / `categoryIcon` ; `null` ou clé inconnue → générique (FR-003).
+- **Alternatives** : relire chaque produit par `GET /product/get` (un appel par ligne et par
+  affichage, écarté).
 
 ## R11 — Performance
 

@@ -41,6 +41,11 @@ export const OrderItemSchema = z.object({
   quantity: z.int().min(CART_LINE_MIN_QUANTITY),
   unitPrice: AmountSchema,
   lineItemTotalPrice: AmountSchema,
+  /**
+   * Category key of the product at read time (backend `abe674d`); `null` when the product was
+   * deleted since. Free text, read through `toCategoryKey`.
+   */
+  category: z.string().min(1).nullish(),
 });
 
 /** One line of an order. */

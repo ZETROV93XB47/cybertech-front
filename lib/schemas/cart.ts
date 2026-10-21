@@ -26,6 +26,11 @@ export const AccountCartItemSchema = z.object({
   quantity: z.int().min(1),
   unitPrice: z.number().nonnegative(),
   lineItemTotalPrice: z.number().nonnegative(),
+  /**
+   * Category key of the product (`COMPUTER`, `SMARTPHONE`…, backend `abe674d`); free text, read
+   * through `toCategoryKey`. Optional so that an older backend still parses.
+   */
+  category: z.string().min(1).optional(),
 });
 
 /** One line of the account cart, as sent by the backend. */

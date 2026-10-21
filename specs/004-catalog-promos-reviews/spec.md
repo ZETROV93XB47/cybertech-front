@@ -252,11 +252,13 @@ produit 4 étoiles avec un commentaire, puis ouvrir sa fiche et y lire l'avis av
   par le panier (refus clair de la feature 003, FR-018).
 - Carrousel avec une seule diapositive : ni défilement ni indicateurs.
 - Onglet caché : le carrousel ne défile pas en arrière-plan.
-- Avis sur un produit déjà noté depuis un autre onglet : refus expliqué, liste rafraîchie.
+- Avis sur un produit déjà noté depuis un autre onglet : le second avis est accepté par le
+  backend (doublon accepté le 2026-10-21) ; la liste est rafraîchie.
 - Commentaire uniquement fait d'espaces : traité comme absent (la note seule est publiée).
 - Session expirée pendant la publication d'un avis : la saisie est gardée, invitation à se
   reconnecter, aucune publication automatique.
-- Produit noté retiré du catalogue : l'avis reste listable, le lien vers la fiche est retiré.
+- Produit noté retiré du catalogue : l'avis reste listé ; son lien mène à la page « produit
+  introuvable » existante (le backend ne dit pas qu'un produit a été retiré).
 - Avis modifié ou supprimé depuis un autre onglet : la liste est rafraîchie après l'action ;
   un avis devenu introuvable est retiré de la liste avec un message.
 
@@ -266,15 +268,16 @@ produit 4 étoiles avec un commentaire, puis ouvrir sa fiche et y lire l'avis av
 
 **Catégories**
 
-- **FR-001**: Le site MUST reconnaître les cinq catégories du backend (ordinateurs portables,
+- **FR-001**: Le site MUST reconnaître les catégories actives du backend, cinq aujourd'hui
+  (ordinateurs portables,
   ordinateurs de bureau, écrans, smartphones, montres connectées) avec un nom français, une
   icône et un ordre d'affichage fixes.
-- **FR-002**: Le catalogue MUST pouvoir être filtré sur chacune des cinq catégories, avec ses
+- **FR-002**: Le catalogue MUST pouvoir être filtré sur chacune des catégories actives, avec ses
   filtres de caractéristiques issus du schéma de la catégorie et le nombre de produits exact.
 - **FR-003**: Tout affichage d'un produit (carte, fiche, fil d'Ariane, panier, comparateur,
   commande, liste de souhaits) MUST montrer le nom et l'icône de sa catégorie ; une catégorie
   inconnue MUST avoir un libellé et une icône génériques, sans erreur.
-- **FR-004**: L'accueil MUST proposer les cinq catégories avec leur nombre de produits.
+- **FR-004**: L'accueil MUST proposer les catégories actives avec leur nombre de produits.
 
 **Navigation**
 
@@ -381,8 +384,11 @@ produit 4 étoiles avec un commentaire, puis ouvrir sa fiche et y lire l'avis av
 - Les images (cinq catégories, BLACK_FRIDAY et les autres campagnes connues du backend :
   WINTER_SALES, SPRING_SALES, BUY_ONE_GET_ONE_FREE, plus une image générique) sont des photos
   Unsplash ou Pexels, libres d'usage, choisies pour l'ambiance (sans logo lisible).
-- Les avis sont notables dès qu'une commande est payée (règle du backend : payée, expédiée ou
-  livrée), pas seulement livrée.
+- Les avis sont notables dès qu'une commande est payée, pendant sa préparation, après son
+  expédition et sa livraison (backend `abe674d` : `PAID`, `AWAITING_SHIPPING`, `SHIPPED`,
+  `DELIVERED`).
+- Le carrousel montre au plus quatre campagnes (`HOME_CAMPAIGN_SLIDES_MAX`), pour rester court
+  si le backend en active beaucoup ; la page « Promotions » les liste toutes.
 - Intervalle du carrousel : 6 secondes ; les réglages exacts suivent les jetons de mouvement du
   thème.
 - La cible reste le navigateur de bureau.
@@ -397,6 +403,11 @@ produit 4 étoiles avec un commentaire, puis ouvrir sa fiche et y lire l'avis av
   actives, triées par clé.
 - **Note sans commentaire** : **corrigée** par le backend `8cc5ded` : une note seule n'est
   plus envoyée à la modération.
+- **Catégorie sur les lignes de panier et de commande, avis pendant la préparation** :
+  **livrés** par le backend `abe674d` (`backend-prompts-lot2.md` §15) : `category` sur
+  `CartItemResponseDto` et `OrderItemResponseDto` (nullable sur une commande dont le produit a
+  été supprimé) ; une commande `AWAITING_SHIPPING` est notable. Une commande non notable
+  répond `409 ORDER_NOT_REVIEWABLE` (le front s'aiguille sur `errorCode`).
 - **Images des campagnes** (non bloquante) : le backend ne fournit pas de visuel ; le front
   associe une image par clé connue et une image générique sinon.
 
