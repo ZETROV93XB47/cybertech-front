@@ -46,8 +46,14 @@ export const RECENTLY_VIEWED_MAX = 8;
 /** Data-cache lifetime of product data (detail, search, best sellers). */
 export const PRODUCTS_REVALIDATE_SECONDS = 60;
 
-/** Data-cache lifetime of active discount campaigns. */
-export const DISCOUNTS_REVALIDATE_SECONDS = 300;
+/**
+ * Data-cache lifetime of active discount campaigns.
+ *
+ * The backend does not notify the front when a campaign is enabled or disabled, so this is the
+ * longest a change takes to show on the home page and the promotions pages; same freshness as the
+ * products.
+ */
+export const DISCOUNTS_REVALIDATE_SECONDS = 60;
 
 /** Data-cache lifetime of category JSON schemas, which change only through admin actions. */
 export const CATEGORY_SCHEMA_REVALIDATE_SECONDS = 3_600;
