@@ -37,8 +37,6 @@ function isUnder(pathname: string, prefix: string): boolean {
  * Resolves the current section of the navigation bar.
  *
  * @param pathname - Current path.
- * @param searchParams - Current query parameters.
- * @param productCategory - Category published by a product page, `null` otherwise.
  * @returns The section to highlight: `CATALOG` for the catalog and the product pages (whatever
  *   the category, now grouped under the « Catalogue » menu), `PROMOTIONS` for the promotions,
  *   `ACCOUNT` on the private pages (account and checkout), `NONE` elsewhere.

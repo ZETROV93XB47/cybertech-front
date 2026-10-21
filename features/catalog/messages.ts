@@ -48,6 +48,19 @@ export const CATEGORY_TILE_MESSAGES = {
   empty: "Aucun produit pour l'instant",
 } as const;
 
+/**
+ * « Catalogue » menu of the header: « Tout le catalogue » then one link per active category.
+ *
+ * @see specs/004-catalog-promos-reviews/spec.md US2
+ */
+export const CATALOG_MENU_MESSAGES = {
+  allCatalog: "Tout le catalogue",
+  /** Accessible name of the panel's link list. */
+  panelLabel: "Catégories du catalogue",
+  count: (count: number): string =>
+    count === 1 ? "1 produit" : `${count.toLocaleString(UI_LOCALE)} produits`,
+} as const;
+
 /** Breadcrumb of the catalog. */
 export const CATALOG_BREADCRUMB_MESSAGES = {
   label: "Fil d'Ariane",

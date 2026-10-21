@@ -2,12 +2,18 @@ import { act, screen, within } from "@testing-library/react";
 import { axe } from "jest-axe";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { MainNav, StaticMainNav } from "@/components/layout/MainNav";
+import { MainNav, StaticMainNav, type MainNavProps } from "@/components/layout/MainNav";
 import { NavSectionMarker } from "@/components/layout/NavSectionMarker";
 import { publishNavCategory } from "@/components/layout/nav-section";
 import { CategoryKey } from "@/lib/enums/category-key";
 
 import { renderWithProviders } from "../../helpers/providers";
+
+/** Categories and counts given by the header. */
+const NAV_PROPS: MainNavProps = {
+  categories: [CategoryKey.COMPUTER, CategoryKey.SMARTPHONE],
+  counts: { [CategoryKey.COMPUTER]: 12 },
+};
 
 const location = vi.hoisted(() => ({ pathname: "/", search: "" }));
 
@@ -26,14 +32,13 @@ vi.mock("next/navigation", () => ({
 function renderAt(pathname: string, search = ""): ReturnType<typeof renderWithProviders> {
   location.pathname = pathname;
   location.search = search;
-  return renderWithProviders(<MainNav />);
+  return renderWithProviders(<MainNav {...NAV_PROPS} />);
 }
 
-/** Links of the main navigation, in order. */
+/** Entries of the main navigation (« Accueil » link, « Catalogue » trigger), in order. */
 function navLinks(): HTMLElement[] {
-  return within(screen.getByRole("navigation", { name: "Navigation principale" })).getAllByRole(
-    "link",
-  );
+  const nav = within(screen.getByRole("navigation", { name: "Navigation principale" }));
+  return [...nav.getAllByRole("link"), ...nav.getAllByRole("button")];
 }
 
 afterEach(() => {
@@ -43,10 +48,11 @@ afterEach(() => {
 });
 
 describe("MainNav", () => {
-  it("lists Accueil and Catalogue with their addresses (categories live in the menu, US2)", async () => {
+  it("shows the Accueil link and the Catalogue menu trigger (categories live in the menu)", async () => {
     const { container } = renderAt("/");
     expect(navLinks().map((link) => link.textContent)).toEqual(["Accueil", "Catalogue"]);
-    expect(navLinks().map((link) => link.getAttribute("href"))).toEqual(["/", "/products"]);
+    expect(screen.getByRole("link", { name: "Accueil" })).toHaveAttribute("href", "/");
+    expect(screen.queryByRole("link", { name: "Ordinateurs" })).not.toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
   });
 
@@ -73,15 +79,18 @@ describe("MainNav", () => {
     location.search = "";
     renderWithProviders(
       <>
-        <MainNav />
+        <MainNav {...NAV_PROPS} />
         <NavSectionMarker category={CategoryKey.SMARTPHONE} />
       </>,
     );
-    expect(screen.getByRole("link", { name: "Catalogue" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("button", { name: "Catalogue" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
   });
 
   it("has a static version without current link", () => {
-    renderWithProviders(<StaticMainNav />);
+    renderWithProviders(<StaticMainNav {...NAV_PROPS} />);
     expect(navLinks()).toHaveLength(2);
     expect(navLinks().filter((link) => link.hasAttribute("aria-current"))).toHaveLength(0);
   });

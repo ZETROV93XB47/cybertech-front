@@ -15,3 +15,7 @@ export const HEADER_ICON_BUTTON_CLASS =
 
 /** Size of every header icon. */
 export const HEADER_ICON_CLASS = "size-5";
+
+/** Height, radius, text and hover state of the main navigation entries (links and menu trigger). */
+export const NAV_ITEM_CLASS =
+  "relative inline-flex h-10 items-center gap-1 rounded-button px-3 text-sm transition-colors duration-(--duration-fast) hover:text-text";

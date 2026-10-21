@@ -108,8 +108,8 @@ describe.each(LEVELS)("effects %s", (_label, options, expected) => {
   });
 
   it(`the navigation underline moves in ${expected} mode`, () => {
-    renderWithProviders(<MainNav />, options);
-    const current = screen.getByRole("link", { name: "Catalogue" });
+    renderWithProviders(<MainNav categories={[CategoryKey.COMPUTER]} counts={{}} />, options);
+    const current = screen.getByRole("button", { name: "Catalogue" });
     expect(current.querySelector("[data-nav-indicator]")).toHaveAttribute(
       "data-entrance",
       expected,

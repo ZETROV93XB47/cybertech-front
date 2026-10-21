@@ -138,3 +138,38 @@ Vérifié le 2026-10-21 (T001–T021) : backend `abe674d` sur 8081, front de l'u
 | 4 | OK | catégorie sur les cartes, la fiche, le comparateur, les lignes du panier (invité et connecté), le détail de commande, la wishlist |
 | 5 | OK | cinq tuiles avec leur nombre de produits |
 | 5 bis | non testé | aucune catégorie désactivable sans l'administration ; couvert par les tests unitaires de `getActiveCategories` |
+
+### US2 — Menu « Catalogue »
+
+Vérifié le 2026-10-21 (T022–T027) : backend `abe674d` sur 8081, front de l'utilisateur sur
+3000 (rechargement à chaud).
+
+- Contrôles : `typecheck` OK, `lint` 0 warning, `test` 951 tests verts (94 fichiers), dont
+  `catalog-menu.test.tsx` (13 tests : ouverture, ordre, comptes, Échap, Tab, catégorie
+  courante, clic après survol, un test par niveau d'effets).
+- Le menu est testé dans `navigation.spec.ts` (T023) plutôt que dans un
+  `catalog-menu.spec.ts` séparé.
+- E2E (`--workers=1`) : `navigation.spec.ts` 7 OK, `a11y.spec.ts` 4 OK (nouveau cas : en-tête
+  avec le menu ouvert), `home.spec.ts` 4 OK.
+- Écart assumé (axe) : Radix `NavigationMenu` ajoute, menu ouvert, un « focus proxy »
+  (`span aria-hidden` focusable) qui renvoie aussitôt le focus dans le panneau ; axe le signale
+  en `aria-hidden-focus`. Il est exclu de l'audit de ce seul cas
+  (`NAVIGATION_MENU_FOCUS_PROXY`, `tests/e2e/support/a11y.ts`).
+- Comportement ajouté : un clic sur « Catalogue » juste après une ouverture au survol garde le
+  panneau ouvert (Radix le refermait), comme pour le menu du compte ; le clic suivant le ferme.
+- Chargement : les catégories et leurs comptes sont lus côté serveur dans un `Suspense` ; en
+  attendant, la barre statique montre les cinq catégories connues sans compte (même
+  dimensions, pas de décalage).
+- Captures relues : `screenshots/us2/` (menu fermé, ouvert au survol, catégorie courante,
+  focus clavier). Correctif : panneau élargi, les noms « Ordinateurs portables / de bureau »
+  passaient sur deux lignes.
+- Lighthouse desktop (build de production, port 3124, deux passages) : accueil 0,98–0,99
+  (LCP 1,01–1,12 s, CLS 0,002, TBT ≤ 12 ms), catalogue 0,98 (LCP 1,14–1,16 s), fiche
+  smartphone 0,99 (LCP 0,85 s).
+
+| # | Résultat | Commentaire |
+|---|---|---|
+| 6 | OK | « Tout le catalogue » + 5 catégories avec leurs comptes (576, 262, 410, 616, 315) ; plus de liens « Ordinateurs » / « Écrans » |
+| 7 | OK | Tab, Entrée, Tab, Entrée → catalogue filtré ; Échap referme et rend le focus (e2e) |
+| 8 | OK | sur une fiche smartphone, « Catalogue » courant et « Smartphones » marqué (e2e) |
+| 9 | OK | panneau statique aux effets réduits, désactivés ou avec `prefers-reduced-motion` (tests unitaires) |

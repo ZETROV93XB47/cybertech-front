@@ -2,11 +2,12 @@
  * Accessibility audit of every lot 1 page (constitution, WCAG 2.1 AA): axe-core finds no serious
  * or critical violation on the home page, the list, a product page, the cart (empty and filled)
  * and the registration page, with the default accent and with the cyan one. Feature 002 adds
- * the filtered catalog, the comparison modal and the product page with its compare button.
+ * the filtered catalog, the comparison modal and the product page with its compare button;
+ * feature 004 adds the header with the « Catalogue » menu open.
  */
-import { test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
-import { expectNoBlockingViolations } from "./support/a11y";
+import { expectNoBlockingViolations, NAVIGATION_MENU_FOCUS_PROXY } from "./support/a11y";
 import { firstProductPaths } from "./support/account";
 
 test.describe("accessibility", () => {
@@ -73,5 +74,15 @@ test.describe("accessibility", () => {
     await page.goto("/cart");
     await page.getByRole("list", { name: "Articles du panier" }).waitFor();
     await expectNoBlockingViolations(page);
+  });
+
+  test("header with the « Catalogue » menu open", async ({ page }) => {
+    await page.goto("/products?category=SMARTPHONE");
+    const trigger = page
+      .getByRole("navigation", { name: "Navigation principale" })
+      .getByRole("button", { name: "Catalogue" });
+    await trigger.click();
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+    await expectNoBlockingViolations(page, [NAVIGATION_MENU_FOCUS_PROXY]);
   });
 });
