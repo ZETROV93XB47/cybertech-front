@@ -25,11 +25,12 @@ import { RecordProductView } from "@/features/catalog/components/RecordProductVi
 import { PRODUCT_MESSAGES } from "@/features/catalog/messages";
 import { buildDeliveryLines, expressPromise } from "@/features/catalog/delivery";
 import { buildProductSpecs } from "@/features/catalog/product-specs";
-import { NO_REVIEWS } from "@/features/catalog/reviews";
+import { NO_REVIEWS, toProductReviews, type ProductReviews } from "@/features/catalog/reviews";
 import { CompareBar } from "@/features/compare/components/CompareBar";
 import { getCategorySchema } from "@/lib/api/endpoints/categories";
 import { getActiveDiscounts } from "@/lib/api/endpoints/discounts";
 import { getAvailability, getProductByUuid, searchProducts } from "@/lib/api/endpoints/products";
+import { getProductReviews } from "@/lib/api/endpoints/reviews";
 import { getShippingOptions } from "@/lib/api/endpoints/shipping";
 import {
   META_DESCRIPTION_MAX_LENGTH,
@@ -38,7 +39,7 @@ import {
   SIMILAR_PRODUCTS_FETCH_SIZE,
 } from "@/lib/constants/catalog";
 import { SearchParam } from "@/lib/enums/search-param";
-import { createModuleLogger } from "@/lib/logger";
+import { createModuleLogger, maskUuid } from "@/lib/logger";
 import { toCategoryKey } from "@/lib/schemas/category";
 import type { ActiveDiscount } from "@/lib/schemas/discount";
 import type { Product, ProductAvailability, ProductCard } from "@/lib/schemas/product";
@@ -51,6 +52,9 @@ interface ProductPageProps {
 }
 
 const log = createModuleLogger("catalog.product-page");
+
+/** First page of the reviews (0-based), read with the page; the next ones on request. */
+const FIRST_REVIEWS_PAGE = 0;
 
 /**
  * Bounds the `?photo=` parameter to the existing photos.
@@ -125,6 +129,25 @@ async function loadOffer(): Promise<ActiveDiscount | undefined> {
 }
 
 /**
+ * Loads the first page of the reviews; on failure the section says there is no review yet
+ * rather than inventing a figure (FR-020).
+ *
+ * @param productUuid - Product shown.
+ * @returns The reviews, or {@link NO_REVIEWS}.
+ */
+async function loadReviews(productUuid: string): Promise<ProductReviews> {
+  try {
+    return toProductReviews(await getProductReviews(productUuid, FIRST_REVIEWS_PAGE));
+  } catch {
+    log.warn(
+      { productUuid: maskUuid(productUuid) },
+      "Product reviews not loaded; empty state shown",
+    );
+    return NO_REVIEWS;
+  }
+}
+
+/**
  * Keeps one card per model name, without the product shown: the catalog can hold the same
  * model twice under different UUIDs.
  *
@@ -181,12 +204,13 @@ export default async function ProductPage({
   if (!product) {
     notFound();
   }
-  const [labels, availability, offer, similar, shippingOptions] = await Promise.all([
+  const [labels, availability, offer, similar, shippingOptions, reviews] = await Promise.all([
     categoryLabels(product),
     readInitialAvailability(product.uuid),
     loadOffer(),
     loadSimilar(product),
     getShippingOptions(),
+    loadReviews(product.uuid),
   ]);
   const specs = buildProductSpecs(product.attributes, labels);
   const photo = selectedPhoto((await searchParams)[SearchParam.PHOTO], product.photoUrls.length);
@@ -223,7 +247,7 @@ export default async function ProductPage({
           <ProductSpecs specs={specs} />
         </div>
       </div>
-      <ProductReviewsSection reviews={NO_REVIEWS} />
+      <ProductReviewsSection productUuid={product.uuid} reviews={reviews} />
       <SimilarProducts products={similar} />
       <CompareBar />
     </article>

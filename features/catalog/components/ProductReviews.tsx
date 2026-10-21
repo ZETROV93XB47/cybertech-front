@@ -2,57 +2,29 @@
  * « Avis clients » section of the product page, laid out like LDLC: average rating with stars,
  * distribution of the ratings, then the reviews, or an invitation when there is none.
  *
- * The backend cannot list the reviews of a product yet, so the page passes `NO_REVIEWS` and the
- * section shows the honest empty state; it fills itself once the endpoint exists.
+ * The page passes the first page of reviews (`GET /review/product/{uuid}`), or `NO_REVIEWS` when
+ * they cannot be read: the section then shows the honest empty state, never a made-up figure
+ * (FR-020). The next pages come through « Voir plus d'avis » (`MoreReviews`).
  *
  * @see features/catalog/reviews.ts
  */
-import { MessageSquareText, Star } from "lucide-react";
+import { MessageSquareText } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
 
 import { StateIllustration } from "@/components/effects/StateIllustration";
 import { UI_LOCALE } from "@/lib/format";
-import { cn } from "@/lib/utils";
 
 import { REVIEW_MESSAGES } from "../messages";
-import { REVIEW_MAX_RATING, REVIEW_RATINGS, type ProductReviews } from "../reviews";
+import { REVIEW_RATINGS, type ProductReviews } from "../reviews";
+
+import { MoreReviews } from "./MoreReviews";
+import { ReviewItem, ReviewStars } from "./ReviewItem";
 
 /** Digits of the displayed average (« 4,3 »). */
 const AVERAGE_FRACTION_DIGITS = 1;
 
 /** Full width of a distribution bar, in percent. */
 const FULL_BAR_PERCENT = 100;
-
-/**
- * Row of stars, filled up to a rating.
- *
- * @param props - Rating (may be fractional) and size classes.
- * @returns The stars, named by their rating for screen readers.
- */
-function Stars({
-  rating,
-  className,
-}: {
-  readonly rating: number;
-  readonly className?: string;
-}): ReactNode {
-  const filled = Math.round(rating);
-  return (
-    <span role="img" aria-label={REVIEW_MESSAGES.ratingLabel(rating)} className="flex gap-0.5">
-      {REVIEW_RATINGS.map((position) => (
-        <Star
-          key={position}
-          aria-hidden
-          className={cn(
-            "size-4",
-            REVIEW_MAX_RATING - position < filled ? "fill-gold text-gold" : "text-border",
-            className,
-          )}
-        />
-      ))}
-    </span>
-  );
-}
 
 /**
  * Average rating and number of reviews.
@@ -72,7 +44,7 @@ function Summary({ reviews }: { readonly reviews: ProductReviews }): ReactNode {
   return (
     <div className="flex flex-col items-start gap-2">
       <p className="font-display text-4xl text-text">{average}</p>
-      <Stars rating={reviews.average ?? 0} className="size-5" />
+      <ReviewStars rating={reviews.average ?? 0} className="size-5" />
       <p className="text-sm text-text-muted">{REVIEW_MESSAGES.count(reviews.count)}</p>
     </div>
   );
@@ -108,10 +80,16 @@ function Distribution({ reviews }: { readonly reviews: ProductReviews }): ReactN
 /**
  * The reviews, or an invitation to write the first one.
  *
- * @param props - Reviews of the product.
- * @returns The list or the empty state.
+ * @param props - Product and its reviews.
+ * @returns The list (with « Voir plus d'avis ») or the empty state.
  */
-function ReviewList({ reviews }: { readonly reviews: ProductReviews }): ReactNode {
+function ReviewList({
+  productUuid,
+  reviews,
+}: {
+  readonly productUuid: string;
+  readonly reviews: ProductReviews;
+}): ReactNode {
   if (reviews.items.length === 0) {
     return (
       <div className="flex flex-col items-start gap-3">
@@ -122,26 +100,25 @@ function ReviewList({ reviews }: { readonly reviews: ProductReviews }): ReactNod
     );
   }
   return (
-    <ul aria-label={REVIEW_MESSAGES.listLabel} className="flex flex-col gap-4">
+    <MoreReviews productUuid={productUuid} firstPage={reviews.page} hasMore={reviews.hasMore}>
       {reviews.items.map((review) => (
-        <li key={review.uuid} className="flex flex-col gap-2 border-b border-border pb-4">
-          <Stars rating={review.rating} />
-          {review.comment && <p className="text-sm text-text">{review.comment}</p>}
-        </li>
+        <ReviewItem key={review.uuid} review={review} />
       ))}
-    </ul>
+    </MoreReviews>
   );
 }
 
 /**
  * Customer reviews section.
  *
- * @param props - Reviews of the product.
+ * @param props - Product and its reviews.
  * @returns The section.
  */
 export function ProductReviewsSection({
+  productUuid,
   reviews,
 }: {
+  readonly productUuid: string;
   readonly reviews: ProductReviews;
 }): ReactNode {
   return (
@@ -152,7 +129,7 @@ export function ProductReviewsSection({
       <div className="grid gap-8 md:grid-cols-3">
         <Summary reviews={reviews} />
         <Distribution reviews={reviews} />
-        <ReviewList reviews={reviews} />
+        <ReviewList productUuid={productUuid} reviews={reviews} />
       </div>
     </section>
   );

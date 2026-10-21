@@ -1,19 +1,21 @@
 /**
  * Body of the order detail: status and actions, payment retry after a refusal, timeline, lines
  * (linked to the product only while it is still in the catalog), delivery address and shipping,
- * and the amounts. Server Component; the actions and the payment follow-up are client islands.
+ * and the amounts, with « Donner mon avis » on the products still reviewable (feature 004,
+ * FR-019). Server Component; the actions and the payment follow-up are client islands.
  *
  * @see specs/003-account-orders/spec.md US3, FR-023 to FR-027
  * @see specs/003-account-orders/data-model.md §4.5
  */
-import { MapPin, Truck } from "lucide-react";
+import { MapPin, MessageSquareText, Truck } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { CategoryTag } from "@/features/catalog/components/CategoryTag";
 import { PaymentTracker } from "@/features/checkout/components/PaymentTracker";
 import { DELIVERY_MESSAGES } from "@/features/catalog/messages";
-import { productPath } from "@/lib/constants/routes";
+import { ORDER_REVIEW_MESSAGES } from "@/features/reviews/messages";
+import { accountReviewRoute, productPath } from "@/lib/constants/routes";
 import { formatPrice } from "@/lib/format";
 
 import { ORDER_DETAIL_MESSAGES } from "../messages";
@@ -27,15 +29,52 @@ import { OrderTimeline } from "./OrderTimeline";
 /** Props of {@link OrderDetail}. */
 export interface OrderDetailProps {
   readonly order: OrderView;
+  /** Products of this order the customer can still review. */
+  readonly reviewableProductUuids: ReadonlySet<string>;
+}
+
+/**
+ * « Donner mon avis » on a bought product, opening its form in « Mes avis ».
+ *
+ * @param props - Product, order and product name.
+ * @returns The link.
+ */
+function ReviewLink({
+  productUuid,
+  orderUuid,
+  productName,
+}: {
+  readonly productUuid: string;
+  readonly orderUuid: string;
+  readonly productName: string;
+}): ReactNode {
+  return (
+    <Link
+      href={accountReviewRoute({ productUuid, orderUuid })}
+      aria-label={ORDER_REVIEW_MESSAGES.reviewLabel(productName)}
+      className="inline-flex items-center gap-1.5 text-xs text-brand-text hover:underline"
+    >
+      <MessageSquareText aria-hidden className="size-3.5" />
+      {ORDER_REVIEW_MESSAGES.review}
+    </Link>
+  );
 }
 
 /**
  * One line of the order.
  *
- * @param props - Line.
+ * @param props - Line, order and whether the product can be reviewed.
  * @returns The list item.
  */
-function OrderLine({ line }: { readonly line: OrderLineView }): ReactNode {
+function OrderLine({
+  line,
+  orderUuid,
+  isReviewable,
+}: {
+  readonly line: OrderLineView;
+  readonly orderUuid: string;
+  readonly isReviewable: boolean;
+}): ReactNode {
   return (
     <li className="flex items-baseline justify-between gap-4 border-b border-border py-3 last:border-b-0">
       <span className="flex min-w-0 flex-col gap-0.5">
@@ -52,6 +91,13 @@ function OrderLine({ line }: { readonly line: OrderLineView }): ReactNode {
           </span>
         )}
         <CategoryTag category={line.category} />
+        {isReviewable && (
+          <ReviewLink
+            productUuid={line.productUuid}
+            orderUuid={orderUuid}
+            productName={line.productName}
+          />
+        )}
         <span className="text-xs text-text-muted">
           {`${ORDER_DETAIL_MESSAGES.quantity(line.quantity)} · ${ORDER_DETAIL_MESSAGES.unitPrice(formatPrice(line.unitPrice))}`}
         </span>
@@ -64,10 +110,18 @@ function OrderLine({ line }: { readonly line: OrderLineView }): ReactNode {
 /**
  * Lines block.
  *
- * @param props - Order lines.
+ * @param props - Order lines, order and the reviewable products.
  * @returns The section.
  */
-function OrderLines({ lines }: { readonly lines: readonly OrderLineView[] }): ReactNode {
+function OrderLines({
+  lines,
+  orderUuid,
+  reviewable,
+}: {
+  readonly lines: readonly OrderLineView[];
+  readonly orderUuid: string;
+  readonly reviewable: ReadonlySet<string>;
+}): ReactNode {
   return (
     <section aria-labelledby="order-lines" className="glass flex flex-col gap-2 rounded-card p-6">
       <h2 id="order-lines" className="text-lg">
@@ -75,7 +129,12 @@ function OrderLines({ lines }: { readonly lines: readonly OrderLineView[] }): Re
       </h2>
       <ul>
         {lines.map((line) => (
-          <OrderLine key={line.productUuid} line={line} />
+          <OrderLine
+            key={line.productUuid}
+            line={line}
+            orderUuid={orderUuid}
+            isReviewable={reviewable.has(line.productUuid)}
+          />
         ))}
       </ul>
     </section>
@@ -138,15 +197,19 @@ function OrderStatusPanel({ order }: { readonly order: OrderView }): ReactNode {
 /**
  * Order detail.
  *
- * @param props - Order view.
+ * @param props - Order view and the products still reviewable.
  * @returns The two columns of the detail.
  */
-export function OrderDetail({ order }: OrderDetailProps): ReactNode {
+export function OrderDetail({ order, reviewableProductUuids }: OrderDetailProps): ReactNode {
   return (
     <div className="grid items-start gap-6 xl:grid-cols-12">
       <div className="flex flex-col gap-6 xl:col-span-7">
         <OrderStatusPanel order={order} />
-        <OrderLines lines={order.lines} />
+        <OrderLines
+          lines={order.lines}
+          orderUuid={order.uuid}
+          reviewable={reviewableProductUuids}
+        />
         <OrderDelivery order={order} />
       </div>
       <div className="flex flex-col gap-6 xl:col-span-5">

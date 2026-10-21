@@ -17,7 +17,11 @@ import { PAGE_TITLE_CLASS, PageHeader } from "@/components/layout/PageHeader";
 import { COMMON_MESSAGES } from "@/features/common/messages";
 import { OrderDetail } from "@/features/orders/components/OrderDetail";
 import { ORDER_DETAIL_MESSAGES, ORDERS_MESSAGES } from "@/features/orders/messages";
-import { readOrder, readCatalogUuids } from "@/features/orders/server/order-data";
+import {
+  readCatalogUuids,
+  readOrder,
+  readReviewableProductUuids,
+} from "@/features/orders/server/order-data";
 import { shortOrderNumber, toOrderView } from "@/features/orders/order-view";
 import { getAccessTokenOrRedirect } from "@/lib/auth/guards";
 import { ACCOUNT_PATHS, HOME_PATH, orderPath } from "@/lib/constants/routes";
@@ -49,7 +53,10 @@ export default async function OrderPage({ params }: OrderPageProps): Promise<Rea
     notFound();
   }
   const accessToken = await getAccessTokenOrRedirect(orderPath(parsed.data));
-  const order = await readOrder(parsed.data, accessToken);
+  const [order, reviewable] = await Promise.all([
+    readOrder(parsed.data, accessToken),
+    readReviewableProductUuids(parsed.data, accessToken),
+  ]);
   const view = toOrderView(order, await readCatalogUuids(order));
   const number = ORDERS_MESSAGES.orderNumber(shortOrderNumber(order.uuid));
   const day = formatFullDay(order.createdAt);
@@ -68,7 +75,7 @@ export default async function OrderPage({ params }: OrderPageProps): Promise<Rea
         title={<LiveTitle text={number} className={PAGE_TITLE_CLASS} />}
         subtitle={day === null ? undefined : ORDERS_MESSAGES.placedOn(day)}
       />
-      <OrderDetail order={view} />
+      <OrderDetail order={view} reviewableProductUuids={reviewable} />
     </>
   );
 }

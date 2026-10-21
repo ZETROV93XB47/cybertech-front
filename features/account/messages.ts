@@ -12,6 +12,7 @@ export const ACCOUNT_NAV_MESSAGES = {
   title: "Mon compte",
   orders: "Mes commandes",
   wishlist: "Ma wishlist",
+  reviews: "Mes avis",
   profile: "Mon profil",
   card: "Ma carte",
 } as const;

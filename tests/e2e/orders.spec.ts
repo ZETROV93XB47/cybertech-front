@@ -151,7 +151,7 @@ test("orders are listed, filtered, edited and cancelled", async ({ page, context
   await expect(page.getByTestId("edit-previous-total")).toHaveText(totalBefore);
   await page.getByRole("link", { name: "Voir ma commande" }).click();
   await page.waitForURL(new RegExp(`${ORDERS_PATH}/${second}$`));
-  await expect(page.getByRole("link", { name: productName })).toBeVisible();
+  await expect(page.getByRole("link", { name: productName, exact: true })).toBeVisible();
   if (discountLabel !== null) {
     await expect(page.getByText(discountLabel)).toBeVisible();
   }

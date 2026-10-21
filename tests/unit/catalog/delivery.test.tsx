@@ -87,7 +87,12 @@ describe("DeliveryInfo", () => {
 
 describe("ProductReviewsSection", () => {
   it("invites to write the first review when there is none", async () => {
-    const { container } = render(<ProductReviewsSection reviews={NO_REVIEWS} />);
+    const { container } = render(
+      <ProductReviewsSection
+        productUuid="0193a2b4-1111-7222-8333-000000000001"
+        reviews={NO_REVIEWS}
+      />,
+    );
     expect(screen.getByRole("region", { name: "Avis clients" })).toBeInTheDocument();
     expect(screen.getByText("Aucun avis pour l'instant")).toBeInTheDocument();
     expect(screen.getByText("Sois le premier à donner ton avis")).toBeInTheDocument();
@@ -103,11 +108,24 @@ describe("ProductReviewsSection", () => {
       count: 2,
       distribution: { 5: 1, 4: 1, 3: 0, 2: 0, 1: 0 },
       items: [
-        { uuid: "a", rating: 5, comment: "Très bon écran." },
-        { uuid: "b", rating: 4, comment: null },
+        {
+          uuid: "a",
+          rating: 5,
+          comment: "Très bon écran.",
+          authorFirstName: "Camille",
+          createdAt: "2026-10-14",
+        },
+        { uuid: "b", rating: 4, comment: null, authorFirstName: null, createdAt: "2026-10-12" },
       ],
+      page: 0,
+      hasMore: false,
     };
-    render(<ProductReviewsSection reviews={reviews} />);
+    render(
+      <ProductReviewsSection
+        productUuid="0193a2b4-1111-7222-8333-000000000001"
+        reviews={reviews}
+      />,
+    );
     expect(screen.getByText("4,5 sur 5")).toBeInTheDocument();
     expect(screen.getByText("2 avis")).toBeInTheDocument();
     const list = screen.getByRole("list", { name: "Avis des clients" });

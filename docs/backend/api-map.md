@@ -112,7 +112,7 @@ Controller : `{ctrl}/ProductSearchController.java` (base `/api/v1/services/produ
 | Méthode | Chemin | Controller#méthode | Auth | Params | Body | Réponse | Codes HTTP | Pagination | Notes |
 |---|---|---|---|---|---|---|---|---|---|
 | GET | `/api/v1/services/product/get/{productUuid}` | `ProductSearchController#getProductByUuid` (:30) | Public | path `productUuid` (UUID) | — | `ProductResponseDto` (§D.12) | 200, 400 (UUID invalide), 404 | — | Lu depuis MySQL. |
-| POST | `/api/v1/services/product/search` | `#searchProducts` (:39) | Public | — | `ProductSearchRequestDto` (§D.10) | `PagedModel<ProductResponseDto>` | 200, 400 | **Dans le body** (`page` défaut 0, `size` défaut 20) | Elasticsearch : `multiMatch` fuzzy (`AUTO`) sur le mot-clé, filtres catégorie / marques / attributs / plages. **Pas de tri** paramétrable (pertinence). `ProductSearchServiceImp.java:42-161`. |
+| POST | `/api/v1/services/product/search` | `#searchProducts` (:39) | Public | — | `ProductSearchRequestDto` (§D.10) | `PagedModel<ProductResponseDto>` | 200, 400 | **Dans le body** (`page` défaut 0, `size` défaut 20) | Elasticsearch : `multiMatch` fuzzy (`AUTO`) sur le mot-clé, filtres catégorie / marques / attributs / plages. Tri `sort` (§D.10) appliqué à tout le résultat avant pagination depuis `14252d5` ; absent = pertinence. `ProductSearchServiceImp.java`. |
 | GET | `/api/v1/services/product/availability` | `#getAvailability` | Public | query `uuids` (1 à 50 UUID, séparés par des virgules ou répétés) | — | `ProductAvailabilityDto[]` (§D.12b) | 200, 400 `INVALID_REQUEST` (vide / > 50) ou `METHOD_ARGUMENT_TYPE_MISMATCH` (UUID invalide) | — | **Stock en direct** (`max(0, stock - reservedStock)`, lu en base), réponse `Cache-Control: no-store`. UUID inconnus absents du résultat. À ne **jamais** mettre en cache côté front. |
 | GET | `/api/v1/services/product/best-sellers` | `#getBestSellers` (:45) | Public | query `page`, `size` (défaut 15), `sort` | — | `PagedModel<ProductResponseDto>` | 200 | Query | — |
 | POST | `/api/v1/services/product/search/facets` | `#getSearchFacets` (:60) | Public | — | `ProductSearchRequestDto` (§D.10, `page` / `size` ignorés) | `ProductFacetsResponseDto` (§D.26) | 200, 400 (`UNKNOWN_PRODUCT_CATEGORY` compris) | — | Mêmes critères que `/search`. Compteurs **disjonctifs** : les valeurs d'un filtre sont comptées avec tous les autres filtres actifs sauf le sien. Au plus `FACET_MAX_VALUES` = **50** valeurs par attribut (`CyberTechAppConstants.java:91`), triées par nombre décroissant puis alphabétiquement. `attributes` / `numericAttributes` présents seulement avec une catégorie. `Cache-Control: public`. Livré au commit backend `3a3a62c` ; utilisé par le front depuis la feature 002 (`lib/api/endpoints/facets.ts`, repli sans compteurs si absent). |
@@ -123,9 +123,10 @@ Recherche vide (tous champs `null`) = liste de tout le catalogue : **confirmé �
 
 | Méthode | Chemin | Controller#méthode | Auth | Params | Body | Réponse | Codes HTTP | Notes |
 |---|---|---|---|---|---|---|---|---|
+| GET | `/api/v1/services/product-category-schemas` | `ProductCategorySchemaController` | Public | — | — | Résumés des catégories **actives** (`categoryKey`, libellé anglais) | 200 | Livré au backend `28a15ae` ; utilisé par le front (`getActiveCategories`, cache 3 600 s) pour le menu « Catalogue », les tuiles, le carrousel et le filtre. |
 | GET | `/api/v1/services/product-category-schemas/{categoryKey}` | `ProductCategorySchemaController#getByCategoryKey` (:33) | Public | path `categoryKey` (ex. `COMPUTER`, `MONITOR`) | — | `ProductCategorySchemaResponseDto` (§D.13) | 200, 404/400 `UNKNOWN_PRODUCT_CATEGORY` | `jsonSchema` = JSON Schema **en chaîne** décrivant `attributes` → utile pour générer filtres et fiches techniques. |
 
-Catégories seedées au démarrage : `COMPUTER` (« Computers »), `MONITOR` (« Monitors ») et, depuis `ecc76e1` / `84dc038` (catalogue LDLC), `DESKTOP` (« Desktop computers »), `SMARTPHONE` (« Smartphones »), `SMARTWATCH` (« Smartwatches ») (`{pkg}/config/ProductCategorySchemaInitializer.java`, `seedIfMissing`). **Aucun endpoint public ne liste les catégories** (seul `GET /admin/product-category-schemas/get/all`, ADMIN).
+Catégories seedées au démarrage : `COMPUTER` (« Computers »), `MONITOR` (« Monitors ») et, depuis `ecc76e1` / `84dc038` (catalogue LDLC), `DESKTOP` (« Desktop computers »), `SMARTPHONE` (« Smartphones »), `SMARTWATCH` (« Smartwatches ») (`{pkg}/config/ProductCategorySchemaInitializer.java`, `seedIfMissing`). Les noms français viennent du front (`CATEGORY_LABELS`).
 
 ## 5. Remises
 
@@ -208,17 +209,19 @@ Controller : `{ctrl}/WishlistManagementController.java` (base `/api/v1/services/
 
 ## 10. Avis (reviews) — modération IA synchrone
 
-Controller : `{ctrl}/ReviewCrudController.java` (base `/api/v1/services/review`). **Tous `hasRole('USER')` uniquement** (un ADMIN sans rôle USER est refusé).
+Controller : `{ctrl}/ReviewCrudController.java` (base `/api/v1/services/review`). Tous en `hasRole('USER')` sauf `GET /review/product/{uuid}`, public. Utilisés par la feature 004 US5 (`lib/api/endpoints/reviews.ts`, Server Actions `features/reviews/actions.ts`).
 
 | Méthode | Chemin | Controller#méthode | Body | Réponse | Codes | Notes |
 |---|---|---|---|---|---|---|
-| GET | `/review/reviewable` | `#getReviewableProducts` (:73) | — | `ReviewableProductDto[]` (§D.23) | 200 | Produits achetés et notables (commandes `PAID`/`SHIPPED`/`DELIVERED`). |
-| POST | `/review/create` | `#createReview` (:46) | `ReviewCreateRequestDto` (§D.11) | `201` `ReviewResponseDto` (§D.22) | 201, 400, 403 `COMMENT_POST_NOT_ALLOWED` / `ORDER_DOESNT_BELONGS_TO_USER`, 404, 409 `ORDER_NOT_REVIEWABLE` | Appel **synchrone** au service Python ; **fail-closed** : modération indisponible → 403 (`ReviewManagementServiceImp.java:87-96`, `CommentModerationClient.java:37-62`). |
+| GET | `/review/product/{productUuid}` | `#getProductReviews` | — (query `page`, `size` défaut 10) | `ProductReviewsResponseDto` (§D.27) | 200, 404 `PRODUCT_NOT_FOUND` | **Public**. Moyenne et répartition sur tous les avis publiés, puis une page d'avis, du plus récent au plus ancien (backend `bddcafd`). |
+| GET | `/review/mine` | `#getMyReviews` | — (query `page`, `size` défaut 10, `sort` défaut `createdAt,desc`) | `PagedModel<MyReviewDto>` (§D.28) | 200 | Avis de l'appelant (backend `bddcafd`). |
+| GET | `/review/reviewable` | `#getReviewableProducts` (:73) | — | `ReviewableProductDto[]` (§D.23) | 200 | Produits achetés et notables, un par couple produit–commande (commandes `PAID`/`AWAITING_SHIPPING`/`SHIPPED`/`DELIVERED` depuis `abe674d`). |
+| POST | `/review/create` | `#createReview` (:46) | `ReviewCreateRequestDto` (§D.11) | `201` `ReviewResponseDto` (§D.22) | 201, 400, 403 `COMMENT_POST_NOT_ALLOWED` / `ORDER_DOESNT_BELONGS_TO_USER`, 404, 409 `ORDER_NOT_REVIEWABLE` | Appel **synchrone** au service Python (`moderation.api.url`, toxic-bert) ; **fail-closed** : modération injoignable → 403 `COMMENT_POST_NOT_ALLOWED` sur **tout** commentaire, une note seule passe (`8cc5ded`). Constaté en local le 2026-10-21 : `moderation-api:5000` ne se résout pas depuis la machine de dev. |
 | GET | `/review/get/{reviewUuid}` | `#getReviewByUuid` (:39) | — | `ReviewResponseDto` | 200, 404 | — |
-| PATCH | `/review/update/{reviewUuid}` | `#updateReview` (:53) | `ReviewUpdateRequestDto` (§D.11b) | `ReviewResponseDto` | 200, 403 `USER_NOT_AUTHOR_OF_REVIEW` | `reviewUuid` du **body** fait foi, le path est ignoré ⚠️ À CONFIRMER. |
+| PATCH | `/review/update/{reviewUuid}` | `#updateReview` (:53) | `ReviewUpdateRequestDto` (§D.11b) | `ReviewResponseDto` | 200, 403 `USER_NOT_AUTHOR_OF_REVIEW` / `COMMENT_POST_NOT_ALLOWED`, 404 `REVIEW_NOT_FOUND` | `reviewUuid` du **body** fait foi. Un `comment` vide efface le texte (avis note seule) ; absent = texte inchangé. Le front envoie toujours `comment`. |
 | DELETE | `/review/delete/{reviewUuid}` | `#deleteReviewByUuid` (:60) | — | `204` | 204, 403, 404 | — |
 
-**Aucun endpoint ne liste les avis d'un produit**, ni ne fournit de note moyenne.
+Le front aiguille sur `errorCode`, jamais sur le statut (409 `ORDER_NOT_REVIEWABLE` → `review-not-allowed`, 403 `COMMENT_POST_NOT_ALLOWED` → `review-rejected`).
 
 ## 11. Recommandations & événements comportementaux
 
@@ -337,6 +340,7 @@ Même forme que D.5 (`cartItemAddRequestDtos`), sémantique **remplacement compl
 | `numericRanges` | `Record<string, { min?: number, max?: number }>` | optionnel |
 | `page` | integer | optionnel, `@Min(0)`, défaut 0 |
 | `size` | integer | optionnel, `@Min(1)`, défaut 20 (pas de max explicite ⚠️) |
+| `sort` | `ProductSearchSort` | optionnel (`RELEVANCE` par défaut, `NAME_ASC`, `PRICE_ASC`, `PRICE_DESC`, `RATING_DESC`) ; valeur inconnue → 400 `MALFORMED_JSON` ; ignoré par `/search/facets` (backend `14252d5`, prompt §16) |
 
 ### D.11 `ReviewCreateRequestDto`
 `orderUuid` (req), `productUuid` (req), `rating` (req, int `1..5`), `comment` (optionnel, `@Size(max=1000)`).
@@ -425,6 +429,12 @@ Invariant (quand le détail est présent) : `totalAmount = max(0, subtotalAmount
 ### D.23 `ReviewableProductDto`
 `productUuid`, `orderUuid`, `productName`, `orderDate` (LocalDate).
 
+### D.27 `ProductReviewsResponseDto` / `PublicReviewDto`
+`averageRating` (BigDecimal, 1 décimale, `null` sans avis), `reviewCount` (long), `distribution` (`"1"` à `"5"` → long, toujours toutes présentes), `reviews` (`PagedModel<PublicReviewDto>`). `PublicReviewDto` : `uuid`, `rating`, `comment` (nullable), `authorFirstName` (**nullable** : afficher « Client »), `createdAt` (**LocalDate**).
+
+### D.28 `MyReviewDto`
+`uuid`, `productUuid`, `productName`, `orderUuid` (**nullable** pour un ancien avis), `rating`, `comment` (nullable), `createdAt` (LocalDateTime), `updatedAt` (nullable).
+
 ### D.24 `UserEventResponseDto`
 `id`, `userId`, `sessionId`, `eventType`, `productId`, `timestamp` (Instant), `metadata`.
 
@@ -486,12 +496,12 @@ Requête : `shippingType` (req, `@NotNull`), `shippingProvider` (req, `@NotNull`
 | Besoin front | Endpoint proposé (backend) | Contournement possible aujourd'hui |
 |---|---|---|
 | ~~Profil de l'utilisateur connecté~~ | **Fait** : `GET /api/v1/services/user/me` | — |
-| Liste publique des catégories | `GET /api/v1/services/product-category-schemas` | Liste codée en dur (`COMPUTER`, `MONITOR`, `DESKTOP`, `SMARTPHONE`, `SMARTWATCH` au commit `84dc038`). |
+| ~~Liste publique des catégories~~ | **Fait** : `GET /api/v1/services/product-category-schemas` (§4, `28a15ae`) | — |
 | ~~Disponibilité / stock produit~~ | **Fait** : `GET /api/v1/services/product/availability` | — |
-| Tri du catalogue (prix, nouveautés) | param `sort` sur `/product/search` | Aucun (pertinence ES uniquement). |
+| ~~Tri du catalogue~~ | **Fait** : `sort` sur `/product/search` (§D.10, `14252d5`) | — |
 | ~~Facettes (marques, plages de prix, attributs avec compteurs)~~ | **Fait** : `POST /api/v1/services/product/search/facets` (§3) | Repli front sans compteurs si l'endpoint manque (feature 002). |
 | Suggestions / autocomplétion (palette ⌘K) | `GET /product/suggest?q=` | `POST /product/search` avec `size` réduit + debounce. |
-| Avis publics d'un produit + note moyenne | `GET /api/v1/services/review/product/{uuid}` (public, paginé) — demandé (`backend-prompts-lot2.md` §8) | Section « Avis clients » de la fiche produit vide en attendant. |
+| ~~Avis publics d'un produit + note moyenne~~ | **Fait** : `GET /api/v1/services/review/product/{uuid}` (§10, `bddcafd`) | — |
 | Délais de livraison, heure limite, retrait en magasin | champs de délai sur `ShippingOptionResponseDto`, type `PICKUP` — demandés (`backend-prompts-lot2.md` §9) | Délais indicatifs du front (`lib/constants/shipping.ts`), pas de retrait en magasin. |
 | Panier invité + fusion à la connexion | `POST /cart/merge` idempotent (optionnel) | **Retenu** : panier invité en `localStorage` puis rejoué via le BFF → `/cart/add` à la connexion — voir [`../guest-cart.md`](../guest-cart.md). |
 | ~~Récapitulatif de prix avant commande (remise, port)~~ | **Fait** : `POST /api/v1/services/management/order/quote` (§7) | — (à utiliser par la feature 003). |

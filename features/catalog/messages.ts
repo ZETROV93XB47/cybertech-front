@@ -379,6 +379,14 @@ export const REVIEW_MESSAGES = {
   emptyBody:
     "Une fois ta commande reçue, tu pourras noter ce produit et partager ton expérience avec les autres clients.",
   listLabel: "Avis des clients",
+  /** Author shown when the account has no first name (`authorFirstName` null). */
+  anonymousAuthor: "Client",
+  postedOn: (day: string): string => `le ${day}`,
+  more: "Voir plus d'avis",
+  loadingMore: "Chargement des avis…",
+  moreLoaded: (count: number): string =>
+    count === 1 ? "1 avis de plus affiché." : `${count} avis de plus affichés.`,
+  moreFailed: "Les avis suivants n'ont pas pu être chargés. Réessaie dans un instant.",
 } as const;
 
 /** Labels of the orders of « Trier par ». */

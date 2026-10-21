@@ -48,12 +48,18 @@ test.describe("product page", () => {
     await expect(delivery).toContainText("Délais indicatifs");
   });
 
-  test("shows the customer reviews section, empty for now", async ({ page }) => {
+  test("shows the customer reviews section, with real reviews or the empty state", async ({
+    page,
+  }) => {
     const [path = ""] = await firstProductPaths(page, 1);
     await page.goto(path);
     const reviews = page.getByRole("region", { name: "Avis clients" });
     await expect(reviews).toBeVisible();
-    await expect(reviews).toContainText("Aucun avis pour l'instant");
+    // Feature 004 US5: the reviews are read from the backend; earlier runs may have left some.
+    await expect(
+      reviews.getByText(/^(Aucun avis pour l'instant|1 avis|\d[\d\s ]* avis)$/),
+    ).toBeVisible();
+    await expect(reviews.getByRole("list", { name: "Répartition des notes" })).toBeVisible();
     await expectNoBlockingViolations(page);
   });
 });

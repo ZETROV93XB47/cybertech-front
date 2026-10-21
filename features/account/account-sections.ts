@@ -7,7 +7,14 @@
  *
  * @see specs/003-account-orders/tasks.md T050, T061, T098
  */
-import { CreditCard, Heart, Package, UserRound, type LucideIcon } from "lucide-react";
+import {
+  CreditCard,
+  Heart,
+  MessageSquareText,
+  Package,
+  UserRound,
+  type LucideIcon,
+} from "lucide-react";
 
 import { ACCOUNT_PATHS } from "@/lib/constants/routes";
 
@@ -29,6 +36,7 @@ export interface AccountSection {
  */
 export const ACCOUNT_SECTIONS: readonly AccountSection[] = [
   { href: ACCOUNT_PATHS.orders, label: ACCOUNT_NAV_MESSAGES.orders, icon: Package },
+  { href: ACCOUNT_PATHS.reviews, label: ACCOUNT_NAV_MESSAGES.reviews, icon: MessageSquareText },
   { href: ACCOUNT_PATHS.wishlist, label: ACCOUNT_NAV_MESSAGES.wishlist, icon: Heart },
   { href: ACCOUNT_PATHS.profile, label: ACCOUNT_NAV_MESSAGES.profile, icon: UserRound },
   { href: ACCOUNT_PATHS.card, label: ACCOUNT_NAV_MESSAGES.card, icon: CreditCard },

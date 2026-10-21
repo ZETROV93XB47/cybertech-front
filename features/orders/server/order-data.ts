@@ -12,6 +12,7 @@ import { notFound } from "next/navigation";
 import { ApiError } from "@/lib/api/errors";
 import { getOrder } from "@/lib/api/endpoints/orders";
 import { getAvailability } from "@/lib/api/endpoints/products";
+import { getReviewableProducts } from "@/lib/api/endpoints/reviews";
 import { FrontErrorCode } from "@/lib/enums/error-code";
 import { createModuleLogger, maskUuid } from "@/lib/logger";
 import type { OrderResponse } from "@/lib/schemas/order";
@@ -55,5 +56,32 @@ export async function readCatalogUuids(order: OrderResponse): Promise<ReadonlySe
       "Availability unreadable, order lines left unlinked",
     );
     return null;
+  }
+}
+
+/**
+ * Products of this order the customer can still review (FR-019); a bonus, so a failure only
+ * hides the « Donner mon avis » links.
+ *
+ * @param orderUuid - Order shown.
+ * @param accessToken - The user's access token; never logged.
+ * @returns The product UUIDs reviewable for this order, empty on failure.
+ * @see specs/004-catalog-promos-reviews/spec.md FR-019
+ */
+export async function readReviewableProductUuids(
+  orderUuid: string,
+  accessToken: string,
+): Promise<ReadonlySet<string>> {
+  try {
+    const reviewable = await getReviewableProducts(accessToken);
+    return new Set(
+      reviewable.filter((entry) => entry.orderUuid === orderUuid).map((entry) => entry.productUuid),
+    );
+  } catch (error) {
+    log.warn(
+      { orderUuid: maskUuid(orderUuid), code: error instanceof ApiError ? error.frontCode : null },
+      "Reviewable products unreadable, review links hidden",
+    );
+    return new Set();
   }
 }

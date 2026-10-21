@@ -238,3 +238,50 @@ active : 6 diapositives C, P, C, C, C, C), front de l'utilisateur sur 3000.
 | 13 | OK | « Voir la promotion » → `/promotions/BLACK_FRIDAY` |
 | 14 | OK | bouton pause : plus de défilement ; onglet caché : pause (tests unitaires) |
 | 15 | OK | effets réduits ou `prefers-reduced-motion` : pas de lecture automatique ni de bouton pause, changement instantané |
+
+### US5 — Avis sur mes achats
+
+Vérifié le 2026-10-21 (T048–T062) : backend `14252d5` sur 8081, front de l'utilisateur sur
+3000.
+
+- Contrôles : `typecheck` OK, `lint` 0 warning, `test` 1 088 tests verts (109 fichiers), dont
+  `review-schemas` (15), `review-views` (6), `review-actions` (9), route BFF (5),
+  `reviews-components` (15) et le test de type `review.test-d.ts` (champs = OpenAPI).
+- Écarts au modèle de données, alignés sur les DTO réels : `authorFirstName` nullable (« Client »
+  affiché), `createdAt` d'un avis public = date seule, `MyReviewDto.orderUuid` nullable.
+- Modification : le front envoie toujours `comment` ; vide, il efface le texte (le backend garde
+  l'ancien texte si le champ manque). Le formulaire de modification permet donc de repasser à une
+  note seule.
+- Formulaire : l'action serveur est appelée à la main dans une transition. Avec `<form action>`,
+  React vidait le formulaire à la fin de l'action (les étoiles disparaissaient après un refus) et
+  la confirmation se perdait, le produit quittant « À noter » dans le même rendu. Corrigé et
+  couvert par les tests de composants et l'e2e.
+- **Modération injoignable en local** : le backend appelle `moderation-api:5000/analyze`, qui ne
+  se résout pas depuis la machine de dev, et refuse alors tout commentaire (fail-closed). Le
+  refus bienveillant et la saisie gardée sont vérifiés ; une note seule est publiée. L'e2e accepte
+  les deux situations et note l'annotation `moderation` quand le commentaire est refusé.
+- E2E (`--workers=1`) : `reviews.spec.ts` 2 OK (publier, voir sur la fiche avec le prénom,
+  modifier, supprimer ; note seule depuis le lien du détail de commande), `orders.spec.ts` 2 OK
+  (sélecteur du produit rendu exact : le lien « Donner ton avis sur … » contient aussi son nom),
+  `product-page.spec.ts` 2 OK (section d'avis réelle ou vide), `a11y.spec.ts` 4 OK,
+  `navigation.spec.ts` 7 OK.
+- Captures relues : `screenshots/us5/` (détail de commande avec « Donner mon avis », « Mes avis »
+  à noter, formulaire, refus, deux listes, état vide, avis de la fiche, fiche sans avis).
+  Correctifs : le message de refus apparaissait deux fois ; le titre « Mes avis publiés »
+  s'affichait seul sans avis publié.
+- Lighthouse desktop (build de production, port 3124, fiche avec 7 avis, deux passages) : 0,99
+  (LCP 0,86–0,96 s, CLS 0,002, TBT ≤ 16 ms).
+- `docs/backend/api-map.md` mis à jour : endpoints d'avis (§10, §D.27, §D.28),
+  `GET /product-category-schemas` (§4) et tri du catalogue (§D.10).
+
+| # | Résultat | Commentaire |
+|---|---|---|
+| 21 | OK | menu avatar → « Mes avis » ; produits notables avec « Commandé le … » |
+| 22 | OK partiel | étoiles au clavier (tests unitaires), confirmation annoncée, produit passé sous « Mes avis publiés » ; le commentaire est refusé localement (modération injoignable), la note seule est publiée |
+| 23 | OK | moyenne, répartition, avis avec le prénom et la date ; « Voir plus d'avis » (tests unitaires) |
+| 24 | OK | modification après rechargement, visible sur « Mes avis » et sur la fiche |
+| 25 | OK | suppression confirmée, produit de nouveau dans « À noter » |
+| 26 | OK | refus bienveillant, note et texte gardés (vérifié avec la modération injoignable) |
+| 27 | OK | note seule publiée |
+| 28 | OK | « Donner mon avis » sur le détail d'une commande payée ; en préparation (`AWAITING_SHIPPING`) couvert par le backend `abe674d`, non reproduit (le lot d'expédition ne tourne pas pendant le test) |
+| 29 | OK | fiche sans avis : « Aucun avis pour l'instant », aucune note fictive |

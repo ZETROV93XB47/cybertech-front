@@ -86,6 +86,20 @@ export const BFF_ROUTES = {
   bankCard: "/api/bank-card",
 } as const;
 
+/** Query parameter of the 0-based page of {@link productReviewsRoute}. */
+export const PRODUCT_REVIEWS_PAGE_PARAM = "page";
+
+/**
+ * Builds the BFF route reading one page of the public reviews of a product (`GET ?page=`).
+ *
+ * @param productUuid - Product UUID.
+ * @returns The path `/api/products/{uuid}/reviews`.
+ * @see specs/004-catalog-promos-reviews/contracts/bff-routes.md §1
+ */
+export function productReviewsRoute(productUuid: string): string {
+  return `${BFF_ROUTES.products}/${encodeURIComponent(productUuid)}/reviews`;
+}
+
 /**
  * Builds the BFF route adding (`PUT`) or removing (`DELETE`) one product of the wishlist.
  *
