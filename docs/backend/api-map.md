@@ -229,7 +229,7 @@ Le front aiguille sur `errorCode`, jamais sur le statut (409 `ORDER_NOT_REVIEWAB
 | Méthode | Chemin | Controller#méthode | Auth | Params / Body | Réponse | Codes | Notes |
 |---|---|---|---|---|---|---|---|
 | GET | `/api/v1/services/recommendations/my-recommendations` | `RecommendationController#getMyRecommendations` (:33) | `isAuthenticated()` | query `n` (défaut 10) | `ProductResponseDto[]` | 200 | Gorse : personnalisé → derniers → best-sellers (cache Redis 900 s). |
-| POST | `/api/v1/events/consume-event` | `UserEventController#collectEvent` (:48) | `hasRole('USER')` | `UserEventDto` (§D.14) | `201` `UserEventResponseDto` (§D.24) | 201, 400 | Stocké dans MongoDB, alimente Gorse. `userId` ignoré en entrée (pris du JWT). |
+| POST | `/api/v1/events/consume-event` | `UserEventController#collectEvent` (:48) | `hasRole('USER')` | `UserEventDto` (§D.14) | `201` `UserEventResponseDto` (§D.24) | 201, 400 | Stocké dans MongoDB, alimente Gorse. `userId` ignoré en entrée (pris du JWT). Constaté le 2026-10-22 : seule source d'événements, jamais appelée, donc aucun retour dans Gorse ; accepte aussi `PURCHASE` envoyé par le client. Prompt backend §18 : événements métier produits par le backend, endpoint limité aux signaux du navigateur. |
 
 ## 12. Paiement (webhook — hors front)
 

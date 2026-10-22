@@ -696,3 +696,117 @@ dans un instant, ta note et ton texte sont gardés », sans inviter à reformule
 
 Mets à jour progress.md et l'OpenAPI (le front régénère ses types avec npm run gen:api).
 ````
+
+---
+
+## 18. Événements de recommandation produits par le backend
+
+````text
+Objectif : que Gorse apprenne enfin quelque chose. Les actions métier d'un utilisateur connecté
+(achat, panier, wishlist, avis) doivent devenir des UserEvent écrits par le backend lui-même, au
+moment où l'action est validée ; POST /api/v1/events/consume-event ne sert plus qu'aux signaux
+que seul le navigateur voit, et refuse les autres.
+
+Constat (backend b5811c5, vérifié le 2026-10-22 sur la stack locale) :
+- Gorse tourne et lit bien docker/gorse/config.toml (positive_feedback_types chargés). Le batch
+  GorseSyncTasklet synchronise items et users (dashboard : 9 308 items, 261 users), mais
+  NumTotalPosFeedback = 0 et GET /api/feedback est vide.
+- MongoDB userEventsDB ne contient aucune collection : aucun UserEvent n'a jamais été écrit.
+- La seule source d'UserEvent est UserEventController#collectEvent (consume-event). Aucun service
+  métier n'en produit : CartServiceImp, WishlistServiceImp, ReviewManagementServiceImp et la
+  confirmation de paiement n'appellent jamais UserEventService. Le front n'appelle pas encore
+  consume-event.
+- consume-event accepte n'importe quel UserEventType envoyé par le client : un utilisateur
+  connecté peut poster des PURCHASE en boucle sur un produit et fausser les recommandations de
+  tout le monde. Le userId est bien pris du JWT, mais le type et le produit restent libres.
+
+Travail demandé :
+
+1. Production des événements métier, côté backend, pour l'utilisateur authentifié
+   (userId = keycloakId, comme GorseMapper#toUserDto) :
+   - PURCHASE : un par produit de la commande, au passage effectif à PAID. Point d'accroche
+     conseillé : l'OrderPaymentConfirmedEvent publié par
+     OrderPaymentConfirmationTransactionalDelegateImp#handlePaymentSuccessWithinTransaction (il
+     n'est publié que sur une vraie transition, pas sur un webhook en double). Jamais à
+     POST /order/place : un paiement refusé ne doit rien compter. Après une modification de
+     commande payée par complément (AWAITING_PAYMENT → PAID de nouveau), ne pas dupliquer les
+     PURCHASE des produits déjà comptés pour cette commande : idempotence sur
+     (orderUuid, productUuid), par exemple orderUuid dans metadata et une vérification avant
+     écriture, ou un index unique.
+   - ADD_TO_CART / REMOVE_FROM_CART : CartServiceImp. Attention, le front modifie les quantités
+     par PATCH /cart/update (remplacement complet des lignes) et fusionne le panier invité par
+     un POST /cart/add groupé à la connexion. Les événements doivent donc venir de la
+     différence avant / après : produit nouveau ou quantité augmentée → ADD_TO_CART ; produit
+     disparu → REMOVE_FROM_CART ; quantité baissée sans disparaître → rien. removeItemFromCart
+     → REMOVE_FROM_CART ; decreaseQuantity jusqu'à zéro → REMOVE_FROM_CART.
+     clearCart appelé par placeOrder (OrderManagementServiceImp:610) ne doit produire aucun
+     REMOVE_FROM_CART ; DELETE /cart/clear à l'initiative de l'utilisateur, si, un par ligne.
+     Un ajout refusé (NOT_ENOUGH_STOCK, produit inconnu) ne produit rien.
+   - WISHLIST_ADD : WishlistServiceImp#addProductToMyWishlist, seulement si le produit n'y
+     était pas (PRODUCT_ALREADY_IN_WISHLIST → rien).
+   - Avis (ReviewManagementServiceImp#create et #update) : note ≥ 4 → RATING_POSITIVE, note ≤ 2
+     → RATING_NEGATIVE, 3 → rien ; avec un commentaire publié, REVIEW_POSITIVE /
+     REVIEW_NEGATIVE selon la même règle, à la place du RATING_*. Un refus de modération (403)
+     ou une modération indisponible (503) ne produit rien. Les seuils vont dans
+     CyberTechAppConstants.
+   - Écriture découplée de l'action : publier un événement applicatif dans la transaction
+     métier, puis écrire le UserEvent dans MongoDB depuis un @Async @TransactionalEventListener
+     (AFTER_COMMIT), comme NotificationListener. Une panne de MongoDB ne doit jamais faire
+     échouer ni ralentir un ajout au panier, un avis ou une confirmation de paiement : log WARN
+     structuré (type, productUuid, userId masqué) et on continue. metadata : category, brand,
+     price, et orderUuid quand il existe ; sessionId : un identifiant technique (par exemple
+     "server"), puisque le champ est requis.
+
+2. consume-event limité aux signaux du navigateur :
+   - types acceptés : VIEW, CLICK, COMPARE, SEARCH_RESULT_CLICK, SCROLL_DEPTH_HIGH, HOVER,
+     SEARCH_QUERY, IGNORE_RECOMMENDATION, BOUNCE. Tout type produit par le backend (PURCHASE,
+     ADD_TO_CART, REMOVE_FROM_CART, WISHLIST_ADD, RATING_*, REVIEW_*) → 400 INVALID_REQUEST
+     avec un fieldErrors sur eventType, sans rien écrire. Garder la liste dans une constante
+     (un Set<UserEventType> ou un attribut de l'enum), pas dans un switch du controller.
+   - productId inconnu → 404 PRODUCT_NOT_FOUND, plutôt qu'un événement orphelin dans Gorse.
+   - Vérifier que l'endpoint est soumis à la limite de débit existante (sinon l'ajouter, avec
+     Retry-After) : le front enverra au plus quelques événements par page.
+   - (Optionnel) POST /api/v1/events/consume-events : la même chose par lot (≤ 50 événements,
+     constante nommée), pour que le front groupe ses envois ; 201 avec le nombre d'événements
+     acceptés.
+
+3. Gorse :
+   - Vérifier que config.toml reste cohérent : PURCHASE, ADD_TO_CART, WISHLIST_ADD, COMPARE,
+     RATING_POSITIVE, REVIEW_POSITIVE positifs ; VIEW, CLICK, SEARCH_RESULT_CLICK en lecture.
+     Gorse v0.5 n'a pas de retour négatif : REMOVE_FROM_CART, RATING_NEGATIVE et
+     REVIEW_NEGATIVE restent stockés dans MongoDB mais ignorés par Gorse ; l'écrire dans le
+     commentaire du fichier pour que ce ne soit pas pris pour un oubli.
+   - Le batch ne relit que les 20 dernières minutes (lookback-minutes) : un backend arrêté plus
+     longtemps perd les événements écrits juste avant. Documenter ce choix dans progress.md, ou
+     passer à un repère persistant (dernier timestamp synchronisé) si c'est simple.
+   - (À décider, à signaler dans le résumé) une commande annulée ou remboursée garde son
+     PURCHASE dans Gorse ; le retirer demanderait DELETE /api/feedback/PURCHASE/{user}/{item}.
+
+4. Tests :
+   - unitaires : différence avant / après de PATCH /cart/update (ajout, hausse, baisse,
+     disparition) ; clearCart après placeOrder sans événement ; PURCHASE seulement sur la
+     transition vers PAID et sans doublon après un complément ; seuils de note ; refus de
+     modération sans événement ; types refusés par consume-event ;
+   - IT : parcours connecté (ajout au panier, wishlist, commande payée par le webhook simulé,
+     avis 5 étoiles) → les UserEvent attendus sont dans MongoDB (Testcontainers ou le Mongo de
+     test déjà utilisé) ; puis GorseSyncTasklet, avec un faux Gorse (MockRestServiceServer),
+     reçoit ces retours en PUT /api/feedback avec le bon FeedbackType, UserId = keycloakId et
+     ItemId = uuid du produit ;
+   - un MongoDB injoignable ne fait échouer ni l'ajout au panier ni la confirmation de paiement.
+
+5. Vérification manuelle sur la stack locale, à reporter dans le résumé : après un parcours réel
+   (ajout au panier, commande payée, avis), db.user_events.countDocuments() dans userEventsDB ;
+   puis, après un passage du batch, GET http://localhost:8088/api/dashboard/stats
+   (NumTotalPosFeedback > 0) et GET /api/v1/services/recommendations/my-recommendations pour cet
+   utilisateur (personnalisé ou, à défaut, la cascade derniers → best-sellers).
+
+Côté front, ensuite (feature à venir) : VIEW sur une fiche produit, COMPARE à l'ajout au
+comparateur et SEARCH_RESULT_CLICK, envoyés seulement pour un utilisateur connecté qui a accepté
+les recommandations personnalisées, par une route BFF qui groupe les envois et n'interrompt
+jamais la navigation. Rien à faire côté front pour le panier, la wishlist, les commandes ni les
+avis.
+
+Mets à jour progress.md, la documentation des événements si elle existe, l'OpenAPI (types
+acceptés par consume-event, 400 et 404, endpoint par lot s'il est fait) et la collection
+Postman.
+````
