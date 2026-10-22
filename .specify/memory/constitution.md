@@ -231,6 +231,13 @@ relit, se débogue et s'enseigne ; c'est le standard déjà tenu par le backend.
   classes Tailwind arbitraires `[...]`) : il consomme les tokens ou la config des effets.
 - Les variantes (accents, niveaux d'effets) sont des **enums** et des **ensembles de tokens
   prédéfinis**, jamais des valeurs libres : c'est ce qui garantit la cohérence d'ensemble.
+- **Menus déroulants** : tout menu ou liste déroulante (navigation, choix, champ de formulaire)
+  MUST reprendre le design du menu « Catalogue » et s'afficher de la même façon sur toutes les
+  pages : panneau commun (`DropPanel`), ligne commune (`components/dropdown/DropdownRow.tsx` :
+  texte atténué, pastille `surface-2` au survol, au focus clavier ou à la mise en avant,
+  chevron au survol, icône facultative). La page en cours ou l'option choisie n'est marquée
+  que par la barre dorée (et `aria-current` / `aria-selected`), jamais par un fond. Aucun
+  `<select>` natif n'est affiché quand JavaScript est actif (`ListboxSelect`).
 
 **Paramétrage utilisateur — des choix bornés**
 - L'utilisateur peut régler, depuis un panneau « Préférences », uniquement des options
@@ -280,4 +287,4 @@ pouvoir casser l'esthétique ni l'accessibilité.
   MINOR pour un principe ou une section ajouté ou nettement étendu, PATCH pour une
   clarification ou une correction de forme.
 
-**Version**: 3.0.0 | **Ratified**: 2026-10-13 | **Last Amended**: 2026-10-20
+**Version**: 3.1.0 | **Ratified**: 2026-10-13 | **Last Amended**: 2026-10-22
