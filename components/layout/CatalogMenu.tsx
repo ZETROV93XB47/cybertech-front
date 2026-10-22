@@ -16,36 +16,25 @@
  * @see specs/004-catalog-promos-reviews/research.md R3
  */
 import { ChevronDown, ChevronRight, LayoutGrid, type LucideIcon } from "lucide-react";
-import { motion } from "motion/react";
 import Link from "next/link";
 import { NavigationMenu } from "radix-ui";
 import { useCallback, useRef, useState, type MouseEvent, type ReactNode } from "react";
 
+import { DropPanel, PanelOrigin } from "@/components/effects/DropPanel";
 import { CATEGORY_ICONS } from "@/features/catalog/category-icons";
 import { CATALOG_MENU_MESSAGES, CATEGORY_LABELS } from "@/features/catalog/messages";
 import { buildSearchUrl } from "@/features/catalog/search-params";
 import { SITE_MESSAGES } from "@/features/common/messages";
 import { CATALOG_PATH } from "@/lib/constants/routes";
 import type { CategoryKey } from "@/lib/enums/category-key";
-import { EntranceMode } from "@/lib/enums/entrance-mode";
 import { EMPTY_SEARCH_FILTERS } from "@/lib/schemas/search";
 import { cn } from "@/lib/utils";
-import { useMotionTokens, useSurfaceMotion } from "@/styles/motion";
 
 import { NAV_ITEM_CLASS } from "./header-controls";
 import { NavUnderline } from "./NavUnderline";
 
 /** Value of the « Catalogue » item in the navigation menu (Radix item value). */
 export const CATALOG_MENU_VALUE = "catalog";
-
-/** Vertical offset of the panel at the start of its opening, in Motion units (pixels). */
-const PANEL_DROP_OFFSET = -6;
-
-/** Scale of the panel at the start of its opening (it grows from the trigger). */
-const PANEL_START_SCALE = 0.96;
-
-/** The panel grows from the trigger, at its top left corner. */
-const PANEL_ORIGIN = { transformOrigin: "top left" } as const;
 
 /** Style of every row of the panel. */
 const ROW_CLASS =
@@ -214,9 +203,6 @@ export function useCatalogMenuState(): CatalogMenuState {
  */
 export function CatalogMenu(props: CatalogMenuProps): ReactNode {
   const { isCurrent, isOpen, onTriggerClick, ...links } = props;
-  const { mode } = useSurfaceMotion();
-  const tokens = useMotionTokens();
-  const isAnimated = mode === EntranceMode.MOVE;
   return (
     <NavigationMenu.Item value={CATALOG_MENU_VALUE} className="relative">
       <NavigationMenu.Trigger
@@ -235,19 +221,9 @@ export function CatalogMenu(props: CatalogMenuProps): ReactNode {
         {isCurrent && <NavUnderline />}
       </NavigationMenu.Trigger>
       <NavigationMenu.Content className="absolute top-full left-0 z-50 pt-2">
-        <motion.div
-          data-entrance={isAnimated ? EntranceMode.MOVE : EntranceMode.FADE}
-          initial={
-            isAnimated ? { opacity: 0, y: PANEL_DROP_OFFSET, scale: PANEL_START_SCALE } : false
-          }
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={tokens.base}
-          style={PANEL_ORIGIN}
-          className="relative w-96 overflow-hidden rounded-card border border-border bg-surface p-2 shadow-card-hover"
-        >
-          <span aria-hidden className="cta-gradient absolute inset-x-0 top-0 h-0.5" />
+        <DropPanel origin={PanelOrigin.TOP_LEFT} className="w-96">
           <MenuLinks {...links} />
-        </motion.div>
+        </DropPanel>
       </NavigationMenu.Content>
     </NavigationMenu.Item>
   );

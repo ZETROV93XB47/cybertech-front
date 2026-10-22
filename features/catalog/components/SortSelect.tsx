@@ -5,15 +5,22 @@
  * rated. Choosing an order navigates to the canonical URL with that order, back to the first
  * page, keeping every filter.
  *
- * Without JavaScript it is a small `GET` form: the current filters ride along in hidden fields
- * and a « Trier » button submits it. The order is applied by the backend to the whole result
- * (`docs/backend/backend-prompts-lot2.md` §16), never to the page shown only.
+ * Built on the Radix `Select` (listbox pattern: arrows, Enter, Escape, typeahead) so the list
+ * can look and open like the header menus: the chevron sits right after the order, turns when
+ * the list is open, and the list drops in at full effects (`DropPanel`). Without JavaScript the
+ * custom trigger is hidden and a small `GET` form takes its place: a native select, the current
+ * filters in hidden fields and a « Trier » button. The order is applied by the backend to the
+ * whole result (`docs/backend/backend-prompts-lot2.md` §16), never to the page shown only.
  *
  * @see lib/enums/product-sort.ts
+ * @see specs/004-catalog-promos-reviews/research.md R3
  */
+import { Check, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useId, useTransition, type ChangeEvent, type ReactNode } from "react";
+import { Select } from "radix-ui";
+import { useId, useState, useTransition, type ReactNode } from "react";
 
+import { DropPanel, PanelOrigin } from "@/components/effects/DropPanel";
 import { buttonVariants } from "@/components/ui/button";
 import { CATALOG_PATH } from "@/lib/constants/routes";
 import { ProductSort } from "@/lib/enums/product-sort";
@@ -28,6 +35,17 @@ import { INPUT } from "./FacetFieldset";
 
 /** Orders offered, in display order. */
 const SORT_OPTIONS: readonly ProductSort[] = Object.values(ProductSort);
+
+/** Gap between the trigger and the list, in pixels (Radix `sideOffset`). */
+const LIST_OFFSET_PX = 8;
+
+/** Style of the trigger: the field look of the filters, sized to its text. */
+const TRIGGER_CLASS =
+  "inline-flex h-10 items-center gap-2 rounded-field border border-border bg-surface-2 px-3 text-sm text-text transition-colors duration-(--duration-fast) outline-none hover:border-brand-text focus-visible:border-brand-text noscript:hidden";
+
+/** Style of every order of the list (Radix marks the one under the pointer or the keyboard). */
+const ITEM_CLASS =
+  "relative flex w-full cursor-pointer items-center gap-3 rounded-button py-2.5 pr-3 pl-4 text-sm text-text-muted outline-none select-none transition-colors duration-(--duration-fast) data-highlighted:bg-surface-2 data-highlighted:text-text";
 
 /** Props of {@link SortSelect}. */
 export interface SortSelectProps {
@@ -49,17 +67,81 @@ function HiddenFilters({ filters }: SortSelectProps): ReactNode {
 }
 
 /**
+ * Native fallback shown only without JavaScript: select and submit button of the `GET` form.
+ *
+ * @param props - Order shown.
+ * @returns The `noscript` block.
+ */
+function NoScriptSort({ current }: { readonly current: ProductSort }): ReactNode {
+  const selectId = useId();
+  return (
+    <noscript>
+      <label htmlFor={selectId} className="shrink-0 text-text-muted">
+        {LIST_MESSAGES.sortLabel}
+      </label>
+      <select
+        id={selectId}
+        name={SearchParam.SORT}
+        defaultValue={current}
+        className={cn(INPUT, "w-auto")}
+      >
+        {SORT_OPTIONS.map((sort) => (
+          <option key={sort} value={sort}>
+            {SORT_LABELS[sort]}
+          </option>
+        ))}
+      </select>
+      <button type="submit" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+        {LIST_MESSAGES.sortSubmit}
+      </button>
+    </noscript>
+  );
+}
+
+/**
+ * One order of the list: gold mark and check on the current one.
+ *
+ * @param props - Order and whether it is the current one.
+ * @returns The list option.
+ */
+function SortItem({
+  sort,
+  isCurrent,
+}: {
+  readonly sort: ProductSort;
+  readonly isCurrent: boolean;
+}): ReactNode {
+  return (
+    <Select.Item value={sort} className={cn(ITEM_CLASS, isCurrent && "font-medium text-text")}>
+      <span
+        aria-hidden
+        className={cn(
+          "absolute inset-y-2 left-1 w-1 rounded-full bg-gold transition-opacity duration-(--duration-fast)",
+          isCurrent ? "opacity-100" : "opacity-0",
+        )}
+      />
+      <Select.ItemText>{SORT_LABELS[sort]}</Select.ItemText>
+      <Select.ItemIndicator className="ml-auto">
+        <Check aria-hidden className="size-4 text-gold" />
+      </Select.ItemIndicator>
+    </Select.Item>
+  );
+}
+
+/**
  * Sort selector.
  *
  * @param props - Current filters and order.
- * @returns The labelled select.
+ * @returns The labelled selector, with its no-JavaScript form.
  */
 export function SortSelect({ filters }: SortSelectProps): ReactNode {
   const router = useRouter();
-  const selectId = useId();
+  const triggerId = useId();
+  const [isOpen, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const onChange = (event: ChangeEvent<HTMLSelectElement>): void => {
-    const sort = SearchFiltersSchema.shape.sort.safeParse(event.target.value).data;
+  const current = filters.sort ?? ProductSort.RELEVANCE;
+  const onValueChange = (value: string): void => {
+    const sort = SearchFiltersSchema.shape.sort.safeParse(value).data;
     startTransition(() => {
       router.push(buildSearchUrl({ ...filters, sort, page: 0 }));
     });
@@ -72,27 +154,45 @@ export function SortSelect({ filters }: SortSelectProps): ReactNode {
       className="flex items-center gap-3 text-sm"
     >
       <HiddenFilters filters={filters} />
-      <label htmlFor={selectId} className="shrink-0 text-text-muted">
+      <label htmlFor={triggerId} className="shrink-0 text-text-muted noscript:hidden">
         {LIST_MESSAGES.sortLabel}
       </label>
-      <select
-        id={selectId}
-        name={SearchParam.SORT}
-        value={filters.sort ?? ProductSort.RELEVANCE}
-        onChange={onChange}
-        className={cn(INPUT, "w-auto pr-8")}
+      <Select.Root
+        value={current}
+        onValueChange={onValueChange}
+        open={isOpen}
+        onOpenChange={setOpen}
       >
-        {SORT_OPTIONS.map((sort) => (
-          <option key={sort} value={sort}>
-            {SORT_LABELS[sort]}
-          </option>
-        ))}
-      </select>
-      <noscript>
-        <button type="submit" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-          {LIST_MESSAGES.sortSubmit}
-        </button>
-      </noscript>
+        <Select.Trigger id={triggerId} className={TRIGGER_CLASS}>
+          <Select.Value />
+          <Select.Icon asChild>
+            <ChevronDown
+              aria-hidden
+              className={cn(
+                "size-4 text-text-muted transition-transform duration-(--duration-fast)",
+                isOpen && "rotate-180",
+              )}
+            />
+          </Select.Icon>
+        </Select.Trigger>
+        <Select.Portal>
+          <Select.Content
+            position="popper"
+            align="start"
+            sideOffset={LIST_OFFSET_PX}
+            className="z-50"
+          >
+            <DropPanel origin={PanelOrigin.TOP_LEFT} className="min-w-56">
+              <Select.Viewport>
+                {SORT_OPTIONS.map((sort) => (
+                  <SortItem key={sort} sort={sort} isCurrent={sort === current} />
+                ))}
+              </Select.Viewport>
+            </DropPanel>
+          </Select.Content>
+        </Select.Portal>
+      </Select.Root>
+      <NoScriptSort current={current} />
     </form>
   );
 }

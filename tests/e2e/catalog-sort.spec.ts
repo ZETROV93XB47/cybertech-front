@@ -34,7 +34,7 @@ function isSorted(values: readonly number[], direction: 1 | -1): boolean {
 }
 
 /**
- * The « Trier par » select.
+ * The « Trier par » selector (a Radix listbox trigger, showing the current order).
  *
  * @param page - Catalog page.
  * @returns Its locator.
@@ -43,11 +43,22 @@ function sortSelect(page: Page) {
   return page.getByRole("combobox", { name: "Trier par" });
 }
 
+/**
+ * Opens the « Trier par » list and picks an order.
+ *
+ * @param page - Catalog page.
+ * @param label - Label of the order.
+ */
+async function chooseSort(page: Page, label: string): Promise<void> {
+  await sortSelect(page).click();
+  await page.getByRole("listbox").getByRole("option", { name: label }).click();
+}
+
 test.describe("catalog sort", () => {
   test("« Prix croissant » sorts the whole result, also on page 2", async ({ page }) => {
     await page.goto("/products?category=SMARTPHONE");
-    await expect(sortSelect(page)).toHaveValue("relevance");
-    await sortSelect(page).selectOption({ label: "Prix croissant" });
+    await expect(sortSelect(page)).toHaveText("Pertinence");
+    await chooseSort(page, "Prix croissant");
     await expect(page).toHaveURL(/\/products\?category=SMARTPHONE&sort=price-asc$/);
     // The URL changes before the client navigation renders the new grid: wait for the order.
     await expect.poll(async () => isSorted(await gridPrices(page), 1)).toBe(true);
@@ -59,7 +70,7 @@ test.describe("catalog sort", () => {
       .getByRole("link", { name: "Page suivante" })
       .click();
     await expect(page).toHaveURL(/sort=price-asc&page=2$/);
-    await expect(sortSelect(page)).toHaveValue("price-asc");
+    await expect(sortSelect(page)).toHaveText("Prix croissant");
     const lastOfFirst = first.at(-1) ?? 0;
     await expect
       .poll(async () => {

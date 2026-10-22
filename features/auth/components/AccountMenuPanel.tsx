@@ -17,6 +17,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, type ReactNode, type RefObject } from "react";
 
+import { DropPanel, PanelOrigin } from "@/components/effects/DropPanel";
 import { ACCOUNT_MENU_ITEMS, isCurrentSection } from "@/features/account/account-sections";
 import { useEffectiveEffects } from "@/features/preferences/PreferencesProvider";
 import { EffectsLevel } from "@/lib/enums/theme";
@@ -27,17 +28,8 @@ import type { AccountIdentity } from "../account-identity";
 import { signOutEverywhere } from "../actions";
 import { AUTH_MESSAGES } from "../messages";
 
-/** Vertical offset of the panel at the start of its opening, in Motion units (pixels). */
-const PANEL_DROP_OFFSET = -6;
-
-/** Scale of the panel at the start of its opening (it grows from the avatar). */
-const PANEL_START_SCALE = 0.96;
-
 /** Horizontal offset of a row at the start of the staggered entrance, in Motion units. */
 const ROW_SLIDE_OFFSET = 8;
-
-/** The panel grows from the avatar, at its top right corner. */
-const PANEL_ORIGIN = { transformOrigin: "top right" } as const;
 
 /** Style of every row of the panel (links and sign-out button). */
 const ROW_CLASS =
@@ -212,7 +204,6 @@ function SignOutForm({
 export function AccountMenuPanel(props: AccountMenuPanelProps): ReactNode {
   const { id, identity, signingOut, onSignOut, focusFirst, onNavigate } = props;
   const firstLinkRef = useRef<HTMLAnchorElement | null>(null);
-  const tokens = useMotionTokens();
   const isAnimated = useEffectiveEffects().level === EffectsLevel.FULL;
   useEffect(() => {
     if (focusFirst) {
@@ -220,18 +211,14 @@ export function AccountMenuPanel(props: AccountMenuPanelProps): ReactNode {
     }
   }, [focusFirst]);
   return (
-    <motion.div
+    <DropPanel
       id={id}
-      initial={isAnimated ? { opacity: 0, y: PANEL_DROP_OFFSET, scale: PANEL_START_SCALE } : false}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={tokens.base}
-      style={PANEL_ORIGIN}
-      className="absolute top-full right-0 z-50 mt-2 w-72 overflow-hidden rounded-card border border-border bg-surface p-2 shadow-card-hover"
+      origin={PanelOrigin.TOP_RIGHT}
+      className="absolute top-full right-0 z-50 mt-2 w-72"
     >
-      <span aria-hidden className="cta-gradient absolute inset-x-0 top-0 h-0.5" />
       <PanelHeader identity={identity} />
       <PanelLinks firstLinkRef={firstLinkRef} onNavigate={onNavigate} isAnimated={isAnimated} />
       <SignOutForm signingOut={signingOut} onSignOut={onSignOut} />
-    </motion.div>
+    </DropPanel>
   );
 }
