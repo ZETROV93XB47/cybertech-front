@@ -108,9 +108,13 @@ test.describe("account creation", () => {
       await page.getByLabel(label).focus();
       await page.keyboard.type(value);
     }
-    await page.getByLabel("Comment préfères-tu qu'on te contacte ?").focus();
+    const channel = page.getByRole("combobox", { name: "Comment préfères-tu qu'on te contacte ?" });
+    await channel.focus();
     await page.keyboard.press("ArrowDown");
-    await expect(page.getByLabel("Comment préfères-tu qu'on te contacte ?")).toHaveValue("EMAIL");
+    await expect(page.getByRole("listbox")).toBeVisible();
+    await page.keyboard.press("Enter");
+    await expect(channel).toHaveText("Par email");
+    await expect(channel).toBeFocused();
     await page.getByLabel("Mot de passe").focus();
     await page.keyboard.type(PASSWORD);
     await page.keyboard.press("Enter");
@@ -141,7 +145,8 @@ test.describe("account creation", () => {
       await page.getByLabel(label, { exact: true }).fill(value);
     }
     await page.getByRole("radio", { name: "Femme" }).check();
-    await page.getByLabel("Comment préfères-tu qu'on te contacte ?").selectOption("EMAIL");
+    await page.getByRole("combobox", { name: "Comment préfères-tu qu'on te contacte ?" }).click();
+    await page.getByRole("option", { name: "Par email" }).click();
     await page.getByRole("button", { name: "Créer mon compte" }).click();
     await expect(page.getByText("Un compte existe déjà avec cet email.")).toBeVisible();
     await expect(page.getByLabel("Email", { exact: true })).toHaveAttribute("aria-invalid", "true");

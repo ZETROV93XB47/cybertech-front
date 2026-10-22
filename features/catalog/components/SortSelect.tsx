@@ -15,13 +15,13 @@
  * @see lib/enums/product-sort.ts
  * @see specs/004-catalog-promos-reviews/research.md R3
  */
-import { Check, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Select } from "radix-ui";
 import { useId, useState, useTransition, type ReactNode } from "react";
 
 import { DropPanel, PanelOrigin } from "@/components/effects/DropPanel";
 import { buttonVariants } from "@/components/ui/button";
+import { LISTBOX_OFFSET_PX, ListboxChevron, ListboxItem } from "@/components/ui/listbox";
 import { CATALOG_PATH } from "@/lib/constants/routes";
 import { ProductSort } from "@/lib/enums/product-sort";
 import { SearchParam } from "@/lib/enums/search-param";
@@ -36,16 +36,9 @@ import { INPUT } from "./FacetFieldset";
 /** Orders offered, in display order. */
 const SORT_OPTIONS: readonly ProductSort[] = Object.values(ProductSort);
 
-/** Gap between the trigger and the list, in pixels (Radix `sideOffset`). */
-const LIST_OFFSET_PX = 8;
-
 /** Style of the trigger: the field look of the filters, sized to its text. */
 const TRIGGER_CLASS =
   "inline-flex h-10 items-center gap-2 rounded-field border border-border bg-surface-2 px-3 text-sm text-text transition-colors duration-(--duration-fast) outline-none hover:border-brand-text focus-visible:border-brand-text noscript:hidden";
-
-/** Style of every order of the list (Radix marks the one under the pointer or the keyboard). */
-const ITEM_CLASS =
-  "relative flex w-full cursor-pointer items-center gap-3 rounded-button py-2.5 pr-3 pl-4 text-sm text-text-muted outline-none select-none transition-colors duration-(--duration-fast) data-highlighted:bg-surface-2 data-highlighted:text-text";
 
 /** Props of {@link SortSelect}. */
 export interface SortSelectProps {
@@ -99,36 +92,6 @@ function NoScriptSort({ current }: { readonly current: ProductSort }): ReactNode
 }
 
 /**
- * One order of the list: gold mark and check on the current one.
- *
- * @param props - Order and whether it is the current one.
- * @returns The list option.
- */
-function SortItem({
-  sort,
-  isCurrent,
-}: {
-  readonly sort: ProductSort;
-  readonly isCurrent: boolean;
-}): ReactNode {
-  return (
-    <Select.Item value={sort} className={cn(ITEM_CLASS, isCurrent && "font-medium text-text")}>
-      <span
-        aria-hidden
-        className={cn(
-          "absolute inset-y-2 left-1 w-1 rounded-full bg-gold transition-opacity duration-(--duration-fast)",
-          isCurrent ? "opacity-100" : "opacity-0",
-        )}
-      />
-      <Select.ItemText>{SORT_LABELS[sort]}</Select.ItemText>
-      <Select.ItemIndicator className="ml-auto">
-        <Check aria-hidden className="size-4 text-gold" />
-      </Select.ItemIndicator>
-    </Select.Item>
-  );
-}
-
-/**
  * Sort selector.
  *
  * @param props - Current filters and order.
@@ -165,27 +128,24 @@ export function SortSelect({ filters }: SortSelectProps): ReactNode {
       >
         <Select.Trigger id={triggerId} className={TRIGGER_CLASS}>
           <Select.Value />
-          <Select.Icon asChild>
-            <ChevronDown
-              aria-hidden
-              className={cn(
-                "size-4 text-text-muted transition-transform duration-(--duration-fast)",
-                isOpen && "rotate-180",
-              )}
-            />
-          </Select.Icon>
+          <ListboxChevron isOpen={isOpen} />
         </Select.Trigger>
         <Select.Portal>
           <Select.Content
             position="popper"
             align="start"
-            sideOffset={LIST_OFFSET_PX}
+            sideOffset={LISTBOX_OFFSET_PX}
             className="z-50"
           >
             <DropPanel origin={PanelOrigin.TOP_LEFT} className="min-w-56">
               <Select.Viewport>
                 {SORT_OPTIONS.map((sort) => (
-                  <SortItem key={sort} sort={sort} isCurrent={sort === current} />
+                  <ListboxItem
+                    key={sort}
+                    value={sort}
+                    label={SORT_LABELS[sort]}
+                    isCurrent={sort === current}
+                  />
                 ))}
               </Select.Viewport>
             </DropPanel>

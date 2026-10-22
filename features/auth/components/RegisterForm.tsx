@@ -30,6 +30,9 @@ import { INITIAL_REGISTER_STATE, type RegisterActionState } from "../register-st
 
 import { RegisterFieldset } from "./RegisterFieldset";
 
+/** Type of the inputs that carry a value without being focusable. */
+const HIDDEN_INPUT_TYPE = "hidden";
+
 /** Client errors, tied to the server state they were computed against. */
 interface ClientErrors {
   readonly forState: RegisterActionState;
@@ -57,10 +60,14 @@ function focusFirstInvalid(form: HTMLFormElement, errors: RegisterFieldErrors): 
   const invalid = new Set<string>(
     Object.values(RegisterField).filter((field) => errors[field] !== undefined),
   );
+  // A dropdown list is focused through its trigger, whose id is the field name.
   const first = Array.from(form.elements).find(
     (element) =>
-      (element instanceof HTMLInputElement || element instanceof HTMLSelectElement) &&
-      invalid.has(element.name),
+      (element instanceof HTMLInputElement &&
+        element.type !== HIDDEN_INPUT_TYPE &&
+        invalid.has(element.name)) ||
+      (element instanceof HTMLSelectElement && invalid.has(element.name)) ||
+      (element instanceof HTMLButtonElement && invalid.has(element.id)),
   );
   if (first instanceof HTMLElement) {
     first.focus();
