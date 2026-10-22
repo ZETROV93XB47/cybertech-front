@@ -34,6 +34,7 @@ résultat).
 |---|---|---|
 | `400` validation | `invalid` | erreurs de champ (note, commentaire) |
 | `403 COMMENT_POST_NOT_ALLOWED` | `review-rejected` (+) | message bienveillant, note et commentaire gardés (FR-017) |
+| `503 MODERATION_UNAVAILABLE` (backend `b5811c5`) | `moderation-unavailable` (+) | « réessaie dans un instant », note et commentaire gardés, pas d'invitation à reformuler |
 | `409 ORDER_NOT_REVIEWABLE` (contrat du backend), `403 ORDER_DOESNT_BELONGS_TO_USER`, `404 PRODUCT_NOT_FOUND` (« pas dans ta commande ») | `review-not-allowed` (+) / `not-found` | message dédié, liste rafraîchie ; aiguillage sur `errorCode`, jamais sur le statut |
 | `403 USER_NOT_AUTHOR_OF_REVIEW` | `forbidden` | message générique, liste rafraîchie |
 | `404 REVIEW_NOT_FOUND` (modification) | `not-found` | « cet avis n'existe plus », retiré de la liste |

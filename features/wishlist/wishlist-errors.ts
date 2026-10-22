@@ -32,6 +32,7 @@ export function wishlistErrorMessage(code: FrontErrorCode): string {
     case FrontErrorCode.ALREADY_EXISTS:
     case FrontErrorCode.UNKNOWN:
     case FrontErrorCode.REVIEW_REJECTED:
+    case FrontErrorCode.MODERATION_UNAVAILABLE:
     case FrontErrorCode.REVIEW_NOT_ALLOWED:
     case FrontErrorCode.DISCOUNT_INVALID:
     case FrontErrorCode.PAYMENT_FAILED:

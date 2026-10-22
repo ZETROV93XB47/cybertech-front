@@ -124,6 +124,8 @@ const FRONT_CODE_BY_BACKEND_CODE = {
   [BackendErrorCode.USER_NOT_AUTHOR_OF_REVIEW]: FrontErrorCode.FORBIDDEN,
   // Moderation refusal of a review comment (feature 004, FR-017).
   [BackendErrorCode.COMMENT_POST_NOT_ALLOWED]: FrontErrorCode.REVIEW_REJECTED,
+  // Moderation down (backend prompt §17): the text is not at fault, never ask to rephrase it.
+  [BackendErrorCode.MODERATION_UNAVAILABLE]: FrontErrorCode.MODERATION_UNAVAILABLE,
   [BackendErrorCode.UNAUTHORIZED_CART_ACCESS]: FrontErrorCode.UNKNOWN,
   // 409 on the backend side: branch on the code, never on the status.
   [BackendErrorCode.ORDER_NOT_REVIEWABLE]: FrontErrorCode.REVIEW_NOT_ALLOWED,

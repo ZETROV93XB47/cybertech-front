@@ -59,6 +59,7 @@ export function cardFailure(code: FrontErrorCode, retryAfterSeconds?: number): C
     case FrontErrorCode.EMPTY_CART:
     case FrontErrorCode.UNKNOWN:
     case FrontErrorCode.REVIEW_REJECTED:
+    case FrontErrorCode.MODERATION_UNAVAILABLE:
     case FrontErrorCode.REVIEW_NOT_ALLOWED:
     case FrontErrorCode.DISCOUNT_INVALID:
     case FrontErrorCode.PAYMENT_FAILED:

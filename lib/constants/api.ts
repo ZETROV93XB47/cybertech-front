@@ -143,9 +143,9 @@ export const BACKEND_PATHS = {
   wishlistRemove: `${API_BASE_PATH}/wishlist/remove`,
   /** `GET` — paginated wishlist of the caller (`page`, `size`, `sort`). */
   wishlistMine: `${API_BASE_PATH}/wishlist/my-wishlist`,
-  /** `POST` — publishes a review of a bought product (USER; `201`, `403 COMMENT_POST_NOT_ALLOWED`, `409 ORDER_NOT_REVIEWABLE`). */
+  /** `POST` — publishes a review of a bought product (USER; `201`, `403 COMMENT_POST_NOT_ALLOWED`, `409 ORDER_NOT_REVIEWABLE`, `503 MODERATION_UNAVAILABLE`). */
   reviewCreate: `${API_BASE_PATH}/review/create`,
-  /** `PATCH` — edits a review of the caller (USER; `200`, `403 USER_NOT_AUTHOR_OF_REVIEW`, `404`). Append the review UUID. */
+  /** `PATCH` — edits a review of the caller (USER; `200`, `403 USER_NOT_AUTHOR_OF_REVIEW` or `COMMENT_POST_NOT_ALLOWED`, `404`, `503 MODERATION_UNAVAILABLE`). Append the review UUID. */
   reviewUpdate: `${API_BASE_PATH}/review/update`,
   /** `DELETE` — deletes a review of the caller (USER; `204`, `403`, `404`). Append the review UUID. */
   reviewDelete: `${API_BASE_PATH}/review/delete`,

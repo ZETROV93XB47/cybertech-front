@@ -24,6 +24,7 @@ Mapping `BackendErrorCode` → `FrontErrorCode` modifié dans `lib/api/errors.ts
 | Backend | Avant | Après |
 |---|---|---|
 | `COMMENT_POST_NOT_ALLOWED` | `UNKNOWN` | `REVIEW_REJECTED` |
+| `MODERATION_UNAVAILABLE` (backend `b5811c5`) | — | `MODERATION_UNAVAILABLE` |
 | `ORDER_NOT_REVIEWABLE` | `UNKNOWN` | `REVIEW_NOT_ALLOWED` |
 | `USER_NOT_AUTHOR_OF_REVIEW` | `UNKNOWN` | `FORBIDDEN` |
 | `REVIEW_NOT_FOUND` | `NOT_FOUND` | inchangé |

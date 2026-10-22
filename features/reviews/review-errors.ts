@@ -38,6 +38,8 @@ export function reviewFailure(code: FrontErrorCode, retryAfterSeconds?: number):
       return { formError: ERRORS.form };
     case FrontErrorCode.REVIEW_REJECTED:
       return { formError: ERRORS.rejected };
+    case FrontErrorCode.MODERATION_UNAVAILABLE:
+      return { formError: ERRORS.moderationUnavailable };
     case FrontErrorCode.REVIEW_NOT_ALLOWED:
       return { formError: ERRORS.notAllowed, isStale: true };
     case FrontErrorCode.NOT_FOUND:

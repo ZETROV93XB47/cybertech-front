@@ -102,3 +102,43 @@ export async function fillKeycloakForm(page: Page, email: string): Promise<void>
   await page.locator("#password").fill(PASSWORD);
   await page.locator("#kc-login").click();
 }
+
+/** Longest wait for the payment outcome (SC-005: 15 s). */
+const PAYMENT_OUTCOME_TIMEOUT_MS = 20_000;
+
+/** Delay between two reads of the order status. */
+const STATUS_POLL_MS = 1_000;
+
+/** Body shared by the placements. */
+const PLACE_BODY = {
+  paymentType: "VISA",
+  shippingType: "STANDARD",
+  shippingProvider: "DHL",
+  address: { street: "1 rue du Test", zipCode: "75001", city: "Paris", country: "France" },
+};
+
+/**
+ * Places an order of one product through the BFF and waits until it is paid (feature 004,
+ * reviews journeys and captures).
+ *
+ * @param page - Signed-in page.
+ * @param productUuid - Product to buy.
+ * @returns The order UUID.
+ */
+export async function placePaidOrder(page: Page, productUuid: string): Promise<string> {
+  const cart = await page.request.post("/api/cart", { data: { productUuid, quantity: 1 } });
+  expect(cart.ok()).toBe(true);
+  const response = await page.request.post("/api/checkout/place", { data: PLACE_BODY });
+  expect(response.status()).toBe(201);
+  const { orderUuid } = (await response.json()) as { orderUuid: string };
+  await expect
+    .poll(
+      async () => {
+        const status = await page.request.get(`/api/orders/${orderUuid}/status`);
+        return ((await status.json()) as { status: string }).status;
+      },
+      { timeout: PAYMENT_OUTCOME_TIMEOUT_MS, intervals: [STATUS_POLL_MS] },
+    )
+    .toBe("PAID");
+  return orderUuid;
+}

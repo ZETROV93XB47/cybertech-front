@@ -68,6 +68,7 @@ Source : `{pkg}/api/error/enumpackage/ErrorCode.java:11-69` + `ErrorManagementCo
 | 409 | `CANNOT_CANCEL_ORDER`, `ORDER_ALREADY_SHIPPED`, `ORDER_NOT_FUNDED`, `ORDER_REFUND_FAILED`, `PRODUCT_ALREADY_IN_WISHLIST`, **`NOT_ENOUGH_STOCK`**, `CONCURRENT_MODIFICATION` (optimistic lock **ou verrou panier occupé**, rejouable), **`CART_IS_EMPTY`**, **`CANNOT_REMOVE_ITEM_FROM_EMPTY_CART`** (403 → 409 depuis `d50e661`), `PAYMENT_ALREADY_COMPLETED`, `ORDER_NOT_REVIEWABLE`, `DISCOUNT_CAMPAIGN_ALREADY_EXISTS`, `USER_ALREADY_EXISTS` |
 | 422 | `FAILED_UPDATING_ORDER` (échec de `retryPayment`) |
 | 429 | `TOO_MANY_REQUESTS` (+ `Retry-After`) |
+| 503 | `MODERATION_UNAVAILABLE` (modération des commentaires sans verdict, `b5811c5`) |
 | 500 | `APPLICATION_ERROR`, `ACCESS_TOKEN_RETRIEVAL_FAILED`, `IDEMPOTENCY_KEY_GENERATION_FAILED`, `NO_STRATEGY_FOUND`, `PAYMENT_PROCESSING_ERROR`, `ORDER_SUMMARY_REPORT_JOB_FAILED` |
 
 ---
@@ -216,12 +217,12 @@ Controller : `{ctrl}/ReviewCrudController.java` (base `/api/v1/services/review`)
 | GET | `/review/product/{productUuid}` | `#getProductReviews` | — (query `page`, `size` défaut 10) | `ProductReviewsResponseDto` (§D.27) | 200, 404 `PRODUCT_NOT_FOUND` | **Public**. Moyenne et répartition sur tous les avis publiés, puis une page d'avis, du plus récent au plus ancien (backend `bddcafd`). |
 | GET | `/review/mine` | `#getMyReviews` | — (query `page`, `size` défaut 10, `sort` défaut `createdAt,desc`) | `PagedModel<MyReviewDto>` (§D.28) | 200 | Avis de l'appelant (backend `bddcafd`). |
 | GET | `/review/reviewable` | `#getReviewableProducts` (:73) | — | `ReviewableProductDto[]` (§D.23) | 200 | Produits achetés et notables, un par couple produit–commande (commandes `PAID`/`AWAITING_SHIPPING`/`SHIPPED`/`DELIVERED` depuis `abe674d`). |
-| POST | `/review/create` | `#createReview` (:46) | `ReviewCreateRequestDto` (§D.11) | `201` `ReviewResponseDto` (§D.22) | 201, 400, 403 `COMMENT_POST_NOT_ALLOWED` / `ORDER_DOESNT_BELONGS_TO_USER`, 404, 409 `ORDER_NOT_REVIEWABLE` | Appel **synchrone** au service Python (`moderation.api.url`, toxic-bert) ; **fail-closed** : modération injoignable → 403 `COMMENT_POST_NOT_ALLOWED` sur **tout** commentaire, une note seule passe (`8cc5ded`). Constaté en local le 2026-10-21 : `moderation-api:5000` ne se résout pas depuis la machine de dev. |
+| POST | `/review/create` | `#createReview` (:46) | `ReviewCreateRequestDto` (§D.11) | `201` `ReviewResponseDto` (§D.22) | 201, 400, 403 `COMMENT_POST_NOT_ALLOWED` (jugé haineux) / `ORDER_DOESNT_BELONGS_TO_USER`, 404, 409 `ORDER_NOT_REVIEWABLE`, 503 `MODERATION_UNAVAILABLE` | Appel **synchrone** au service Python (`POST /api/v1/moderation/analyze`, toxic-bert) ; **fail-closed** : modération injoignable, délai ou statut non 2xx → 503 `MODERATION_UNAVAILABLE`, rien n'est enregistré ; une note seule passe sans appel (`8cc5ded`, `b5811c5`). Depuis IntelliJ : `MODERATION_API_URL=http://localhost:5000/api/v1/moderation/analyze`. |
 | GET | `/review/get/{reviewUuid}` | `#getReviewByUuid` (:39) | — | `ReviewResponseDto` | 200, 404 | — |
-| PATCH | `/review/update/{reviewUuid}` | `#updateReview` (:53) | `ReviewUpdateRequestDto` (§D.11b) | `ReviewResponseDto` | 200, 403 `USER_NOT_AUTHOR_OF_REVIEW` / `COMMENT_POST_NOT_ALLOWED`, 404 `REVIEW_NOT_FOUND` | `reviewUuid` du **body** fait foi. Un `comment` vide efface le texte (avis note seule) ; absent = texte inchangé. Le front envoie toujours `comment`. |
+| PATCH | `/review/update/{reviewUuid}` | `#updateReview` (:53) | `ReviewUpdateRequestDto` (§D.11b) | `ReviewResponseDto` | 200, 403 `USER_NOT_AUTHOR_OF_REVIEW` / `COMMENT_POST_NOT_ALLOWED`, 404 `REVIEW_NOT_FOUND`, 503 `MODERATION_UNAVAILABLE` | `reviewUuid` du **body** fait foi. Un `comment` vide efface le texte (avis note seule) ; absent = texte inchangé. Le front envoie toujours `comment`. |
 | DELETE | `/review/delete/{reviewUuid}` | `#deleteReviewByUuid` (:60) | — | `204` | 204, 403, 404 | — |
 
-Le front aiguille sur `errorCode`, jamais sur le statut (409 `ORDER_NOT_REVIEWABLE` → `review-not-allowed`, 403 `COMMENT_POST_NOT_ALLOWED` → `review-rejected`).
+Le front aiguille sur `errorCode`, jamais sur le statut (409 `ORDER_NOT_REVIEWABLE` → `review-not-allowed`, 403 `COMMENT_POST_NOT_ALLOWED` → `review-rejected`, 503 `MODERATION_UNAVAILABLE` → `moderation-unavailable` : « réessaie dans un instant », sans inviter à reformuler).
 
 ## 11. Recommandations & événements comportementaux
 

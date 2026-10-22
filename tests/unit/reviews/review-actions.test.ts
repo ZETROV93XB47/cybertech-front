@@ -101,6 +101,15 @@ describe("createReview", () => {
     expect(cache.updateTag).not.toHaveBeenCalled();
   });
 
+  it("asks to retry, not to rephrase, when the moderation is unavailable", async () => {
+    refuseCreate("MODERATION_UNAVAILABLE", 503);
+    const state = await createReview(IDLE, form(CREATE_FORM));
+    expect(state).toMatchObject({ status: ReviewFormStatus.ERROR, rating: 4, comment: COMMENT });
+    expect(state.formError).toContain("Réessaie dans un instant");
+    expect(state.formError).not.toContain("reformule");
+    expect(cache.updateTag).not.toHaveBeenCalled();
+  });
+
   it("branches on ORDER_NOT_REVIEWABLE (409), not on the status", async () => {
     refuseCreate("ORDER_NOT_REVIEWABLE", 409);
     const state = await createReview(IDLE, form(CREATE_FORM));

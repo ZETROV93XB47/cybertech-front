@@ -1562,7 +1562,7 @@ export interface components {
             /** @enum {string} */
             errorCodeType?: "TECHNICAL" | "FUNCTIONAL";
             /** @enum {string} */
-            errorCode?: "APPLICATION_ERROR" | "AUTHENTICATION_REQUIRED" | "TOO_MANY_REQUESTS" | "RESOURCE_NOT_FOUND" | "ACCOUNT_NOT_FOUND" | "CANNOT_CANCEL_ORDER" | "CANNOT_REMOVE_ITEM_FROM_EMPTY_CART" | "PRODUCT_NOT_FOUND" | "ORDER_DOESNT_BELONGS_TO_USER" | "FAILED_UPDATING_ORDER" | "CART_IS_EMPTY" | "CART_NOT_FOUND" | "CART_ITEM_NOT_FOUND" | "INVALID_REQUEST" | "MALFORMED_JSON" | "METHOD_ARGUMENT_TYPE_MISMATCH" | "ACCESS_DENIED" | "ORDER_ALREADY_SHIPPED" | "ORDER_NOT_FOUND" | "ORDER_NOT_FUNDED" | "ORDER_REFUND_FAILED" | "NO_PREVIOUS_PAYMENT_ATTEMPT_FOUND" | "PRODUCT_ALREADY_IN_WISHLIST" | "REVIEW_NOT_FOUND" | "USER_NOT_FOUND" | "USER_NOT_ACTIVE" | "USER_ALREADY_EXISTS" | "USER_NOT_AUTHOR_OF_REVIEW" | "WISHLIST_NOT_FOUND" | "ACCESS_TOKEN_RETRIEVAL_FAILED" | "BANK_CARD_ALREADY_EXISTS" | "BANK_CARD_EXPIRED" | "BANK_CARD_NOT_FOUND" | "COMMENT_POST_NOT_ALLOWED" | "IDEMPOTENCY_KEY_GENERATION_FAILED" | "NO_STRATEGY_FOUND" | "NOT_ENOUGH_STOCK" | "ORDER_SUMMARY_REPORT_JOB_FAILED" | "CONCURRENT_MODIFICATION" | "PAYMENT_ALREADY_COMPLETED" | "PAYMENT_FAILED" | "PAYMENT_NOT_FOUND" | "PAYMENT_PROCESSING_ERROR" | "DISCOUNT_TYPE_NOT_ACTIVE" | "UNAUTHORIZED_CART_ACCESS" | "ORDER_NOT_REVIEWABLE" | "UNKNOWN_PRODUCT_CATEGORY" | "INVALID_PRODUCT_CATEGORY_SCHEMA" | "DISCOUNT_CAMPAIGN_MISSING_REQUIRED_FIELD" | "DISCOUNT_CAMPAIGN_NOT_FOUND" | "DISCOUNT_CAMPAIGN_ALREADY_EXISTS" | "PUSH_SERVICE_NOT_CONFIGURED" | "PUSH_SUBSCRIPTION_CONFLICT" | "INVALID_PUSH_ENDPOINT" | "PUSH_SUBSCRIPTION_NOT_FOUND" | "PUSH_SUBSCRIPTION_NOT_OWNED";
+            errorCode?: "APPLICATION_ERROR" | "AUTHENTICATION_REQUIRED" | "TOO_MANY_REQUESTS" | "RESOURCE_NOT_FOUND" | "ACCOUNT_NOT_FOUND" | "CANNOT_CANCEL_ORDER" | "CANNOT_REMOVE_ITEM_FROM_EMPTY_CART" | "PRODUCT_NOT_FOUND" | "ORDER_DOESNT_BELONGS_TO_USER" | "FAILED_UPDATING_ORDER" | "CART_IS_EMPTY" | "CART_NOT_FOUND" | "CART_ITEM_NOT_FOUND" | "INVALID_REQUEST" | "MALFORMED_JSON" | "METHOD_ARGUMENT_TYPE_MISMATCH" | "ACCESS_DENIED" | "ORDER_ALREADY_SHIPPED" | "ORDER_NOT_FOUND" | "ORDER_NOT_FUNDED" | "ORDER_REFUND_FAILED" | "NO_PREVIOUS_PAYMENT_ATTEMPT_FOUND" | "PRODUCT_ALREADY_IN_WISHLIST" | "REVIEW_NOT_FOUND" | "USER_NOT_FOUND" | "USER_NOT_ACTIVE" | "USER_ALREADY_EXISTS" | "USER_NOT_AUTHOR_OF_REVIEW" | "WISHLIST_NOT_FOUND" | "ACCESS_TOKEN_RETRIEVAL_FAILED" | "BANK_CARD_ALREADY_EXISTS" | "BANK_CARD_EXPIRED" | "BANK_CARD_NOT_FOUND" | "COMMENT_POST_NOT_ALLOWED" | "MODERATION_UNAVAILABLE" | "IDEMPOTENCY_KEY_GENERATION_FAILED" | "NO_STRATEGY_FOUND" | "NOT_ENOUGH_STOCK" | "ORDER_SUMMARY_REPORT_JOB_FAILED" | "CONCURRENT_MODIFICATION" | "PAYMENT_ALREADY_COMPLETED" | "PAYMENT_FAILED" | "PAYMENT_NOT_FOUND" | "PAYMENT_PROCESSING_ERROR" | "DISCOUNT_TYPE_NOT_ACTIVE" | "UNAUTHORIZED_CART_ACCESS" | "ORDER_NOT_REVIEWABLE" | "UNKNOWN_PRODUCT_CATEGORY" | "INVALID_PRODUCT_CATEGORY_SCHEMA" | "DISCOUNT_CAMPAIGN_MISSING_REQUIRED_FIELD" | "DISCOUNT_CAMPAIGN_NOT_FOUND" | "DISCOUNT_CAMPAIGN_ALREADY_EXISTS" | "PUSH_SERVICE_NOT_CONFIGURED" | "PUSH_SUBSCRIPTION_CONFLICT" | "INVALID_PUSH_ENDPOINT" | "PUSH_SUBSCRIPTION_NOT_FOUND" | "PUSH_SUBSCRIPTION_NOT_OWNED";
             fieldErrors?: components["schemas"]["FieldErrorDto"][];
             details?: components["schemas"]["ErrorDetailsDto"];
         };
@@ -2579,7 +2579,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
-            /** @description Forbidden - caller does not own the order being reviewed or comment moderation rejected */
+            /** @description Forbidden - caller does not own the order being reviewed, or COMMENT_POST_NOT_ALLOWED when moderation judged the comment hateful */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2599,6 +2599,15 @@ export interface operations {
             };
             /** @description Internal server error during Review creation */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description MODERATION_UNAVAILABLE - the comment moderation service gave no verdict (down, timeout, non-2xx); nothing is saved, retry later without changing the text */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3840,7 +3849,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
-            /** @description Operation forbidden - caller is not the author of the review */
+            /** @description Operation forbidden - caller is not the author of the review, or COMMENT_POST_NOT_ALLOWED when moderation judged the new comment hateful */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -3860,6 +3869,15 @@ export interface operations {
             };
             /** @description Internal server error during review update */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description MODERATION_UNAVAILABLE - the comment moderation service gave no verdict (down, timeout, non-2xx); nothing is saved, retry later without changing the text */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -61,6 +61,8 @@ export const REVIEW_FORM_MESSAGES = {
     form: "Vérifie ta note et ton commentaire.",
     rejected:
       "Ton commentaire n'a pas pu être publié tel quel : reformule-le, ta note et ton texte sont gardés.",
+    moderationUnavailable:
+      "La vérification des commentaires ne répond pas pour le moment. Réessaie dans un instant : ta note et ton texte sont gardés.",
     notAllowed:
       "Ce produit ne peut plus être noté pour cette commande. La liste a été mise à jour.",
     notFound: "Cet avis n'existe plus. La liste a été mise à jour.",

@@ -65,6 +65,7 @@ export enum BackendErrorCode {
   DISCOUNT_TYPE_NOT_ACTIVE = "DISCOUNT_TYPE_NOT_ACTIVE",
   UNAUTHORIZED_CART_ACCESS = "UNAUTHORIZED_CART_ACCESS",
   ORDER_NOT_REVIEWABLE = "ORDER_NOT_REVIEWABLE",
+  MODERATION_UNAVAILABLE = "MODERATION_UNAVAILABLE",
   UNKNOWN_PRODUCT_CATEGORY = "UNKNOWN_PRODUCT_CATEGORY",
   INVALID_PRODUCT_CATEGORY_SCHEMA = "INVALID_PRODUCT_CATEGORY_SCHEMA",
   DISCOUNT_CAMPAIGN_MISSING_REQUIRED_FIELD = "DISCOUNT_CAMPAIGN_MISSING_REQUIRED_FIELD",
@@ -122,6 +123,11 @@ export enum FrontErrorCode {
    * keeps the input and explains it kindly (feature 004, FR-017).
    */
   REVIEW_REJECTED = "review-rejected",
+  /**
+   * The comment moderation gave no verdict (`MODERATION_UNAVAILABLE`, 503): nothing is saved, the
+   * same text can be sent again later (backend `b5811c5`, prompt §17).
+   */
+  MODERATION_UNAVAILABLE = "moderation-unavailable",
   /** Order not reviewable (`ORDER_NOT_REVIEWABLE`, 409): not paid, cancelled, refunded… */
   REVIEW_NOT_ALLOWED = "review-not-allowed",
 }

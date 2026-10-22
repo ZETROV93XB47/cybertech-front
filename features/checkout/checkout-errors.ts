@@ -44,6 +44,7 @@ export function checkoutErrorMessage(error: BffError): string {
     case FrontErrorCode.ALREADY_EXISTS:
     case FrontErrorCode.UNKNOWN:
     case FrontErrorCode.REVIEW_REJECTED:
+    case FrontErrorCode.MODERATION_UNAVAILABLE:
     case FrontErrorCode.REVIEW_NOT_ALLOWED:
     case FrontErrorCode.PAYMENT_FAILED:
     case FrontErrorCode.PAYMENT_ALREADY_COMPLETED:
