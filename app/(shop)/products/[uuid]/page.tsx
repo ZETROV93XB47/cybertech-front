@@ -6,6 +6,9 @@
  * « produit introuvable » page. The product can join the comparison (feature 002, US2), whose
  * bar is shown at the bottom of the page. A delivery block (fees from the backend, indicative
  * delays) and the customer reviews section complete the page.
+ *
+ * @see specs/001-catalog-auth-cart/spec.md US1
+ * @see specs/004-catalog-promos-reviews/spec.md US1, US5
  */
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";

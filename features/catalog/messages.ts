@@ -28,11 +28,11 @@ export const HOME_MESSAGES = {
   bestSellersEmpty: "Les meilleures ventes s'afficheront ici dès les premières commandes.",
   recentlyViewedTitle: "Tu regardais",
   discountsLabel: "Offres en cours",
-  discountPercentage: (key: string, percentage: number): string =>
-    `${key} : ${percentage} % de remise sur ta commande`,
-  discountFixed: (key: string, amount: string): string =>
-    `${key} : ${amount} de remise sur ta commande`,
-  discountBuyOneGetOne: (key: string): string => `${key} : un article acheté, le second offert`,
+  discountPercentage: (name: string, percentage: number): string =>
+    `${name} : ${percentage} % de remise sur ta commande`,
+  discountFixed: (name: string, amount: string): string =>
+    `${name} : ${amount} de remise sur ta commande`,
+  discountBuyOneGetOne: (name: string): string => `${name} : un article acheté, le second offert`,
   discountMinOrder: (amount: string): string => `dès ${amount} d'achat`,
   discountUntil: (date: string): string => `jusqu'au ${date}`,
   discountHint: "La remise s'applique au moment de la commande.",

@@ -1,10 +1,16 @@
 /**
- * « Offres en cours » strip of the home page: the active discount campaigns.
+ * « Offres en cours » strip of the home page: the active discount campaigns, each named as on the
+ * « Promotions » page and linked to its campaign page (feature 004, T063 audit).
+ *
+ * @see specs/004-catalog-promos-reviews/spec.md US4
  */
 import { Sparkles } from "lucide-react";
+import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { campaignName } from "@/features/promotions/campaign-view";
 import { assertNever } from "@/lib/assert-never";
+import { promotionRoute } from "@/lib/constants/routes";
 import { DiscountCalculationType } from "@/lib/enums/discount-calculation-type";
 import { formatDay, formatPrice } from "@/lib/format";
 import type { ActiveDiscount } from "@/lib/schemas/discount";
@@ -21,19 +27,19 @@ export interface DiscountBannerProps {
  * Main sentence of a campaign.
  *
  * @param discount - Campaign.
- * @returns « BLACK_FRIDAY : 20 % de remise sur ta commande ».
+ * @returns « Black Friday : 20 % de remise sur ta commande ».
  */
 export function describeDiscount(discount: ActiveDiscount): string {
-  const { discountKey: key } = discount;
+  const name = campaignName(discount.discountKey);
   switch (discount.calculationType) {
     case DiscountCalculationType.PERCENTAGE:
-      return HOME_MESSAGES.discountPercentage(key, discount.percentage ?? 0);
+      return HOME_MESSAGES.discountPercentage(name, discount.percentage ?? 0);
     case DiscountCalculationType.FIXED_AMOUNT:
-      return HOME_MESSAGES.discountFixed(key, formatPrice(discount.fixedAmount ?? 0));
+      return HOME_MESSAGES.discountFixed(name, formatPrice(discount.fixedAmount ?? 0));
     case DiscountCalculationType.BUY_ONE_GET_ONE_FREE:
-      return HOME_MESSAGES.discountBuyOneGetOne(key);
+      return HOME_MESSAGES.discountBuyOneGetOne(name);
     case DiscountCalculationType.NONE:
-      return key;
+      return name;
     default:
       return assertNever(discount.calculationType);
   }
@@ -75,8 +81,13 @@ export function DiscountBanner({ discounts }: DiscountBannerProps): ReactNode {
           {discounts.map((discount) => {
             const details = conditions(discount);
             return (
-              <li key={discount.discountKey} className="text-sm text-text">
-                {describeDiscount(discount)}
+              <li key={discount.discountKey} className="text-sm">
+                <Link
+                  href={promotionRoute(discount.discountKey)}
+                  className="text-text transition-colors duration-(--duration-fast) hover:text-brand-text"
+                >
+                  {describeDiscount(discount)}
+                </Link>
                 {details && <span className="text-text-muted"> ({details})</span>}
               </li>
             );

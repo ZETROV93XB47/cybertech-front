@@ -17,6 +17,12 @@ const ROTATION_MARGIN_MS = 1_500;
 /** Upper bound of « Suivant » presses to reach a slide (avoids an endless loop). */
 const MAX_NEXT_PRESSES = 12;
 
+/** Playwright project that emulates `prefers-reduced-motion`: no autoplay there (FR-010). */
+const REDUCED_MOTION_PROJECT = "reduced-motion";
+
+/** Reason of the autoplay journeys skipped in {@link REDUCED_MOTION_PROJECT}. */
+const NO_AUTOPLAY_REASON = "No autoplay with reduced motion: covered by the dedicated describe";
+
 /**
  * The carousel region.
  *
@@ -56,6 +62,7 @@ async function nextUntil(page: Page, title: string | RegExp): Promise<boolean> {
 
 test.describe("home carousel", () => {
   test("shows one slide and advances by itself", async ({ page }) => {
+    test.skip(test.info().project.name === REDUCED_MOTION_PROJECT, NO_AUTOPLAY_REASON);
     await page.goto("/");
     await expect(shownSlide(page)).toHaveCount(1);
     const first = await shownSlide(page).getAttribute("aria-label");
@@ -93,6 +100,7 @@ test.describe("home carousel", () => {
   });
 
   test("the pause button stops it", async ({ page }) => {
+    test.skip(test.info().project.name === REDUCED_MOTION_PROJECT, NO_AUTOPLAY_REASON);
     await page.goto("/");
     await carousel(page).getByRole("button", { name: "Mettre en pause le défilement" }).click();
     await expect(

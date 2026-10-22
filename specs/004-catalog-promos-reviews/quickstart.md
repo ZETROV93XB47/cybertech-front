@@ -285,3 +285,46 @@ Vérifié le 2026-10-21 (T048–T062) : backend `14252d5` sur 8081, front de l'u
 | 27 | OK | note seule publiée |
 | 28 | OK | « Donner mon avis » sur le détail d'une commande payée ; en préparation (`AWAITING_SHIPPING`) couvert par le backend `abe674d`, non reproduit (le lot d'expédition ne tourne pas pendant le test) |
 | 29 | OK | fiche sans avis : « Aucun avis pour l'instant », aucune note fictive |
+
+### Phase 8 — Finitions
+
+Vérifié le 2026-10-22 (T063–T067) : backend `b5811c5` sur 8081 (prompt §17 livré), front de
+l'utilisateur sur 3000 ; build de production dans `.next-prod`.
+
+- Contrôles : `typecheck` OK, `lint` 0 warning, `test` 1 108 tests verts (111 fichiers), dont
+  `catalog-promos-effects-levels.test.tsx` (16 : panneau « Catalogue », fondu et lecture
+  automatique du carrousel, inclinaison des cartes de campagne, × 4 situations d'effets) et
+  `discount-banner.test.tsx` (2).
+- Audit visuel (T063) : `screenshots/after/` (accueil, menu ouvert, catalogue des cinq
+  catégories, promotions, page de campagne, campagne introuvable, fiche avec avis, « Mes avis »
+  vide, à noter, formulaire, publié), capturés par `tests/e2e/catalog-promos-screenshots.spec.ts`.
+  Correctif : la bande « Offres en cours » de l'accueil et le bloc d'offre de la fiche
+  affichaient la clé brute (`BLACK_FRIDAY`, `WINTER_SALES`) ; ils montrent maintenant le nom de
+  la page Promotions (« Black Friday », « Soldes d'hiver »), et chaque ligne de la bande mène à
+  sa campagne.
+- Audit TSDoc et constantes (T065) : aucune valeur visuelle brute ni `console.*` dans les
+  fichiers de la feature ; `@see` ajoutés là où il manquait ; logs d'avis avec UUID masqués.
+- **Modération (prompt §17)** : nouveau code `MODERATION_UNAVAILABLE` (503) →
+  `FrontErrorCode.MODERATION_UNAVAILABLE` ; le formulaire dit « La vérification des
+  commentaires ne répond pas pour le moment. Réessaie dans un instant : ta note et ton texte sont
+  gardés. », sans inviter à reformuler. `npm run gen:api` relancé. Vérifié de bout en bout : le
+  backend lancé depuis IntelliJ n'a pas `MODERATION_API_URL`, il répond 503 et l'e2e voit ce
+  message, puis publie la note seule.
+- E2E (`--workers=1`, une minute entre deux specs, projets `chromium` et `reduced-motion`) :
+  a11y 8, auth 6, bank-card-add 1, bank-card 2, cart 11, catalog-filters 18, catalog-sort 6,
+  catalog 16, categories 16, checkout 4, compare 10, discount 1, home-carousel 10, home 8,
+  navigation 14, orders 2, preferences 9, product-page 4, profile 2, promotions 6, register 8,
+  reviews 2, wishlist 2 OK ; `backend-down` 3 OK (build de production, backend injoignable) ;
+  `long-tasks` 4 OK (build de production, dont le carrousel qui tourne seul et `/promotions`).
+  Les specs ignorés le sont par conception (comptes créés une seule fois, dans `chromium`).
+  Deux corrections de tests : `auth.spec.ts` cherchait « Camille » dans toute la page, or la
+  fiche montre désormais les avis publics d'anciens utilisateurs de test (vérification limitée
+  à l'en-tête) ; `home-carousel.spec.ts` lançait les parcours de lecture automatique dans le
+  projet `reduced-motion`, où elle est désactivée (ignorés là, couverts par le cas dédié).
+- Lighthouse desktop (build de production, port 3124) : accueil 0,94 (LCP 1,66 s, CLS 0,002,
+  TBT 0), `/promotions` 1,00 (LCP 0,80 s), fiche d'écran avec 9 avis 0,99 (LCP 0,99 s) : SC-006
+  tenu.
+- Points manuels restants : commentaire réellement accepté par la modération (lancer le backend
+  avec `MODERATION_API_URL=http://localhost:5000/api/v1/moderation/analyze`) ; état vide de
+  `/promotions` et catégorie désactivée (non reproductibles sans l'administration, couverts par
+  les tests unitaires) ; palette Ctrl+K sous Turbopack (connu depuis la feature 002).

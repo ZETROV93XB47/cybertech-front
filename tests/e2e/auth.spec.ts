@@ -95,7 +95,9 @@ test("signing out closes both sessions and leaves nothing private behind", async
   await expect(page.getByRole("heading", { level: 1 })).not.toContainText("Camille");
 
   await page.goBack();
-  await expect(page.getByText("Camille")).toHaveCount(0);
+  // Only the header can show the signed-in user: the product page may list public reviews
+  // signed « Camille » by earlier test users (feature 004).
+  await expect(page.getByRole("banner").getByText("Camille")).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Panier, 1 article" })).toHaveCount(0);
   expect(await page.evaluate((key) => window.localStorage.getItem(key), GUEST_CART_KEY)).toBeNull();
 

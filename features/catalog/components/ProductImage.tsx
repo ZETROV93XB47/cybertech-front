@@ -6,6 +6,8 @@
  *
  * The photo is shown whole (`object-contain`, never cropped) on the colour of the photos' own
  * backdrop (`photoBackdrop` in the theme), so it fills its frame without dark side bands.
+ *
+ * @see specs/004-catalog-promos-reviews/spec.md US1
  */
 import Image from "next/image";
 import { useState, type ReactNode } from "react";

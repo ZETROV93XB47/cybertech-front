@@ -2,7 +2,8 @@
  * Smoothness of the signature effects (constitution IX): during 5 s of cursor movement over the
  * home page with every effect on, the main thread never blocks more than 50 ms (no `longtask`
  * entry). Feature 002 adds the catalog with three products compared, the modal opened and
- * closed. Meaningful on a production build (`next build && next start`); `next dev` adds its own
+ * closed. Feature 004 adds the home carousel rotating by itself and the « Promotions » page with
+its tilting campaign cards. Meaningful on a production build (`next build && next start`); `next dev` adds its own
  * development work.
  */
 import { expect, test, type Page } from "@playwright/test";
@@ -19,6 +20,12 @@ const MOVEMENT_DURATION_MS = 5_000;
 
 /** Delay between two cursor positions (~60 moves per second). */
 const MOVE_INTERVAL_MS = 16;
+
+/**
+ * Time the home carousel is watched while it rotates: two slide changes at the full level
+ * (`CAROUSEL_AUTOPLAY_INTERVAL_MS` is 6 s) plus their cross-fades.
+ */
+const CAROUSEL_WATCH_MS = 13_000;
 
 /**
  * Starts recording the long tasks of the page in `window.longTasks`.
@@ -45,12 +52,12 @@ async function longTasksOf(page: Page): Promise<number[]> {
   return page.evaluate(() => (window as unknown as { longTasks: number[] }).longTasks);
 }
 
-test("moving the cursor over the home page causes no long task", async ({ page }) => {
-  test.skip(test.info().project.name !== "chromium", "Effects are static with reduced motion");
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/");
-  await page.waitForLoadState("networkidle");
-  await recordLongTasks(page);
+/**
+ * Moves the cursor in circles over the viewport for {@link MOVEMENT_DURATION_MS}.
+ *
+ * @param page - Playwright page, at a 1440 × 900 viewport.
+ */
+async function circleCursor(page: Page): Promise<void> {
   const start = Date.now();
   let step = 0;
   while (Date.now() - start < MOVEMENT_DURATION_MS) {
@@ -59,6 +66,39 @@ test("moving the cursor over the home page causes no long task", async ({ page }
     await page.mouse.move(720 + Math.cos(angle) * 500, 450 + Math.sin(angle) * 300);
     await page.waitForTimeout(MOVE_INTERVAL_MS);
   }
+}
+
+test("moving the cursor over the home page causes no long task", async ({ page }) => {
+  test.skip(test.info().project.name !== "chromium", "Effects are static with reduced motion");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+  await recordLongTasks(page);
+  await circleCursor(page);
+  expect(await longTasksOf(page)).toEqual([]);
+});
+
+test("the home carousel rotating by itself causes no long task", async ({ page }) => {
+  test.skip(test.info().project.name !== "chromium", "Effects are static with reduced motion");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+  // Keep the pointer away from the carousel: hovering it pauses the rotation.
+  await page.mouse.move(0, 0);
+  const carousel = page.getByRole("region", { name: "À la une" });
+  await expect(carousel).toHaveAttribute("data-playback", "playing");
+  await recordLongTasks(page);
+  await page.waitForTimeout(CAROUSEL_WATCH_MS);
+  expect(await longTasksOf(page)).toEqual([]);
+});
+
+test("moving the cursor over the campaign cards causes no long task", async ({ page }) => {
+  test.skip(test.info().project.name !== "chromium", "Effects are static with reduced motion");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/promotions");
+  await page.waitForLoadState("networkidle");
+  await recordLongTasks(page);
+  await circleCursor(page);
   expect(await longTasksOf(page)).toEqual([]);
 });
 

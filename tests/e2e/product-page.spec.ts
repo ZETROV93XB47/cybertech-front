@@ -57,7 +57,7 @@ test.describe("product page", () => {
     await expect(reviews).toBeVisible();
     // Feature 004 US5: the reviews are read from the backend; earlier runs may have left some.
     await expect(
-      reviews.getByText(/^(Aucun avis pour l'instant|1 avis|\d[\d\s ]* avis)$/),
+      reviews.getByText(/^(Aucun avis pour l'instant|1 avis|\d[\d\s\u202f]* avis)$/),
     ).toBeVisible();
     await expect(reviews.getByRole("list", { name: "Répartition des notes" })).toBeVisible();
     await expectNoBlockingViolations(page);

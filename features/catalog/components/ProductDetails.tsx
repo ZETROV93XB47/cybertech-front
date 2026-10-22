@@ -5,6 +5,9 @@
  *
  * Server Components fed with real catalog data only; the entrance is one staggered reveal of
  * the summary column (`RevealGroup`), the rest of the page stays still.
+ *
+ * @see specs/001-catalog-auth-cart/spec.md US1
+ * @see specs/004-catalog-promos-reviews/spec.md US1
  */
 import { BadgePercent } from "lucide-react";
 import type { ReactNode } from "react";

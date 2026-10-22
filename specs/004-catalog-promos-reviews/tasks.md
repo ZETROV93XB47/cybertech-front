@@ -192,11 +192,11 @@ description: "Task list for feature 004 — five categories, catalog menu, home 
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T063 Visual audit with the **frontend-design** skill: « after » screenshots of every new or changed surface (header menu, home carousel and tiles, catalog per category, promotions list and page, product reviews, « Mes avis ») into `specs/004-catalog-promos-reviews/screenshots/after/`, compared with `before/`; fix inconsistencies (titles, cards, spacing, widths, empty states) with theme tokens only
-- [ ] T064 [P] Tests per effect level for every new effect (menu opening, carousel cross-fade, campaign card tilt) in `tests/unit/effects/catalog-promos-effects-levels.test.tsx`; extend `tests/e2e/long-tasks.spec.ts` to `/` (carousel running) and `/promotions`
-- [ ] T065 [P] TSDoc and constants audit of every file touched by the feature (no magic value, no raw visual value, `@see` to spec / contract / backend file, logs free of personal data), fixing what `npm run lint` does not catch
-- [ ] T066 Full run: `npm run typecheck`, `npm run lint`, `npm run test`, then every Playwright spec of the feature and the existing ones one by one (`--workers=1`, one-minute pause between specs that create accounts); Lighthouse on `/`, `/promotions` and a product page with reviews (SC-006); complete quickstart §5 with the date, counts and remaining manual points
-- [ ] T067 Final commit `docs: wrap up feature 004` and checkpoint with the user (in French)
+- [X] T063 Visual audit with the **frontend-design** skill: « after » screenshots of every new or changed surface (header menu, home carousel and tiles, catalog per category, promotions list and page, product reviews, « Mes avis ») into `specs/004-catalog-promos-reviews/screenshots/after/`, compared with `before/`; fix inconsistencies (titles, cards, spacing, widths, empty states) with theme tokens only
+- [X] T064 [P] Tests per effect level for every new effect (menu opening, carousel cross-fade, campaign card tilt) in `tests/unit/effects/catalog-promos-effects-levels.test.tsx`; extend `tests/e2e/long-tasks.spec.ts` to `/` (carousel running) and `/promotions`
+- [X] T065 [P] TSDoc and constants audit of every file touched by the feature (no magic value, no raw visual value, `@see` to spec / contract / backend file, logs free of personal data), fixing what `npm run lint` does not catch
+- [X] T066 Full run: `npm run typecheck`, `npm run lint`, `npm run test`, then every Playwright spec of the feature and the existing ones one by one (`--workers=1`, one-minute pause between specs that create accounts); Lighthouse on `/`, `/promotions` and a product page with reviews (SC-006); complete quickstart §5 with the date, counts and remaining manual points
+- [X] T067 Final commit `docs: wrap up feature 004` and checkpoint with the user (in French)
 
 ---
 

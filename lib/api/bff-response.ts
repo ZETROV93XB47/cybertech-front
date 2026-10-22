@@ -3,6 +3,8 @@
  *
  * Every response carries `Cache-Control: no-store` (private or live data), and every input is
  * validated by Zod before any backend call (contracts/bff-routes.md, « Règles communes »).
+ *
+ * @see specs/001-catalog-auth-cart/contracts/bff-routes.md
  */
 import "server-only";
 
