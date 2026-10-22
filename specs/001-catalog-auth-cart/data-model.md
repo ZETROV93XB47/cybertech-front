@@ -104,7 +104,7 @@ Paramètre invalide → ignoré (jamais d'erreur), l'URL canonique est réécrit
 | `firstName`, `lastName` | trim, 2–50 | « Entre 2 et 50 caractères. » |
 | `sex` | `"M"` \| `"F"` | « Choisis une option. » |
 | `phoneNumber` | non vide | « Indique ton numéro de téléphone. » |
-| `favoriteCommunicationChanel` | `EMAIL` \| `SMS` \| `PUSH_NOTIFICATION` | — |
+| `favoriteCommunicationChanel` | `EMAIL` \| `SMS` (`PUSH_NOTIFICATION` refusé par le backend) | « Choisis une option. » |
 | `street`, `city`, `zipCode`, `country` | non vides | « Ce champ est requis. » |
 | `birthDate` | optionnel, date passée → `YYYY-MM-DDT00:00:00` | « La date doit être dans le passé. » |
 | `password` | ≥ 8 | « 8 caractères minimum. » |

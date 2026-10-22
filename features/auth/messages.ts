@@ -52,7 +52,6 @@ export const REGISTER_MESSAGES = {
     favoriteCommunicationChanel: "Comment préfères-tu qu'on te contacte ?",
     channelEmail: "Par email",
     channelSms: "Par SMS",
-    channelPush: "Par notification",
     street: "Rue",
     city: "Ville",
     zipCode: "Code postal",

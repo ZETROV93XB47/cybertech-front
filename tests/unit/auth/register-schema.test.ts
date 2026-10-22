@@ -44,6 +44,8 @@ describe("RegisterInputSchema", () => {
     [RegisterField.SEX, "X", "Choisis une option."],
     [RegisterField.PHONE_NUMBER, " ", "Indique ton numéro de téléphone."],
     [RegisterField.FAVORITE_COMMUNICATION_CHANNEL, "", "Choisis une option."],
+    // The backend rejects PUSH_NOTIFICATION at registration (400): Web Push is not a choice.
+    [RegisterField.FAVORITE_COMMUNICATION_CHANNEL, "PUSH_NOTIFICATION", "Choisis une option."],
     [RegisterField.STREET, "", "Ce champ est requis."],
     [RegisterField.CITY, " ", "Ce champ est requis."],
     [RegisterField.ZIP_CODE, "", "Ce champ est requis."],

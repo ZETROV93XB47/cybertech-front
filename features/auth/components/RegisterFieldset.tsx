@@ -28,7 +28,6 @@ const SEX_OPTIONS: readonly ChoiceOption[] = [
 const CHANNEL_OPTIONS: readonly ChoiceOption[] = [
   { value: CommunicationChannel.EMAIL, label: LABELS.channelEmail },
   { value: CommunicationChannel.SMS, label: LABELS.channelSms },
-  { value: CommunicationChannel.PUSH_NOTIFICATION, label: LABELS.channelPush },
 ];
 
 /** Props of {@link RegisterFieldset}. */

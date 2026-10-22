@@ -275,7 +275,7 @@ Légende : **req** = obligatoire. Les contraintes sont celles de Jakarta Bean Va
 | `lastName` | string | req, `@NotBlank`, `@Size(2..50)` |
 | `sex` | enum `Sex` = `M` \| `F` | req |
 | `phoneNumber` | string | req, `@NotBlank` (aucun format) |
-| `favoriteCommunicationChanel` | enum `EMAIL` \| `SMS` \| `PUSH_NOTIFICATION` | req (orthographe « Chanel » à respecter) |
+| `favoriteCommunicationChanel` | enum `EMAIL` \| `SMS` | req (orthographe « Chanel » à respecter) ; `PUSH_NOTIFICATION` existe dans l'enum mais est refusé (400, `@AssertTrue`) : le Web Push n'est pas un choix, il s'ajoute toujours au canal choisi (voir `docs/web-push.md` du backend) |
 | `street`, `city`, `zipCode`, `country` | string | req, `@NotBlank` (aucun format) |
 | `birthDate` | LocalDateTime `"YYYY-MM-DDTHH:mm:ss"` | optionnel, `@Past` |
 | `password` | string | req, `@NotBlank`, `@Size(min=8)` (la politique Keycloak peut être plus stricte ⚠️ À CONFIRMER) |
