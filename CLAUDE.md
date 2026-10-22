@@ -38,6 +38,11 @@ structurés et masqués.
    `[...]` dans `components/` et `features/`. Les effets lisent `useEffectiveEffects()`, les
    animations `useMotionTokens()`. Préférences utilisateur bornées par des enums, cookie
    `ct_prefs_v1`, `prefers-reduced-motion` prioritaire.
+   **Menus déroulants** : tous (menus de l'en-tête, listes de choix, champs de formulaire)
+   ont le design du menu « Catalogue », identique d'une page à l'autre : panneau `DropPanel`,
+   lignes `DropdownRowContent` / `DROPDOWN_ROW_CLASS` (`components/dropdown/`), icône
+   facultative ; la page en cours ou l'option choisie n'a que la barre dorée. Jamais de
+   `<select>` natif visible : `ListboxSelect` (repli natif seulement sans JavaScript).
 7. Une tâche est finie quand `npm run typecheck`, `npm run lint` (0 warning), `npm run test`
    passent et que les exports ajoutés sont documentés.
 

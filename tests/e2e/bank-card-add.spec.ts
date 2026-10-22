@@ -13,6 +13,7 @@ import { expect, test, type Page, type Request } from "@playwright/test";
 
 import { expectNoBlockingViolations } from "./support/a11y";
 import { firstProductPaths, registerUser, signIn } from "./support/account";
+import { chooseListOption } from "./support/listbox";
 
 /** Card that pays. */
 const PAYING = "1111111111111111";
@@ -44,8 +45,9 @@ async function addCard(page: Page, number: string, replace: boolean): Promise<vo
   const form = page.getByRole("form", { name: "Ajouter une carte" });
   await form.getByLabel("Titulaire de la carte").fill("Camille Testeur");
   await form.getByLabel("Numéro de carte").fill(number);
-  await form.getByLabel("Mois d'expiration").selectOption("12");
-  await form.getByLabel("Année d'expiration").selectOption({ index: 4 });
+  await chooseListOption(page, form, "Mois d'expiration", "12");
+  // Option 0 is the current year: option 3 is three years ahead.
+  await chooseListOption(page, form, "Année d'expiration", { index: 3 });
   await form.getByRole("button", { name: "Enregistrer la carte" }).click();
   if (replace) {
     await page.getByRole("button", { name: "Oui, remplacer" }).click();

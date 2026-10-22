@@ -15,11 +15,16 @@
  * @see specs/004-catalog-promos-reviews/spec.md US2
  * @see specs/004-catalog-promos-reviews/research.md R3
  */
-import { ChevronDown, ChevronRight, LayoutGrid, type LucideIcon } from "lucide-react";
+import { ChevronDown, LayoutGrid, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { NavigationMenu } from "radix-ui";
 import { useCallback, useRef, useState, type MouseEvent, type ReactNode } from "react";
 
+import {
+  DROPDOWN_ROW_CLASS,
+  DROPDOWN_ROW_CURRENT_CLASS,
+  DropdownRowContent,
+} from "@/components/dropdown/DropdownRow";
 import { DropPanel, PanelOrigin } from "@/components/effects/DropPanel";
 import { CATEGORY_ICONS } from "@/features/catalog/category-icons";
 import { CATALOG_MENU_MESSAGES, CATEGORY_LABELS } from "@/features/catalog/messages";
@@ -35,10 +40,6 @@ import { NavUnderline } from "./NavUnderline";
 
 /** Value of the « Catalogue » item in the navigation menu (Radix item value). */
 export const CATALOG_MENU_VALUE = "catalog";
-
-/** Style of every row of the panel. */
-const ROW_CLASS =
-  "group relative flex w-full items-center gap-3 rounded-button px-3 py-2.5 text-sm text-text-muted transition-colors duration-(--duration-fast) hover:bg-surface-2 hover:text-text focus-visible:bg-surface-2 focus-visible:text-text";
 
 /** Number of products of each category; `null` or missing when unknown. */
 export type CategoryCounts = Readonly<Partial<Record<CategoryKey, number | null>>>;
@@ -72,42 +73,22 @@ interface MenuRowProps {
 }
 
 /**
- * One link of the panel: current-category pill, icon, name, count and a chevron on hover.
+ * One link of the panel, a shared dropdown row: icon, name, count, hover chevron and the gold bar
+ * on the page shown.
  *
  * @param props - Address, icon, texts and current state.
  * @returns The list item.
  */
-function MenuRow({ href, icon: Icon, label, detail, isCurrent }: MenuRowProps): ReactNode {
+function MenuRow({ href, icon, label, detail, isCurrent }: MenuRowProps): ReactNode {
   return (
     <li>
       <NavigationMenu.Link asChild active={isCurrent}>
         <Link
           href={href}
           aria-current={isCurrent ? "page" : undefined}
-          className={cn(ROW_CLASS, isCurrent && "bg-surface-2 font-medium text-text")}
+          className={cn(DROPDOWN_ROW_CLASS, isCurrent && DROPDOWN_ROW_CURRENT_CLASS)}
         >
-          <span
-            aria-hidden
-            className={cn(
-              "absolute inset-y-2 left-1 w-1 rounded-full bg-gold transition-opacity duration-(--duration-fast)",
-              isCurrent ? "opacity-100" : "opacity-0",
-            )}
-          />
-          <Icon
-            aria-hidden
-            className={cn(
-              "size-4 shrink-0 transition-transform duration-(--duration-fast) group-hover:translate-x-0.5 group-hover:text-brand-text",
-              isCurrent && "text-gold",
-            )}
-          />
-          <span className="flex-1 whitespace-nowrap">{label}</span>
-          {detail !== undefined && (
-            <span className="font-mono text-xs text-text-muted tabular-nums">{detail}</span>
-          )}
-          <ChevronRight
-            aria-hidden
-            className="size-4 -translate-x-1 opacity-0 transition duration-(--duration-fast) group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:opacity-100"
-          />
+          <DropdownRowContent icon={icon} label={label} detail={detail} isCurrent={isCurrent} />
         </Link>
       </NavigationMenu.Link>
     </li>

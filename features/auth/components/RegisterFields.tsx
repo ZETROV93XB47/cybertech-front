@@ -4,13 +4,10 @@
  * Accessible fields of the registration form: a visible label, the error written under the field
  * and linked with `aria-describedby`, `aria-invalid` while it is wrong (FR-011, WCAG 3.3.1).
  */
-import { Select } from "radix-ui";
-import { useRef, useState, type FocusEvent, type ReactNode } from "react";
-import { flushSync } from "react-dom";
+import type { FocusEvent, ReactNode } from "react";
 
-import { DropPanel, PanelOrigin } from "@/components/effects/DropPanel";
+import { ListboxSelect } from "@/components/dropdown/ListboxSelect";
 import { Input } from "@/components/ui/input";
-import { LISTBOX_OFFSET_PX, ListboxChevron, ListboxItem } from "@/components/ui/listbox";
 import { RegisterField } from "@/lib/enums/register-field";
 import { cn } from "@/lib/utils";
 
@@ -20,19 +17,9 @@ const ERROR_ID_SUFFIX = "-error";
 /** Suffix of the id of a field's hint. */
 const HINT_ID_SUFFIX = "-hint";
 
-/** Suffix of the id of the native select shown without JavaScript. */
-const NATIVE_ID_SUFFIX = "-native";
-
-/** Selector of an open Radix list, to tell a focus move into it from leaving the field. */
-const LISTBOX_SELECTOR = "[role=listbox]";
-
-/** Style of a list trigger: the shadcn input look, with the brand border on hover and focus. */
+/** Style of a list trigger: the shadcn input look of this form, brand border on hover and focus. */
 const TRIGGER_CLASS =
   "flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 text-left text-sm text-text transition-colors duration-(--duration-fast) outline-none hover:border-brand-text focus-visible:border-brand-text data-placeholder:text-text-muted aria-invalid:border-destructive noscript:hidden";
-
-/** Style of the native `<select>` shown without JavaScript, aligned with the shadcn input. */
-const SELECT_CLASS =
-  "h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm text-text aria-invalid:border-destructive";
 
 /** Props shared by every field. */
 interface BaseFieldProps {
@@ -189,117 +176,34 @@ export interface SelectFieldProps extends BaseFieldProps {
 }
 
 /**
- * Native select shown only without JavaScript, with its own label.
- *
- * Rendered before the hidden input of the custom list so that `FormData.get` reads it first.
- *
- * @param props - Field definition and options.
- * @returns The `noscript` block.
- */
-function NoScriptSelect(props: SelectFieldProps): ReactNode {
-  const { name, label, defaultValue, options, placeholder } = props;
-  const nativeId = `${name}${NATIVE_ID_SUFFIX}`;
-  return (
-    <noscript>
-      <label htmlFor={nativeId} className="text-sm font-medium">
-        {label}
-      </label>
-      <select id={nativeId} name={name} defaultValue={defaultValue ?? ""} className={SELECT_CLASS}>
-        <option value="">{placeholder}</option>
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </noscript>
-  );
-}
-
-/**
- * Labelled dropdown list with its error, opening like the catalog « Trier par » list.
- *
- * Built on the Radix `Select` (listbox pattern: arrows, Enter, Escape, typeahead). The value is
- * submitted through a hidden input rather than the Radix native select, because a hidden input
- * keeps its value when React resets the form after the server action. The field is validated
- * when the list closes, or when the focus leaves the trigger for something else than the list.
+ * Labelled dropdown list with its error, following the site dropdown rule (looks and opens like
+ * the « Catalogue » menu). Validated when the list closes or the focus leaves it.
  *
  * @param props - Field definition, options and state.
- * @returns The field, with its no-JavaScript select.
- * @see features/catalog/components/SortSelect.tsx
+ * @returns The field.
+ * @see components/dropdown/ListboxSelect.tsx
  */
 export function SelectField(props: SelectFieldProps): ReactNode {
   const { name, label, error, defaultValue, onBlur, options, placeholder } = props;
-  const [value, setValue] = useState(defaultValue ?? "");
-  const [isOpen, setOpen] = useState(false);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const validate = (): void => {
-    onBlur(triggerRef.current?.form ?? null, name);
-  };
-  const onValueChange = (next: string): void => {
-    // Written to the hidden input before the list closes, so that the validation reads it.
-    flushSync(() => {
-      setValue(next);
-    });
-  };
-  const onOpenChange = (open: boolean): void => {
-    setOpen(open);
-    if (!open) {
-      validate();
-    }
-  };
-  const onTriggerBlur = (event: FocusEvent<HTMLButtonElement>): void => {
-    const target = event.relatedTarget;
-    if (!isOpen && !(target instanceof Element && target.closest(LISTBOX_SELECTOR))) {
-      validate();
-    }
-  };
   return (
     <div className="flex flex-col gap-2">
-      <label htmlFor={name} className="text-sm font-medium noscript:hidden">
+      <label htmlFor={name} className="text-sm font-medium">
         {label}
       </label>
-      <NoScriptSelect {...props} />
-      <input type="hidden" name={name} value={value} />
-      <Select.Root
-        value={value}
-        onValueChange={onValueChange}
-        open={isOpen}
-        onOpenChange={onOpenChange}
-      >
-        <Select.Trigger
-          ref={triggerRef}
-          id={name}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={describedBy(name, Boolean(error), false)}
-          onBlur={onTriggerBlur}
-          className={TRIGGER_CLASS}
-        >
-          <Select.Value placeholder={placeholder} />
-          <ListboxChevron isOpen={isOpen} />
-        </Select.Trigger>
-        <Select.Portal>
-          <Select.Content
-            position="popper"
-            align="start"
-            sideOffset={LISTBOX_OFFSET_PX}
-            className="z-50"
-          >
-            <DropPanel origin={PanelOrigin.TOP_LEFT} className="w-(--radix-select-trigger-width)">
-              <Select.Viewport>
-                {options.map((option) => (
-                  <ListboxItem
-                    key={option.value}
-                    value={option.value}
-                    label={option.label}
-                    isCurrent={option.value === value}
-                  />
-                ))}
-              </Select.Viewport>
-            </DropPanel>
-          </Select.Content>
-        </Select.Portal>
-      </Select.Root>
+      <ListboxSelect
+        id={name}
+        name={name}
+        label={label}
+        options={options}
+        placeholder={placeholder}
+        defaultValue={defaultValue}
+        isInvalid={Boolean(error)}
+        describedBy={describedBy(name, Boolean(error), false)}
+        onDismiss={(form) => {
+          onBlur(form, name);
+        }}
+        triggerClassName={TRIGGER_CLASS}
+      />
       <FieldError name={name} error={error} />
     </div>
   );

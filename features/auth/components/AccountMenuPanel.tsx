@@ -11,12 +11,17 @@
  *
  * @see specs/003-account-orders/spec.md FR-040
  */
-import { ChevronRight, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, type ReactNode, type RefObject } from "react";
 
+import {
+  DROPDOWN_ROW_CLASS,
+  DROPDOWN_ROW_CURRENT_CLASS,
+  DropdownRowContent,
+} from "@/components/dropdown/DropdownRow";
 import { DropPanel, PanelOrigin } from "@/components/effects/DropPanel";
 import { ACCOUNT_MENU_ITEMS, isCurrentSection } from "@/features/account/account-sections";
 import { useEffectiveEffects } from "@/features/preferences/PreferencesProvider";
@@ -30,10 +35,6 @@ import { AUTH_MESSAGES } from "../messages";
 
 /** Horizontal offset of a row at the start of the staggered entrance, in Motion units. */
 const ROW_SLIDE_OFFSET = 8;
-
-/** Style of every row of the panel (links and sign-out button). */
-const ROW_CLASS =
-  "group relative flex w-full items-center gap-3 rounded-button px-3 py-2.5 text-sm text-text-muted transition-colors duration-(--duration-fast) hover:bg-surface-2 hover:text-text focus-visible:bg-surface-2 focus-visible:text-text";
 
 /** Props of {@link AccountMenuPanel}. */
 export interface AccountMenuPanelProps {
@@ -81,47 +82,6 @@ function PanelHeader({ identity }: { readonly identity: AccountIdentity }): Reac
 }
 
 /**
- * Inner part of a row: current-page pill, icon that slides on hover, label and a chevron that
- * shows on hover.
- *
- * @param props - Icon, label and current state.
- * @returns The row content.
- */
-function RowContent({
-  icon: Icon,
-  label,
-  isCurrent,
-}: {
-  readonly icon: (typeof ACCOUNT_MENU_ITEMS)[number]["icon"];
-  readonly label: string;
-  readonly isCurrent: boolean;
-}): ReactNode {
-  return (
-    <>
-      <span
-        aria-hidden
-        className={cn(
-          "absolute inset-y-2 left-1 w-1 rounded-full bg-gold transition-opacity duration-(--duration-fast)",
-          isCurrent ? "opacity-100" : "opacity-0",
-        )}
-      />
-      <Icon
-        aria-hidden
-        className={cn(
-          "size-4 transition-transform duration-(--duration-fast) group-hover:translate-x-0.5 group-hover:text-brand-text",
-          isCurrent && "text-gold",
-        )}
-      />
-      <span className="flex-1">{label}</span>
-      <ChevronRight
-        aria-hidden
-        className="size-4 -translate-x-1 opacity-0 transition duration-(--duration-fast) group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:opacity-100"
-      />
-    </>
-  );
-}
-
-/**
  * Links to the account sections.
  *
  * @param props - Ref of the first link and navigation handler.
@@ -155,9 +115,9 @@ function PanelLinks({
                 href={href}
                 onClick={onNavigate}
                 aria-current={isCurrent ? "page" : undefined}
-                className={cn(ROW_CLASS, isCurrent && "bg-surface-2 font-medium text-text")}
+                className={cn(DROPDOWN_ROW_CLASS, isCurrent && DROPDOWN_ROW_CURRENT_CLASS)}
               >
-                <RowContent icon={icon} label={label} isCurrent={isCurrent} />
+                <DropdownRowContent icon={icon} label={label} isCurrent={isCurrent} />
               </Link>
             </motion.li>
           );
@@ -186,7 +146,7 @@ function SignOutForm({
       <button
         type="submit"
         disabled={signingOut}
-        className={cn(ROW_CLASS, "hover:text-rose disabled:opacity-50")}
+        className={cn(DROPDOWN_ROW_CLASS, "hover:text-rose disabled:opacity-50")}
       >
         <LogOut aria-hidden className="size-4" />
         {signingOut ? AUTH_MESSAGES.signingOut : AUTH_MESSAGES.signOut}

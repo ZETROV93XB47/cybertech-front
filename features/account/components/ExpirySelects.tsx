@@ -1,19 +1,22 @@
+"use client";
+
 /**
- * Expiry of a card as two native selects, month (`01`–`12`) and year (4 digits), grouped in a
- * fieldset whose error is linked to it. Native selects post with the form, so the update form
- * also works without JavaScript; the forms assemble `MM/YYYY` (data-model §3).
+ * Expiry of a card as two dropdown lists, month (`01`–`12`) and year (4 digits), grouped in a
+ * fieldset whose error is linked to it. The lists follow the site dropdown rule (they look and
+ * open like the « Catalogue » menu) and post their value through a hidden input, with a native
+ * select without JavaScript, so the update form keeps working without JavaScript; the forms
+ * assemble `MM/YYYY` (data-model §3).
  *
  * @see specs/003-account-orders/spec.md FR-031
+ * @see components/dropdown/ListboxSelect.tsx
  */
 import type { ReactNode } from "react";
+
+import { ListboxSelect } from "@/components/dropdown/ListboxSelect";
 
 import { BankCardField } from "@/lib/enums/bank-card";
 
 import { CARD_MESSAGES } from "../messages";
-
-/** Style of a native select, aligned on the inputs of the forms. */
-export const SELECT_CLASS =
-  "h-10 w-full rounded-field border border-border bg-surface px-3 text-sm text-text transition-colors duration-(--duration-fast) focus-visible:border-brand-text focus-visible:outline-none aria-invalid:border-rose";
 
 /** Props of {@link ExpirySelects}. */
 export interface ExpirySelectsProps {
@@ -29,12 +32,13 @@ export interface ExpirySelectsProps {
 }
 
 /**
- * One labelled select.
+ * One labelled list.
  *
- * @param props - Field, label, options, value, invalid state and change handler.
- * @returns The select with its label.
+ * @param props - Id, field, label, options, value, invalid state and change handler.
+ * @returns The list with its label.
  */
 function ExpirySelect({
+  id,
   field,
   label,
   options,
@@ -42,6 +46,7 @@ function ExpirySelect({
   isInvalid,
   onChange,
 }: {
+  readonly id: string;
   readonly field: BankCardField;
   readonly label: string;
   readonly options: readonly string[];
@@ -54,32 +59,30 @@ function ExpirySelect({
       ? { defaultValue: value }
       : {
           value,
-          onChange: (event: { readonly target: { readonly value: string } }): void => {
-            onChange(field, event.target.value);
+          onValueChange: (next: string): void => {
+            onChange(field, next);
           },
         };
   return (
-    <label className="flex flex-col gap-1 text-xs text-text-muted">
-      {label}
-      <select
+    <div className="flex flex-col gap-1">
+      <label htmlFor={id} className="text-xs text-text-muted">
+        {label}
+      </label>
+      <ListboxSelect
+        id={id}
         name={field}
-        className={SELECT_CLASS}
-        aria-invalid={isInvalid ? true : undefined}
+        label={label}
+        options={options.map((option) => ({ value: option, label: option }))}
+        placeholder={CARD_MESSAGES.selectPlaceholder}
+        isInvalid={isInvalid}
         {...binding}
-      >
-        <option value="">{CARD_MESSAGES.selectPlaceholder}</option>
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </label>
+      />
+    </div>
   );
 }
 
 /**
- * Month and year selects.
+ * Month and year lists.
  *
  * @param props - Options, values, error and change handler.
  * @returns The fieldset.
@@ -92,6 +95,7 @@ export function ExpirySelects(props: ExpirySelectsProps): ReactNode {
     <fieldset className="grid grid-cols-2 gap-3" aria-describedby={isInvalid ? errorId : undefined}>
       <legend className="mb-2 text-sm font-medium">{CARD_MESSAGES.expiryLegend}</legend>
       <ExpirySelect
+        id={`${idPrefix}-${BankCardField.EXPIRY_MONTH}`}
         field={BankCardField.EXPIRY_MONTH}
         label={CARD_MESSAGES.fields.expiryMonth}
         options={months}
@@ -100,6 +104,7 @@ export function ExpirySelects(props: ExpirySelectsProps): ReactNode {
         onChange={onChange}
       />
       <ExpirySelect
+        id={`${idPrefix}-${BankCardField.EXPIRY_YEAR}`}
         field={BankCardField.EXPIRY_YEAR}
         label={CARD_MESSAGES.fields.expiryYear}
         options={years}

@@ -9,6 +9,7 @@ import { expect, test } from "@playwright/test";
 
 import { expectNoBlockingViolations } from "./support/a11y";
 import { registerUser, signIn } from "./support/account";
+import { chooseListOption } from "./support/listbox";
 
 /** Path of « Ma carte ». */
 const CARD_PATH = "/account/card";
@@ -29,13 +30,13 @@ test("the saved card is edited, kept after a reload, then deleted", async ({ pag
   await expectNoBlockingViolations(page);
 
   const edit = page.getByRole("region", { name: "Modifier le titulaire ou l'expiration" });
-  // Option 0 is « Choisir », option 1 the current year: option 3 is two years ahead.
-  await edit.getByLabel("Mois d'expiration").selectOption("01");
-  await edit.getByLabel("Année d'expiration").selectOption({ index: 3 });
+  // Option 0 is the current year: option 2 is two years ahead.
+  await chooseListOption(page, edit, "Mois d'expiration", "01");
+  await chooseListOption(page, edit, "Année d'expiration", { index: 2 });
   await edit.getByRole("button", { name: "Enregistrer" }).click();
   await expect(page.getByText("C'est enregistré : ta carte est à jour.")).toBeVisible();
   await page.reload();
-  await expect(edit.getByLabel("Mois d'expiration")).toHaveValue("01");
+  await expect(edit.getByRole("combobox", { name: "Mois d'expiration" })).toHaveText("01");
 
   await page.getByRole("button", { name: "Supprimer la carte" }).click();
   await page.getByRole("button", { name: "Oui, supprimer" }).click();
@@ -47,10 +48,10 @@ test("a past expiry is refused on the field", async ({ page, context }) => {
   const email = await registerUser(context, { withBankCard: true });
   await signIn(page, email, CARD_PATH);
   const edit = page.getByRole("region", { name: "Modifier le titulaire ou l'expiration" });
-  // January of the current year (option 1) is past from February on.
+  // January of the current year (option 0) is past from February on.
   test.skip(new Date().getMonth() === 0, "January: the current month is not past yet");
-  await edit.getByLabel("Mois d'expiration").selectOption("01");
-  await edit.getByLabel("Année d'expiration").selectOption({ index: 1 });
+  await chooseListOption(page, edit, "Mois d'expiration", "01");
+  await chooseListOption(page, edit, "Année d'expiration", { index: 0 });
   await edit.getByRole("button", { name: "Enregistrer" }).click();
   await expect(edit.getByText(/Cette date est passée/)).toBeVisible();
 });

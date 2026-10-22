@@ -6,17 +6,18 @@
  *
  * @see specs/003-account-orders/spec.md US5, FR-031, FR-032, SC-008
  */
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "jest-axe";
 import { http, HttpResponse } from "msw";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { CardDeleteState, CardUpdateState } from "@/features/account/card-state";
 import type { CardView } from "@/features/account/card-view";
 import { BankCardPanel } from "@/features/account/components/BankCardPanel";
 import { BankCardType, CardFormStatus } from "@/lib/enums/bank-card";
 
+import { renderWithProviders as render } from "../../helpers/providers";
 import { server } from "../../msw/server";
 
 const navigation = vi.hoisted(() => ({ refresh: vi.fn(), push: vi.fn() }));
@@ -42,6 +43,34 @@ const CARD: CardView = {
   expiryMonth: "12",
   expiryYear: "2030",
 };
+
+// The Radix listbox uses pointer capture and scrolls the checked option into view: jsdom has
+// neither.
+beforeAll(() => {
+  Object.assign(Element.prototype, {
+    hasPointerCapture: () => false,
+    releasePointerCapture: () => undefined,
+    scrollIntoView: () => undefined,
+  });
+});
+
+/**
+ * Chooses an option in one of the dropdown lists of the card forms.
+ *
+ * @param user - User event instance.
+ * @param trigger - Trigger of the list (combobox).
+ * @param option - Visible text of the option.
+ */
+async function choose(
+  user: ReturnType<typeof userEvent.setup>,
+  trigger: HTMLElement,
+  option: string,
+): Promise<void> {
+  await user.click(trigger);
+  await user.click(
+    within(await screen.findByRole("listbox")).getByRole("option", { name: option }),
+  );
+}
 
 /** Requests sent to the BFF by the add form. */
 let sent: unknown[] = [];
@@ -78,8 +107,8 @@ async function fillCard(user: ReturnType<typeof userEvent.setup>, number = NUMBE
   await user.type(holder, "Camille Testeur");
   await user.type(screen.getByLabelText("Numéro de carte"), number);
   const form = screen.getByRole("form", { name: "Ajouter une carte" });
-  await user.selectOptions(within(form).getByLabelText("Mois d'expiration"), "12");
-  await user.selectOptions(within(form).getByLabelText("Année d'expiration"), "2030");
+  await choose(user, within(form).getByRole("combobox", { name: "Mois d'expiration" }), "12");
+  await choose(user, within(form).getByRole("combobox", { name: "Année d'expiration" }), "2030");
 }
 
 beforeEach(() => {
@@ -116,11 +145,17 @@ describe("saved card", () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
-  it("edits the holder and the expiry through month and year selects", () => {
-    render(<BankCardPanel card={CARD} returnTo={null} months={MONTHS} years={YEARS} />);
+  it("edits the holder and the expiry through month and year lists", () => {
+    const { container } = render(
+      <BankCardPanel card={CARD} returnTo={null} months={MONTHS} years={YEARS} />,
+    );
     expect(screen.getByLabelText("Titulaire de la carte")).toHaveValue("Camille Testeur");
-    expect(screen.getByLabelText("Mois d'expiration")).toHaveValue("12");
-    expect(screen.getByLabelText("Année d'expiration")).toHaveValue("2030");
+    expect(screen.getByRole("combobox", { name: "Mois d'expiration" })).toHaveTextContent("12");
+    expect(screen.getByRole("combobox", { name: "Année d'expiration" })).toHaveTextContent("2030");
+    // The values are posted by the update form through hidden inputs.
+    const posted = new FormData(container.querySelector("form") ?? undefined);
+    expect(posted.get("expiryMonth")).toBe("12");
+    expect(posted.get("expiryYear")).toBe("2030");
   });
 
   it("shows the expiry error and the sign-in link after a refused update", async () => {
@@ -177,17 +212,17 @@ describe("no card", () => {
     const user = userEvent.setup();
     render(<BankCardPanel card={null} returnTo={null} months={MONTHS} years={YEARS} />);
     const number = screen.getByLabelText("Numéro de carte");
-    const network = screen.getByLabelText("Réseau");
+    const network = screen.getByRole("combobox", { name: "Réseau" });
     await user.type(number, "4242");
     expect(number).toHaveValue("4242");
-    expect(network).toHaveValue(BankCardType.VISA);
+    expect(network).toHaveTextContent("Visa");
     await user.clear(number);
     await user.type(number, "11111111");
     expect(number).toHaveValue("1111 1111");
-    expect(network).toHaveValue(BankCardType.OTHER);
-    await user.selectOptions(network, BankCardType.MASTERCARD);
+    expect(network).toHaveTextContent("Autre");
+    await choose(user, network, "Mastercard");
     await user.type(number, "4");
-    expect(network).toHaveValue(BankCardType.MASTERCARD);
+    expect(network).toHaveTextContent("Mastercard");
   });
 
   it("refuses a short number on the field without sending anything", async () => {

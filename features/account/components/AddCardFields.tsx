@@ -2,7 +2,7 @@
 
 /**
  * Fields of « Ajouter une carte »: holder, number (digits only, shown in groups of four,
- * `inputMode="numeric"`, `autoComplete="off"`), expiry selects and the network select, which
+ * `inputMode="numeric"`, `autoComplete="off"`), expiry lists and the network list, which
  * follows the number until the customer changes it. Controlled by `useAddCard`: the number is
  * never in a `name`d field, so it is never posted by the browser on its own.
  *
@@ -11,6 +11,7 @@
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { z } from "zod";
 
+import { ListboxSelect } from "@/components/dropdown/ListboxSelect";
 import { Input } from "@/components/ui/input";
 import { BankCardField, BankCardType } from "@/lib/enums/bank-card";
 
@@ -20,13 +21,16 @@ import type { CardFieldErrors } from "../card-state";
 import { CARD_MESSAGES } from "../messages";
 
 import { CardFieldShell } from "./CardFieldShell";
-import { ExpirySelects, SELECT_CLASS } from "./ExpirySelects";
+import { ExpirySelects } from "./ExpirySelects";
 
 /** Prefix of the ids of this form. */
 const ID_PREFIX = "card-add";
 
-/** Networks offered by the select, in the enum order. */
-const NETWORKS: readonly BankCardType[] = Object.values(BankCardType);
+/** Networks offered by the list, in the enum order, with their names. */
+const NETWORK_OPTIONS = Object.values(BankCardType).map((type) => ({
+  value: type,
+  label: CARD_MESSAGES.networks[type],
+}));
 
 /** Value of the network select, read back as the enum. */
 const NetworkSchema = z.enum(BankCardType);
@@ -41,7 +45,7 @@ export interface AddCardFieldsProps {
 }
 
 /**
- * Network select.
+ * Network list.
  *
  * @param props - Current network and its setter.
  * @returns The labelled select.
@@ -58,22 +62,19 @@ function NetworkSelect({
       error={undefined}
     >
       {(control) => (
-        <select
-          {...control}
-          className={SELECT_CLASS}
+        <ListboxSelect
+          id={control.id}
+          label={CARD_MESSAGES.fields.network}
+          options={NETWORK_OPTIONS}
           value={values.network}
-          onChange={(event) => {
-            const parsed = NetworkSchema.safeParse(event.target.value);
+          isInvalid={control["aria-invalid"]}
+          describedBy={control["aria-describedby"]}
+          onValueChange={(next) => {
+            const parsed = NetworkSchema.safeParse(next);
             const network = parsed.success ? parsed.data : BankCardType.OTHER;
             setValues((current) => ({ ...current, network, isNetworkChosen: true }));
           }}
-        >
-          {NETWORKS.map((type) => (
-            <option key={type} value={type}>
-              {CARD_MESSAGES.networks[type]}
-            </option>
-          ))}
-        </select>
+        />
       )}
     </CardFieldShell>
   );

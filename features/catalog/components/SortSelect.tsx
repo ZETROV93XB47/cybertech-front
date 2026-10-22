@@ -21,7 +21,7 @@ import { useId, useState, useTransition, type ReactNode } from "react";
 
 import { DropPanel, PanelOrigin } from "@/components/effects/DropPanel";
 import { buttonVariants } from "@/components/ui/button";
-import { LISTBOX_OFFSET_PX, ListboxChevron, ListboxItem } from "@/components/ui/listbox";
+import { LISTBOX_OFFSET_PX, ListboxChevron, ListboxItem } from "@/components/dropdown/listbox";
 import { CATALOG_PATH } from "@/lib/constants/routes";
 import { ProductSort } from "@/lib/enums/product-sort";
 import { SearchParam } from "@/lib/enums/search-param";
