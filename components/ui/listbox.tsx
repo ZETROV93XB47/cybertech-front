@@ -21,7 +21,7 @@ export const LISTBOX_OFFSET_PX = 8;
 
 /** Style of every option (Radix marks the one under the pointer or the keyboard). */
 const ITEM_CLASS =
-  "relative flex w-full cursor-pointer items-center gap-3 rounded-button py-2.5 pr-3 pl-4 text-sm text-text-muted outline-none select-none transition-colors duration-(--duration-fast) data-highlighted:bg-surface-2 data-highlighted:text-text";
+  "group relative flex w-full cursor-pointer items-center gap-3 rounded-button py-2.5 pr-3 pl-4 text-sm text-text-muted outline-none select-none transition-colors duration-(--duration-fast) data-highlighted:bg-surface-2 data-highlighted:text-text";
 
 /** Props of {@link ListboxItem}. */
 export interface ListboxItemProps {
@@ -34,7 +34,9 @@ export interface ListboxItemProps {
 }
 
 /**
- * One option of a list: gold mark and check on the current one.
+ * One option of a list: gold mark and check on the current one, and a paler gold mark on the
+ * option under the pointer or the keyboard, so a list where nothing is chosen yet (a form
+ * field) still shows the gold marks of the header menus.
  *
  * @param props - Value, label and whether it is the current choice.
  * @returns The list option.
@@ -46,7 +48,7 @@ export function ListboxItem({ value, label, isCurrent }: ListboxItemProps): Reac
         aria-hidden
         className={cn(
           "absolute inset-y-2 left-1 w-1 rounded-full bg-gold transition-opacity duration-(--duration-fast)",
-          isCurrent ? "opacity-100" : "opacity-0",
+          isCurrent ? "opacity-100" : "opacity-0 group-data-highlighted:opacity-50",
         )}
       />
       <Select.ItemText>{label}</Select.ItemText>
