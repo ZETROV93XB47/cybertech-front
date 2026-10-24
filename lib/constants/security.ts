@@ -40,6 +40,20 @@ export const CSP_SOURCES = {
  */
 export const PERMISSIONS_POLICY = "camera=(), microphone=(), geolocation=(), gyroscope=()";
 
+/**
+ * Response headers of the service worker files (feature 005, research R13): never cached for
+ * long, so that a new version is picked up at the next visit, and allowed to control the whole
+ * site.
+ *
+ * @see specs/005-web-push-notifications/contracts/bff-routes.md §7
+ */
+export const SERVICE_WORKER_HEADERS = {
+  /** `Cache-Control` of `/sw.js` and `/sw-core.js`: revalidated at every load. */
+  cacheControl: "no-cache",
+  /** `Service-Worker-Allowed` of `/sw.js`: the worker scope may be the whole site. */
+  allowedScope: "/",
+} as const;
+
 /** `Referrer-Policy`: full URL on same origin, origin only elsewhere. */
 export const REFERRER_POLICY = "strict-origin-when-cross-origin";
 

@@ -217,6 +217,9 @@ le commentaire « not used yet » est retiré.
 - `next.config.ts` : pour `/sw.js` et `/sw-core.js`, `Cache-Control: no-cache` ;
   pour `/sw.js`, `Service-Worker-Allowed: /`.
 - `Permissions-Policy` inchangée (les notifications n'y sont pas soumises).
+- `proxy.ts` ne s'applique plus à `/sw.js`, `/sw-core.js` ni `/icons/` (ajouté à
+  l'implémentation, 2026-10-24) : la CSP posée sur la réponse d'un worker s'applique au worker
+  lui-même, et son `script-src` à nonce bloquerait `importScripts("/sw-core.js")`.
 
 **Justification** : FR-017 ; `no-cache` (revalidation à chaque chargement) fait prendre une
 nouvelle version du SW au prochain passage ; `importScripts` est aussi revérifié par le

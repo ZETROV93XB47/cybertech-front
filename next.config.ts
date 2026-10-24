@@ -6,10 +6,12 @@
  */
 import type { NextConfig } from "next";
 
+import { SERVICE_WORKER_CORE_PATH, SERVICE_WORKER_PATH } from "./lib/constants/push";
 import {
   CONTENT_TYPE_OPTIONS,
   PERMISSIONS_POLICY,
   REFERRER_POLICY,
+  SERVICE_WORKER_HEADERS,
 } from "./lib/constants/security";
 
 /** Path prefix of product images in the LocalStack S3 bucket. */
@@ -68,6 +70,18 @@ const nextConfig: NextConfig = {
           { key: "Permissions-Policy", value: PERMISSIONS_POLICY },
           { key: "X-Content-Type-Options", value: CONTENT_TYPE_OPTIONS },
         ],
+      },
+      {
+        // Service worker of the notifications (feature 005, research R13).
+        source: SERVICE_WORKER_PATH,
+        headers: [
+          { key: "Cache-Control", value: SERVICE_WORKER_HEADERS.cacheControl },
+          { key: "Service-Worker-Allowed", value: SERVICE_WORKER_HEADERS.allowedScope },
+        ],
+      },
+      {
+        source: SERVICE_WORKER_CORE_PATH,
+        headers: [{ key: "Cache-Control", value: SERVICE_WORKER_HEADERS.cacheControl }],
       },
     ]);
   },

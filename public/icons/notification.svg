@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="cybertech">
+  <!-- Notification icon of cybertech: brand gradient (violet to blue, lib/theme/theme.config.ts)
+       on the site background, a « c » arc and the gold dot. Drawn with paths only, so that it
+       renders the same without any font. -->
+  <defs>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8B7CF6"/>
+      <stop offset="1" stop-color="#4F7BFF"/>
+    </linearGradient>
+  </defs>
+  <rect width="192" height="192" rx="44" fill="#0A0E1F"/>
+  <rect x="6" y="6" width="180" height="180" rx="40" fill="none" stroke="url(#brand)" stroke-width="4"/>
+  <path d="M128 66 A44 44 0 1 0 128 126" fill="none" stroke="url(#brand)" stroke-width="20" stroke-linecap="round"/>
+  <circle cx="134" cy="96" r="11" fill="#D4AF6A"/>
+</svg>

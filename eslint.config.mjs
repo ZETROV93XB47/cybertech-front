@@ -18,6 +18,17 @@ import tseslint from "typescript-eslint";
 /** Numbers allowed without a named constant (identity values and array index arithmetic). */
 const ALLOWED_LITERAL_NUMBERS = [0, 1, -1];
 
+/**
+ * Globals of a service worker used by `public/sw.js` and `public/sw-core.js` (the `globals`
+ * package is not installed; the list is kept to what the worker uses).
+ */
+const SERVICE_WORKER_GLOBALS = {
+  self: "readonly",
+  importScripts: "readonly",
+  clients: "readonly",
+  URL: "readonly",
+};
+
 /** Maximum statement nesting depth (constitution XII). */
 const MAX_DEPTH = 3;
 
@@ -194,6 +205,43 @@ export default tseslint.config(
       "jsdoc/require-param": "off",
       "jsdoc/require-returns": "off",
       "@typescript-eslint/no-non-null-assertion": "off",
+    },
+  },
+  {
+    // One-off Node scripts (e.g. the notification icons of feature 005): plain ES modules
+    // outside of the TypeScript project.
+    files: ["scripts/**/*.mjs"],
+    ...tseslint.configs.disableTypeChecked,
+    languageOptions: {
+      ...tseslint.configs.disableTypeChecked.languageOptions,
+      sourceType: "module",
+      globals: { Buffer: "readonly" },
+    },
+    rules: {
+      ...tseslint.configs.disableTypeChecked.rules,
+      "@typescript-eslint/no-magic-numbers": "off",
+      "no-magic-numbers": ["error", { ignore: ALLOWED_LITERAL_NUMBERS, enforceConst: true }],
+      "@typescript-eslint/naming-convention": "off",
+    },
+  },
+  {
+    // Service worker (research R1 of feature 005): plain JavaScript served from `public/`, run by
+    // the browser outside of Next.js, so no TypeScript project and no typed rules; numbers stay
+    // named constants (constitution XII).
+    files: ["public/**/*.js"],
+    ...tseslint.configs.disableTypeChecked,
+    languageOptions: {
+      ...tseslint.configs.disableTypeChecked.languageOptions,
+      sourceType: "script",
+      globals: SERVICE_WORKER_GLOBALS,
+    },
+    rules: {
+      ...tseslint.configs.disableTypeChecked.rules,
+      "@typescript-eslint/no-magic-numbers": "off",
+      "no-magic-numbers": ["error", { ignore: ALLOWED_LITERAL_NUMBERS, enforceConst: true }],
+      "@typescript-eslint/naming-convention": "off",
+      "@typescript-eslint/explicit-module-boundary-types": "off",
+      "import-x/no-cycle": "off",
     },
   },
 );

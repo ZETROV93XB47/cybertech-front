@@ -20,6 +20,11 @@
 `curl -s http://localhost:3000/api/notifications/push/public-key` → `{"publicKey":"B…"}`.
 Un `503` avec `code: "unavailable"` signifie que le backend n'a pas chargé les clés.
 
+Vérifié le 2026-10-24 (T001) : le backend répond `200` avec une clé publique base64url sur
+`GET /api/v1/services/notifications/push/public-key` ; les types push de `lib/api/schema.d.ts`
+sont à jour (la régénération ne fait apparaître que `POST /api/v1/events/consume-events`, hors
+périmètre de cette feature).
+
 ## 2. Activation depuis la confirmation
 
 1. Se connecter, ajouter un produit, passer commande (carte de test `1111…`).
@@ -41,6 +46,22 @@ Un `503` avec `code: "unavailable"` signifie que le backend n'a pas chargé les 
    celle de la même commande.
 5. DevTools › Application › Service workers › « Push » avec un texte non JSON : rien ne
    s'affiche (Chrome peut finir par montrer sa notification générique, research R10).
+
+### Résultat du 2026-10-24 (US1)
+
+- Abonnement réel dans Google Chrome (profil persistant piloté par Playwright) : abonnement
+  `fcm.googleapis.com` accepté par le backend, log front « Push subscription saved » avec
+  l'hôte masqué seulement.
+- Envoi réel : le backend marque les deux push « Paiement confirmé » `SENT` dans
+  `notificationTable` (aucune erreur).
+- Le maillon FCM → Chrome n'a pas pu être observé dans un Chrome piloté (les contextes
+  Playwright sont privés, et un profil persistant n'achève pas son inscription FCM quand ses
+  services d'arrière-plan sont réactivés) : l'affichage a été vérifié en livrant au vrai Service
+  Worker, par le protocole DevTools, le message exact du backend (titre, texte, tag
+  `order-{uuid}`, icône, `data.url`). **Reste à faire à la main dans ton Chrome** : étapes 2 et 3
+  ci-dessus, dont le clic qui ouvre la commande.
+- Chromium sans affichage renvoie toujours `Notification.permission === "denied"` : l'e2e simule
+  la permission en plus de la souscription.
 
 ## 4. Profil
 

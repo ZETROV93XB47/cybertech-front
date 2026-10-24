@@ -4,6 +4,7 @@
  * Identifiers are partially kept so a log line can still be correlated, but never fully exposed
  * (constitution XII: no token, password, cookie or full email in a log).
  */
+import { PUSH_ENDPOINT_LOG_PLACEHOLDER } from "@/lib/constants/push";
 
 /** Number of leading characters kept when masking a UUID (enough to correlate log lines). */
 const UUID_VISIBLE_PREFIX_LENGTH = 8;
@@ -42,4 +43,22 @@ export function maskEmail(email: string | null | undefined): string {
     return MASK;
   }
   return `${email.slice(0, EMAIL_VISIBLE_PREFIX_LENGTH)}${MASK}${email.slice(atIndex)}`;
+}
+
+/**
+ * Masks a push subscription endpoint, keeping only the push service host.
+ *
+ * The endpoint path identifies one device and lets anyone holding the VAPID key reach it: it is
+ * never logged (feature 005, SC-006). The host (`fcm.googleapis.com`, `updates.push.services.mozilla.com`…)
+ * stays, to tell the browsers apart when reading the logs.
+ *
+ * @param endpoint - Push endpoint URL; may be missing or invalid.
+ * @returns `fcm.googleapis.com/…`, or `…` when the value is not a URL.
+ * @see specs/005-web-push-notifications/research.md R12
+ */
+export function maskPushEndpoint(endpoint: string | null | undefined): string {
+  if (!endpoint || !URL.canParse(endpoint)) {
+    return PUSH_ENDPOINT_LOG_PLACEHOLDER;
+  }
+  return `${new URL(endpoint).host}/${PUSH_ENDPOINT_LOG_PLACEHOLDER}`;
 }

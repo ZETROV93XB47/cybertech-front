@@ -143,6 +143,21 @@ export const BACKEND_PATHS = {
   wishlistRemove: `${API_BASE_PATH}/wishlist/remove`,
   /** `GET` — paginated wishlist of the caller (`page`, `size`, `sort`). */
   wishlistMine: `${API_BASE_PATH}/wishlist/my-wishlist`,
+  /**
+   * `GET` — public VAPID key of the backend (`{ publicKey }`, base64url); `503
+   * PUSH_SERVICE_NOT_CONFIGURED` when the backend has no key pair.
+   *
+   * @see specs/005-web-push-notifications/contracts/bff-routes.md §1
+   */
+  pushPublicKey: `${API_BASE_PATH}/notifications/push/public-key`,
+  /**
+   * `POST` — registers or updates this browser's subscription (USER, `201 { uuid }`); `400
+   * INVALID_PUSH_ENDPOINT`, `409 PUSH_SUBSCRIPTION_CONFLICT`, `503`. Append the UUID for `DELETE`
+   * ({@link pushSubscriptionPath}).
+   *
+   * @see specs/005-web-push-notifications/contracts/bff-routes.md §2
+   */
+  pushSubscriptions: `${API_BASE_PATH}/notifications/push/subscriptions`,
   /** `POST` — publishes a review of a bought product (USER; `201`, `403 COMMENT_POST_NOT_ALLOWED`, `409 ORDER_NOT_REVIEWABLE`, `503 MODERATION_UNAVAILABLE`). */
   reviewCreate: `${API_BASE_PATH}/review/create`,
   /** `PATCH` — edits a review of the caller (USER; `200`, `403 USER_NOT_AUTHOR_OF_REVIEW` or `COMMENT_POST_NOT_ALLOWED`, `404`, `503 MODERATION_UNAVAILABLE`). Append the review UUID. */
@@ -176,3 +191,15 @@ export const REAL_IP_HEADER = "X-Real-IP";
 
 /** Separator of the IP list in `X-Forwarded-For` (the first entry is the browser). */
 export const FORWARDED_FOR_SEPARATOR = ",";
+
+/**
+ * Builds the backend path deleting one push subscription (`DELETE`, USER, `204`; `404
+ * PUSH_SUBSCRIPTION_NOT_FOUND` when already gone, `403 PUSH_SUBSCRIPTION_NOT_OWNED`).
+ *
+ * @param uuid - Subscription UUID.
+ * @returns The path `…/notifications/push/subscriptions/{uuid}`.
+ * @see specs/005-web-push-notifications/contracts/bff-routes.md §3
+ */
+export function pushSubscriptionPath(uuid: string): string {
+  return `${BACKEND_PATHS.pushSubscriptions}/${encodeURIComponent(uuid)}`;
+}

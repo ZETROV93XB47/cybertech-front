@@ -140,7 +140,12 @@ export function proxy(request: NextRequest): NextResponse {
   return response;
 }
 
-/** Runs on every route except static assets and optimised images. */
+/**
+ * Runs on every route except static assets, optimised images and the service worker files of the
+ * notifications (feature 005): a CSP set on `/sw.js` would apply to the worker itself, and its
+ * nonce-based `script-src` would block `importScripts("/sw-core.js")`. The matcher must be a
+ * literal (read at build time), hence the paths written here and not imported.
+ */
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|sw\\.js|sw-core\\.js|icons/).*)"],
 };

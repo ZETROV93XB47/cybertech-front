@@ -135,7 +135,7 @@ const FRONT_CODE_BY_BACKEND_CODE = {
   [BackendErrorCode.DISCOUNT_CAMPAIGN_ALREADY_EXISTS]: FrontErrorCode.UNKNOWN,
   // One card per account: replacing goes through `PUT /bank-card/replace`.
   [BackendErrorCode.BANK_CARD_ALREADY_EXISTS]: FrontErrorCode.CONFLICT,
-  // Web push is not used by the front yet.
+  // Web push (feature 005): a missing subscription on delete is handled as « already gone ».
   [BackendErrorCode.PUSH_SERVICE_NOT_CONFIGURED]: FrontErrorCode.UNAVAILABLE,
   [BackendErrorCode.PUSH_SUBSCRIPTION_CONFLICT]: FrontErrorCode.CONFLICT,
   [BackendErrorCode.INVALID_PUSH_ENDPOINT]: FrontErrorCode.INVALID,

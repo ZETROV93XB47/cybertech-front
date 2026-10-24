@@ -48,4 +48,18 @@ export enum StorageKey {
    * @see specs/003-account-orders/tasks.md T053
    */
   ORDER_EDIT = "ct_order_edit_v1",
+  /**
+   * `localStorage`: UUID of the push subscription of this browser (`{ subscriptionUuid }` only,
+   * never the endpoint nor the keys). Its presence proves a customer turned notifications on
+   * here; the sign-out removes it.
+   *
+   * @see specs/005-web-push-notifications/research.md R6
+   */
+  PUSH = "ct_push_v1",
+  /**
+   * `sessionStorage`: the push subscription was already sent to the backend for this tab.
+   *
+   * @see specs/005-web-push-notifications/research.md R7
+   */
+  PUSH_SYNC = "ct_push_sync_v1",
 }

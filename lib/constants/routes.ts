@@ -84,6 +84,19 @@ export const BFF_ROUTES = {
    * @see specs/003-account-orders/contracts/bff-routes.md §2 bis
    */
   bankCard: "/api/bank-card",
+  /**
+   * `GET` — public VAPID key of the push service (`{ publicKey }`; `503 unavailable`).
+   *
+   * @see specs/005-web-push-notifications/contracts/bff-routes.md §1
+   */
+  pushPublicKey: "/api/notifications/push/public-key",
+  /**
+   * `POST` — saves this browser's push subscription (USER, `201 { uuid }`); prefix of
+   * {@link pushSubscriptionRoute}.
+   *
+   * @see specs/005-web-push-notifications/contracts/bff-routes.md §2
+   */
+  pushSubscriptions: "/api/notifications/push/subscriptions",
 } as const;
 
 /** Query parameter of the 0-based page of {@link productReviewsRoute}. */
@@ -232,4 +245,16 @@ export function orderPath(uuid: string): string {
  */
 export function orderEditPath(uuid: string): string {
   return `${orderPath(uuid)}/edit`;
+}
+
+/**
+ * Builds the BFF route deleting one push subscription (`DELETE`, USER, `204`, also when the
+ * subscription was already gone).
+ *
+ * @param uuid - Subscription UUID.
+ * @returns The path `/api/notifications/push/subscriptions/{uuid}`.
+ * @see specs/005-web-push-notifications/contracts/bff-routes.md §3
+ */
+export function pushSubscriptionRoute(uuid: string): string {
+  return `${BFF_ROUTES.pushSubscriptions}/${encodeURIComponent(uuid)}`;
 }

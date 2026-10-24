@@ -51,6 +51,10 @@ export function buildCsp(input: CspInput): string {
     ["img-src", [SELF, BLOB, DATA, input.imagesHost]],
     ["font-src", [SELF]],
     ["connect-src", connections],
+    // The service worker of the notifications (feature 005, research R13) is served by the site
+    // without a nonce: without this directive, `script-src` and its `'strict-dynamic'` would
+    // block its registration.
+    ["worker-src", [SELF]],
     ["object-src", [NONE]],
     ["base-uri", [SELF]],
     ["form-action", [SELF, input.identityProviderOrigin]],

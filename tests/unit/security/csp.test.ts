@@ -33,6 +33,8 @@ describe("buildCsp", () => {
     expect(directive(csp, "form-action")).toBe("form-action 'self' http://localhost:8080");
     expect(directive(csp, "frame-ancestors")).toBe("frame-ancestors 'none'");
     expect(directive(csp, "object-src")).toBe("object-src 'none'");
+    // Service worker of the notifications (feature 005): same origin only.
+    expect(directive(csp, "worker-src")).toBe("worker-src 'self'");
   });
 });
 

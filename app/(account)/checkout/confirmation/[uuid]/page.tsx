@@ -7,6 +7,7 @@
  *
  * @see specs/003-account-orders/spec.md FR-013, FR-014
  * @see specs/003-account-orders/research.md R10, R11
+ * @see specs/005-web-push-notifications/spec.md US1 (notifications opt-in)
  */
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -17,6 +18,7 @@ import { PAGE_TITLE_CLASS, PageHeader } from "@/components/layout/PageHeader";
 import { PageShell } from "@/components/layout/PageShell";
 import { PaymentTracker } from "@/features/checkout/components/PaymentTracker";
 import { CHECKOUT_SUMMARY_MESSAGES, CONFIRMATION_MESSAGES } from "@/features/checkout/messages";
+import { PushOptIn } from "@/features/notifications/components/PushOptIn";
 import { shortOrderNumber } from "@/features/orders/order-view";
 import { ApiError } from "@/lib/api/errors";
 import { getOrder } from "@/lib/api/endpoints/orders";
@@ -123,8 +125,9 @@ export default async function ConfirmationPage({
         subtitle={CONFIRMATION_MESSAGES.orderNumber(shortOrderNumber(order.uuid))}
       />
       <div className="grid items-start gap-8 lg:grid-cols-12">
-        <div className="lg:col-span-7">
+        <div className="flex flex-col gap-6 lg:col-span-7">
           <PaymentTracker orderUuid={order.uuid} />
+          <PushOptIn />
         </div>
         <div className="lg:col-span-5">
           <OrderRecap order={order} />
