@@ -11,6 +11,7 @@
  * @see specs/005-web-push-notifications/research.md R7, R9
  */
 import { BffError } from "@/lib/api/bff-client";
+import { NOTIFICATION_PERMISSION_GRANTED } from "@/lib/constants/push";
 import { FrontErrorCode } from "@/lib/enums/error-code";
 import { PushState, PushSupport } from "@/lib/enums/push";
 
@@ -31,9 +32,6 @@ import {
 import { setPushStatus } from "./push-store";
 import { detectPushSupport } from "./push-support";
 
-/** `Notification.permission` once granted. */
-const GRANTED: NotificationPermission = "granted";
-
 /**
  * Whether this browser should send its subscription again: push supported, permission granted,
  * notifications turned on here (record), and not already sent for this tab unless forced.
@@ -45,7 +43,7 @@ export function shouldSyncPush(isForced: boolean): boolean {
   if (detectPushSupport() !== PushSupport.SUPPORTED) {
     return false;
   }
-  if (Notification.permission !== GRANTED || readPushRecord() === null) {
+  if (Notification.permission !== NOTIFICATION_PERMISSION_GRANTED || readPushRecord() === null) {
     return false;
   }
   return isForced || !hasSyncedThisTab();

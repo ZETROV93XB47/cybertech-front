@@ -10,6 +10,10 @@
  */
 import { BffError } from "@/lib/api/bff-client";
 import { FrontErrorCode } from "@/lib/enums/error-code";
+import {
+  NOTIFICATION_PERMISSION_DENIED,
+  NOTIFICATION_PERMISSION_GRANTED,
+} from "@/lib/constants/push";
 import { PushState } from "@/lib/enums/push";
 
 import { PUSH_MESSAGES } from "./messages";
@@ -32,12 +36,6 @@ import {
 } from "./push-record";
 import { setPushStatus, type PushStatus } from "./push-store";
 
-/** `Notification.permission` once granted. */
-const GRANTED: NotificationPermission = "granted";
-
-/** `Notification.permission` once refused. */
-const DENIED: NotificationPermission = "denied";
-
 /**
  * State after a failed activation.
  *
@@ -47,7 +45,7 @@ const DENIED: NotificationPermission = "denied";
 export function failureStatus(error: unknown): PushStatus {
   if (!(error instanceof BffError)) {
     // A browser refusal while subscribing (blocked in the settings meanwhile).
-    const isDenied = Notification.permission === DENIED;
+    const isDenied = Notification.permission === NOTIFICATION_PERMISSION_DENIED;
     return isDenied ? { state: PushState.DENIED } : { state: PushState.ERROR };
   }
   if (error.code === FrontErrorCode.UNAVAILABLE) {
@@ -89,8 +87,10 @@ async function subscribeAndSave(isFresh: boolean): Promise<void> {
 export async function enablePush(): Promise<void> {
   setPushStatus({ state: PushState.PENDING });
   const permission = await Notification.requestPermission();
-  if (permission !== GRANTED) {
-    setPushStatus({ state: permission === DENIED ? PushState.DENIED : PushState.IDLE });
+  if (permission !== NOTIFICATION_PERMISSION_GRANTED) {
+    setPushStatus({
+      state: permission === NOTIFICATION_PERMISSION_DENIED ? PushState.DENIED : PushState.IDLE,
+    });
     return;
   }
   await runActivation(false);
@@ -101,7 +101,7 @@ export async function enablePush(): Promise<void> {
  * browser subscription gets a new endpoint, which the backend accepts (research R5).
  */
 export async function reclaimPush(): Promise<void> {
-  if (Notification.permission !== GRANTED) {
+  if (Notification.permission !== NOTIFICATION_PERMISSION_GRANTED) {
     await enablePush();
     return;
   }

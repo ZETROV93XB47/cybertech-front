@@ -7,6 +7,10 @@
  *
  * @see specs/005-web-push-notifications/data-model.md §1
  */
+import {
+  NOTIFICATION_PERMISSION_DENIED,
+  NOTIFICATION_PERMISSION_GRANTED,
+} from "@/lib/constants/push";
 import { PushState, PushSupport } from "@/lib/enums/push";
 
 import { readPushRecord } from "./push-record";
@@ -45,10 +49,11 @@ export function initialPushStatus(): PushStatus {
   if (support === PushSupport.INSTALL_REQUIRED) {
     return { state: PushState.INSTALL_REQUIRED };
   }
-  if (Notification.permission === "denied") {
+  if (Notification.permission === NOTIFICATION_PERMISSION_DENIED) {
     return { state: PushState.DENIED };
   }
-  const isEnabled = Notification.permission === "granted" && readPushRecord() !== null;
+  const isEnabled =
+    Notification.permission === NOTIFICATION_PERMISSION_GRANTED && readPushRecord() !== null;
   return { state: isEnabled ? PushState.ENABLED : PushState.IDLE };
 }
 

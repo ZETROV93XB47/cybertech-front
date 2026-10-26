@@ -64,3 +64,12 @@ export const PUSH_SIGN_OUT_FIELD = "pushSubscriptionUuid";
 
 /** What replaces the private part of a push endpoint in a log line (`maskPushEndpoint`). */
 export const PUSH_ENDPOINT_LOG_PLACEHOLDER = "…";
+
+/** `Notification.permission` once the customer allowed notifications for the site. */
+export const NOTIFICATION_PERMISSION_GRANTED: NotificationPermission = "granted";
+
+/** `Notification.permission` once notifications are blocked (prompt refused, or site settings). */
+export const NOTIFICATION_PERMISSION_DENIED: NotificationPermission = "denied";
+
+/** Event of `navigator.serviceWorker` carrying the messages posted by the service worker. */
+export const SERVICE_WORKER_MESSAGE_EVENT = "message";

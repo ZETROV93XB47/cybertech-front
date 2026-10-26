@@ -10,6 +10,7 @@
 import { useSession } from "next-auth/react";
 import { useEffect, type ReactNode } from "react";
 
+import { SERVICE_WORKER_MESSAGE_EVENT } from "@/lib/constants/push";
 import { PushSwMessageType } from "@/lib/enums/push";
 
 import { shouldSyncPush, syncPushSubscription } from "../push-sync";
@@ -63,9 +64,9 @@ export function PushSync(): ReactNode {
         syncIfNeeded(true);
       }
     };
-    navigator.serviceWorker.addEventListener("message", onMessage);
+    navigator.serviceWorker.addEventListener(SERVICE_WORKER_MESSAGE_EVENT, onMessage);
     return () => {
-      navigator.serviceWorker.removeEventListener("message", onMessage);
+      navigator.serviceWorker.removeEventListener(SERVICE_WORKER_MESSAGE_EVENT, onMessage);
     };
   }, [isAuthenticated]);
   return null;
