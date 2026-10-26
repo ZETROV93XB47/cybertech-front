@@ -14,6 +14,7 @@ export const SITE_MESSAGES = {
   homeNavLink: "Accueil",
   catalogLink: "Catalogue",
   homeLink: "Accueil de cybertech",
+  logoLockupAlt: "cybertech, premium tech store",
   footerNote: "Projet pédagogique — paiements en mode test, aucun débit réel n'est fait.",
 } as const;
 

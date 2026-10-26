@@ -215,6 +215,10 @@ export interface ThemeLayout {
    */
   readonly catalogMaxWidth: CssValue;
   readonly headerHeight: CssValue;
+  /** Height of the logo (mark and wordmark) in the header; its width follows the image. */
+  readonly logoHeaderHeight: CssValue;
+  /** Height of the full logo (with « Premium tech store ») in the footer. */
+  readonly logoFooterHeight: CssValue;
 }
 
 /** Complete theme: the single source of every visual value. */

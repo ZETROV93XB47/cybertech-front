@@ -66,6 +66,8 @@
   --container-site: var(--container-max-width);
   --container-catalog: var(--catalog-max-width);
   --spacing-header: var(--header-height);
+  --spacing-logo-header: var(--logo-header-height);
+  --spacing-logo-footer: var(--logo-footer-height);
 
   --animate-shimmer: shimmer var(--duration-slow) linear infinite;
 }

@@ -267,5 +267,8 @@ export const THEME = {
     // 1200px + filter column (16rem = 256px) + gap (2.5rem = 40px).
     catalogMaxWidth: "1496px",
     headerHeight: "64px",
+    // The « C » fills the logo height; the letters are about two thirds of it.
+    logoHeaderHeight: "40px",
+    logoFooterHeight: "72px",
   },
 } as const satisfies ThemeConfig;

@@ -21,6 +21,7 @@ import { getCategoryCounts } from "@/lib/api/endpoints/facets";
 import { CATEGORY_ORDER } from "@/lib/constants/categories";
 import { HOME_PATH } from "@/lib/constants/routes";
 
+import { BrandLogo, BrandLogoVariant } from "./BrandLogo";
 import { MainNav, StaticMainNav } from "./MainNav";
 
 /** Action slots of the header, right-hand side, in reading order. */
@@ -60,9 +61,9 @@ export function Header({ search, preferences, account, cart }: HeaderProps): Rea
         <Link
           href={HOME_PATH}
           aria-label={SITE_MESSAGES.homeLink}
-          className="font-display text-xl font-semibold tracking-tight text-text"
+          className="shrink-0 rounded-button"
         >
-          {SITE_MESSAGES.name}
+          <BrandLogo variant={BrandLogoVariant.WORDMARK} isPriority />
         </Link>
         <Suspense fallback={<StaticMainNav categories={CATEGORY_ORDER} counts={NO_COUNTS} />}>
           <CatalogNav />

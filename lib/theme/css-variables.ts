@@ -70,6 +70,8 @@ export const CSS_VARIABLES = {
   containerMaxWidth: "--container-max-width",
   catalogMaxWidth: "--catalog-max-width",
   headerHeight: "--header-height",
+  logoHeaderHeight: "--logo-header-height",
+  logoFooterHeight: "--logo-footer-height",
   popover: "--popover",
   popoverForeground: "--popover-foreground",
 } as const;
@@ -206,6 +208,8 @@ function baseDeclarations(theme: ThemeConfig): Declarations {
     [CSS_VARIABLES.containerMaxWidth, layout.containerMaxWidth],
     [CSS_VARIABLES.catalogMaxWidth, layout.catalogMaxWidth],
     [CSS_VARIABLES.headerHeight, layout.headerHeight],
+    [CSS_VARIABLES.logoHeaderHeight, layout.logoHeaderHeight],
+    [CSS_VARIABLES.logoFooterHeight, layout.logoFooterHeight],
   ];
 }
 
