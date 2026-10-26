@@ -88,3 +88,28 @@ npx playwright test tests/e2e/push-notifications.spec.ts
 
 Résultats attendus : tout passe ; l'e2e utilise une fausse souscription et intercepte le BFF
 (research R15) : la réception réelle n'est couverte que par les étapes 2 à 5 ci-dessus.
+
+## Bilan du 2026-10-26 (fin de la feature, Next.js 16.4.3)
+
+- `npm run typecheck`, `npm run lint` (0 warning), `npm run test` : 128 fichiers, 1 297 tests.
+- E2E (`--workers=1`, une minute entre deux specs, front sur le port 3000) :
+  `push-notifications` 6/6, `checkout` 4/4, `profile` 2/2, `auth` 6/6, `preferences` 4/4
+  (1 ignoré, comme avant).
+- Backend réel, sans interception du BFF (faux abonnement navigateur) :
+  - §4 : `POST` 201 à l'activation, l'interrupteur reste activé après rechargement, `DELETE` 204
+    à la désactivation, second `DELETE` du même UUID → 204 (déjà supprimé) ;
+  - §5 : logs « Push subscription saved », puis « Push subscription deleted » avant « User
+    signed out » ; déconnexion complète (redirection Keycloak comprise) en 1,1 s ; reconnexion
+    avec la permission toujours accordée → aucun `POST` d'abonnement.
+- Lighthouse desktop sur `/` (build de production) : performance 95, LCP 1,5 s, TBT 0 ms,
+  CLS 0,002 ; aucune requête vers `/sw.js`, `/sw-core.js` ni `/api/notifications/*` pour un
+  visiteur anonyme.
+- Revue visuelle : l'encart de confirmation et la section du profil suivent la hiérarchie des
+  cartes voisines (titres mesurés identiques, 18 px Sora 500) ; seul défaut corrigé :
+  l'interrupteur éteint était presque invisible (piste et curseur sombres), il prend maintenant
+  `surface-2` et un curseur `text-muted` (composant partagé, aussi dans les préférences).
+
+**Restent à faire à la main dans ton Chrome** : §3 (réception réelle et clic qui ouvre la
+commande), §4.2 (interrupteur coupé → aucune notification après un paiement), §4.4 (blocage
+dans les paramètres du site) et §5.3 (déconnexion en moins de 3 s avec le backend coupé ; le
+délai de 2 s est couvert par les tests unitaires seulement).

@@ -143,11 +143,11 @@ description: "Task list for feature 005 — Web Push notifications (service work
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T044 [P] Documentation: README section « Notifications du navigateur » (HTTPS required except on `localhost`, VAPID variables `WEB_PUSH_PUBLIC_KEY` / `WEB_PUSH_PRIVATE_KEY` / `WEB_PUSH_SUBJECT` set in the backend run configuration, `npx web-push generate-vapid-keys`, Chrome / Windows notification settings); new « Notifications push » section in `docs/backend/api-map.md` (3 endpoints, DTOs, error codes, message payload, 5 browsers per account, push is not a favourite channel)
-- [ ] T045 [P] TSDoc and constants audit of every file touched by the feature (including `public/sw.js` and `public/sw-core.js`): no magic value, no raw visual value, `@see` to spec / contract / research / backend file, no endpoint or key in any log; fix what `npm run lint` does not catch
-- [ ] T046 [P] Visual audit with the **frontend-design** skill: screenshots of the opt-in (every state) and of the profile section next to the existing confirmation and profile cards; fix spacing, hierarchy and icon consistency with theme tokens only
-- [ ] T047 Full run: `npm run typecheck`, `npm run lint`, `npm run test`, then `tests/e2e/push-notifications.spec.ts` and the existing specs touching the confirmation page, the profile and sign-out one by one (`--workers=1`); Lighthouse desktop on `/` to confirm no service worker or extra request for an anonymous visitor; complete `quickstart.md` with the date, counts and remaining manual points
-- [ ] T048 Final commit `docs: wrap up feature 005` and checkpoint with the user (in French)
+- [X] T044 [P] Documentation: README section « Notifications du navigateur » (HTTPS required except on `localhost`, VAPID variables `WEB_PUSH_PUBLIC_KEY` / `WEB_PUSH_PRIVATE_KEY` / `WEB_PUSH_SUBJECT` set in the backend run configuration, `npx web-push generate-vapid-keys`, Chrome / Windows notification settings); new « Notifications push » section in `docs/backend/api-map.md` (3 endpoints, DTOs, error codes, message payload, 5 browsers per account, push is not a favourite channel)
+- [X] T045 [P] TSDoc and constants audit of every file touched by the feature (including `public/sw.js` and `public/sw-core.js`): no magic value, no raw visual value, `@see` to spec / contract / research / backend file, no endpoint or key in any log; fix what `npm run lint` does not catch
+- [X] T046 [P] Visual audit with the **frontend-design** skill: screenshots of the opt-in (every state) and of the profile section next to the existing confirmation and profile cards; fix spacing, hierarchy and icon consistency with theme tokens only
+- [X] T047 Full run: `npm run typecheck`, `npm run lint`, `npm run test`, then `tests/e2e/push-notifications.spec.ts` and the existing specs touching the confirmation page, the profile and sign-out one by one (`--workers=1`); Lighthouse desktop on `/` to confirm no service worker or extra request for an anonymous visitor; complete `quickstart.md` with the date, counts and remaining manual points
+- [X] T048 Final commit `docs: wrap up feature 005` and checkpoint with the user (in French)
 
 ---
 

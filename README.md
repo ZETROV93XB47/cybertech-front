@@ -59,6 +59,36 @@ répond « utilisateur introuvable ».
   3123 : `NEXT_DIST_DIR=.next-prod API_BASE_URL=http://127.0.0.1:9 npx next start -p 3123`.
 - `long-tasks.spec.ts` mesure un build de production quand `E2E_PERF_URL` est défini.
 
+## Notifications du navigateur
+
+Le client peut être prévenu par une notification de son navigateur quand son paiement est
+confirmé et quand sa commande part (feature 005, `specs/005-web-push-notifications/`). Il les
+active depuis la page de confirmation de commande ou depuis « Mon profil », et les coupe depuis
+le profil ; la déconnexion les supprime pour ce navigateur.
+
+- **HTTPS obligatoire**, sauf sur `localhost` : les navigateurs refusent le service worker et les
+  notifications sur une page HTTP servie par une autre machine.
+- **Clés VAPID côté backend** : générer une paire une fois (`npx web-push generate-vapid-keys`)
+  puis renseigner dans la configuration de lancement IntelliJ du backend `WEB_PUSH_PUBLIC_KEY`,
+  `WEB_PUSH_PRIVATE_KEY` et `WEB_PUSH_SUBJECT` (`mailto:…`). Sans elles, le backend répond 503 et
+  le site affiche « Les notifications sont momentanément indisponibles » ; le reste fonctionne.
+  Le front n'a aucune variable à ajouter : il lit la clé publique par le BFF.
+- **Windows et Chrome** : les notifications doivent être autorisées pour Chrome dans
+  Paramètres › Système › Notifications, et le mode « Ne pas déranger » désactivé. Dans Chrome, le
+  cadenas à gauche de l'adresse permet de les réautoriser pour le site.
+- **iPhone et iPad** : elles ne marchent qu'une fois le site ajouté à l'écran d'accueil.
+- Le service worker est `public/sw.js` (logique pure dans `public/sw-core.js`), servi sans cache.
+  Les icônes des notifications se régénèrent avec `node scripts/generate-notification-icons.mjs`.
+- Les tests e2e remplacent l'abonnement réel (le service de push de Google n'est pas joignable
+  depuis Chromium automatisé) : la réception réelle se vérifie à la main (quickstart §3).
+
+## Logo
+
+Le logo fourni (`styles/cybertech-logo-1-fond-sombre.png`, fond sombre opaque) est rendu
+transparent par `node scripts/brand-assets.mjs`, qui écrit `public/brand/` (en-tête, pied de
+page), `app/icon.png` (favicon) et `app/apple-icon.png`. Le relancer après un changement du
+fichier source, puis commiter les images.
+
 ## Architecture
 
 | Dossier                        | Contenu                                                                                                                    |

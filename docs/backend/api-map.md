@@ -231,6 +231,18 @@ Le front aiguille sur `errorCode`, jamais sur le statut (409 `ORDER_NOT_REVIEWAB
 | GET | `/api/v1/services/recommendations/my-recommendations` | `RecommendationController#getMyRecommendations` (:33) | `isAuthenticated()` | query `n` (défaut 10) | `ProductResponseDto[]` | 200 | Gorse : personnalisé → derniers → best-sellers (cache Redis 900 s). |
 | POST | `/api/v1/events/consume-event` | `UserEventController#collectEvent` (:48) | `hasRole('USER')` | `UserEventDto` (§D.14) | `201` `UserEventResponseDto` (§D.24) | 201, 400 | Stocké dans MongoDB, alimente Gorse. `userId` ignoré en entrée (pris du JWT). Constaté le 2026-10-22 : seule source d'événements, jamais appelée, donc aucun retour dans Gorse ; accepte aussi `PURCHASE` envoyé par le client. Prompt backend §18 : événements métier produits par le backend, endpoint limité aux signaux du navigateur. |
 
+## 11b. Notifications push du navigateur
+
+Controller : `{ctrl}/PushNotificationController.java` (base `/api/v1/services/notifications/push`, `PUSH_NOTIFICATION_CONTROLLER_BASE_PATH`). Doc backend : `docs/web-push.md`. Utilisés par la feature 005 (`lib/api/endpoints/push.ts`, routes BFF `app/api/notifications/push/*`, Server Action `signOutEverywhere`).
+
+| Méthode | Chemin | Controller#méthode | Auth | Body | Réponse | Codes | Notes |
+|---|---|---|---|---|---|---|---|
+| GET | `/notifications/push/public-key` | `#getPublicKey` (:44) | Public | — | `{ publicKey }` (`PushPublicKeyResponseDto`, base64url) | 200, 503 `PUSH_SERVICE_NOT_CONFIGURED` | Clé VAPID publique, jamais mise en cache par le front (elle peut changer). |
+| POST | `/notifications/push/subscriptions` | `#register` (:56) | USER | `PushSubscriptionRequestDto` = `PushSubscription.toJSON()` : `{ endpoint, expirationTime, keys: { p256dh, auth } }` | `201` `{ uuid }` (`PushSubscriptionResponseDto`) | 201, 400 `INVALID_PUSH_ENDPOINT` (HTTPS et hôtes autorisés seulement), 401, 409 `PUSH_SUBSCRIPTION_CONFLICT` | Même adresse pour le même compte = même UUID (mise à jour). Adresse déjà liée à un autre compte = 409 : le front se réabonne avec une nouvelle adresse (« Activer pour mon compte »). **5 navigateurs par compte** : un 6e remplace le plus ancien. |
+| DELETE | `/notifications/push/subscriptions/{subscriptionUuid}` | `#delete` (:66) | USER | — | `204` | 204, 401, 403 `PUSH_SUBSCRIPTION_NOT_OWNED`, 404 `PUSH_SUBSCRIPTION_NOT_FOUND` | 404 = déjà supprimé ou remplacé : le BFF répond 204. Appelé par l'interrupteur du profil et par la déconnexion (délai 2 s). |
+
+Message reçu par le service worker : `{ title, body, url, orderUuid }` (texte générique, sans montant ; `url` = `/account/orders/{orderUuid}` par défaut, `cybertech.web-push.order-details-url-template`). Envoyé au paiement confirmé et à la remise au transporteur, à chaque navigateur abonné, **en plus** de l'email ou du SMS : le push n'est **pas** un canal favori (`PUSH_NOTIFICATION` refusé à l'inscription, 400). Un push service qui répond 404/410 fait supprimer l'abonnement côté backend. Les adresses et clés sont chiffrées au repos (`APP_CARD_ENCRYPTION_KEY`).
+
 ## 12. Paiement (webhook — hors front)
 
 | Méthode | Chemin | Controller#méthode | Auth | Notes |
