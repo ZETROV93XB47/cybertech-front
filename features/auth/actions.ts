@@ -11,10 +11,11 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { deletePushSubscription } from "@/lib/api/endpoints/push";
 import { registerUser } from "@/lib/api/endpoints/users";
 import { safeCallbackPath } from "@/lib/auth/callback-url";
 import { signIn, signOut } from "@/lib/auth/config";
-import { readSessionToken } from "@/lib/auth/guards";
+import { getAccessTokenOrThrow, readSessionToken } from "@/lib/auth/guards";
 import { FORWARDED_FOR_HEADER, FORWARDED_FOR_SEPARATOR, REAL_IP_HEADER } from "@/lib/constants/api";
 import {
   CALLBACK_URL_PARAM,
@@ -22,11 +23,13 @@ import {
   KEYCLOAK_PROVIDER_ID,
   LOGOUT_PARAMS,
 } from "@/lib/constants/auth";
+import { PUSH_SIGN_OUT_FIELD, PUSH_SIGN_OUT_TIMEOUT_MS } from "@/lib/constants/push";
 import { HOME_PATH } from "@/lib/constants/routes";
 import { getEnv } from "@/lib/env";
 import { RegisterStatus } from "@/lib/enums/register-status";
 import { maskUuid } from "@/lib/log-safety";
 import { createModuleLogger } from "@/lib/logger";
+import { PushSubscriptionUuidParamSchema } from "@/lib/schemas/push";
 import {
   RegisterInputSchema,
   readRegisterForm,
@@ -72,17 +75,56 @@ function keycloakLogoutUrl(idToken: string | undefined): string {
 }
 
 /**
- * Signs out of the application AND of Keycloak (FR-017): deletes the session cookie, then sends
+ * Deletes the push subscription of the browser signing out, within a short timeout. Never throws:
+ * a backend down or slow must not hold up the sign-out (the subscription then stays until the
+ * backend drops it at its next failed send).
+ *
+ * The access token lives 5 minutes: it is renewed when needed (a customer often signs out after
+ * a while on a page).
+ *
+ * @param raw - Value of the hidden form field (a UUID, or empty without notifications).
+ * @param hasSession - Whether a session cookie exists (nothing to delete with otherwise).
+ * @see specs/005-web-push-notifications/research.md R8
+ */
+async function dropPushSubscription(
+  raw: FormDataEntryValue | null,
+  hasSession: boolean,
+): Promise<void> {
+  const uuid = PushSubscriptionUuidParamSchema.safeParse(raw);
+  if (!uuid.success || !hasSession) {
+    return;
+  }
+  try {
+    const accessToken = await getAccessTokenOrThrow();
+    await deletePushSubscription(uuid.data, accessToken, { timeoutMs: PUSH_SIGN_OUT_TIMEOUT_MS });
+  } catch (error) {
+    log.warn(
+      {
+        subscription: maskUuid(uuid.data),
+        reason: error instanceof Error ? error.name : "unknown",
+      },
+      "Push subscription not deleted at sign-out",
+    );
+  }
+}
+
+/**
+ * Signs out of the application AND of Keycloak (FR-017): deletes the push subscription of this
+ * browser when the form carries one (feature 005, FR-009), deletes the session cookie, then sends
  * the browser to the Keycloak logout, which closes the SSO session and comes back home.
  *
- * The client clears its query cache before calling this action (no private data left in memory).
+ * The client clears its query cache and its push record before calling this action (no private
+ * data left in memory).
  *
+ * @param formData - Sign-out form, carrying the push subscription UUID (`PUSH_SIGN_OUT_FIELD`).
  * @returns Never: redirects to Keycloak.
  * @throws The Next.js redirect to Keycloak (expected control flow).
  * @see specs/001-catalog-auth-cart/research.md R4
+ * @see specs/005-web-push-notifications/contracts/bff-routes.md §4
  */
-export async function signOutEverywhere(): Promise<void> {
+export async function signOutEverywhere(formData: FormData): Promise<void> {
   const token = await readSessionToken();
+  await dropPushSubscription(formData.get(PUSH_SIGN_OUT_FIELD), token !== null);
   await signOut({ redirect: false });
   log.info({ subject: maskUuid(token?.sub) }, "User signed out");
   redirect(keycloakLogoutUrl(token?.idToken));

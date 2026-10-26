@@ -12,10 +12,14 @@
 import { z } from "zod";
 
 import { bffGet, bffSend } from "@/lib/api/bff-client";
+import { clientLogger } from "@/lib/client-logger";
 import { SERVICE_WORKER_PATH, SERVICE_WORKER_SCOPE } from "@/lib/constants/push";
 import { BFF_ROUTES, pushSubscriptionRoute } from "@/lib/constants/routes";
 import { HttpMethod } from "@/lib/enums/http-method";
 import { PushPublicKeySchema, PushSubscriptionSavedSchema } from "@/lib/schemas/push";
+
+import { clearPushRecord, clearSyncedThisTab } from "./push-record";
+import { resetPushStatus } from "./push-store";
 
 /** Padding character of standard base64. */
 const BASE64_PADDING = "=";
@@ -123,6 +127,42 @@ export async function unsubscribeBrowser(): Promise<void> {
   } catch {
     // Nothing else to do: see above.
   }
+}
+
+/**
+ * Forgets the notifications of this browser at sign-out (research R8), without waiting: drops the
+ * browser subscription in the background (only when a service worker was registered: none is
+ * registered for that), and clears the record and the sync flag at once, so that the next person
+ * signing in here is never subscribed without a click. The backend deletion itself is done by the
+ * sign-out Server Action, with the UUID read beforehand by `PushSignOutField`.
+ */
+export function clearLocalPushSubscription(): void {
+  clearPushRecord();
+  clearSyncedThisTab();
+  resetPushStatus();
+  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
+    return;
+  }
+  void navigator.serviceWorker
+    .getRegistration(SERVICE_WORKER_SCOPE)
+    .then((registration) => registration?.pushManager.getSubscription() ?? null)
+    .then(unsubscribeQuietly)
+    .catch(() => {
+      // The subscription expires on the push service side; the backend already dropped it.
+    });
+}
+
+/**
+ * Logs a failed notification step with only the error name and message: never the subscription
+ * (its endpoint identifies the device).
+ *
+ * @param message - Log message.
+ * @param error - Thrown value.
+ */
+export function logPushFailure(message: string, error: unknown): void {
+  clientLogger.warn(message, {
+    reason: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+  });
 }
 
 /**

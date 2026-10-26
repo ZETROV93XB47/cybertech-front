@@ -1,7 +1,8 @@
 // @ts-check
 /**
  * Service worker of cybertech (feature 005): shows the push notifications sent by the backend
- * (payment confirmed, order shipped) and opens the order page when one is clicked.
+ * (payment confirmed, order shipped), opens the order page when one is clicked, and subscribes
+ * again when the browser renews the subscription.
  *
  * Plain JavaScript served from `public/` with `Cache-Control: no-cache` and
  * `Service-Worker-Allowed: /` (`next.config.ts`), registered by the pages only when the customer
@@ -76,6 +77,39 @@ async function openClickedNotification(event) {
   await target.navigate(path);
 }
 
+/**
+ * Subscribes again after the browser renewed or dropped the subscription, with the same backend
+ * key, then tells the open pages: the page of a signed-in customer sends the new subscription to
+ * the backend (the worker has no session). Without a key or on failure, nothing happens: the sync
+ * at the next session start catches up.
+ *
+ * @param {{ oldSubscription?: { options?: { applicationServerKey?: ArrayBuffer | null } } | null }} event
+ *   Subscription change event.
+ * @returns {Promise<void>} Resolved once the pages are told, or at once.
+ */
+async function renewSubscription(event) {
+  const applicationServerKey = event.oldSubscription?.options?.applicationServerKey;
+  if (!applicationServerKey) {
+    return;
+  }
+  try {
+    // Every push shows a notification: browsers refuse silent pushes anyway.
+    await worker.registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey,
+    });
+  } catch {
+    return;
+  }
+  const windows = await worker.clients.matchAll({
+    type: WINDOW_CLIENT_TYPE,
+    includeUncontrolled: true,
+  });
+  for (const client of windows) {
+    client.postMessage({ type: core.SUBSCRIPTION_CHANGED_MESSAGE });
+  }
+}
+
 worker.addEventListener("install", () => {
   // A new version replaces the old one at once: there is no cache to keep consistent.
   void worker.skipWaiting();
@@ -94,4 +128,8 @@ worker.addEventListener("push", (/** @type {any} */ event) => {
 
 worker.addEventListener("notificationclick", (/** @type {any} */ event) => {
   event.waitUntil(openClickedNotification(event));
+});
+
+worker.addEventListener("pushsubscriptionchange", (/** @type {any} */ event) => {
+  event.waitUntil(renewSubscription(event));
 });

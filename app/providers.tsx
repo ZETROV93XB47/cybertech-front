@@ -2,7 +2,8 @@
 
 /**
  * Client-side providers mounted once by the root layout: server state (TanStack Query),
- * session (Auth.js), motion preferences, interface preferences and toasts.
+ * session (Auth.js), motion preferences, interface preferences, toasts and the push subscription
+ * sync (feature 005).
  */
 import { QueryClientProvider } from "@tanstack/react-query";
 import { MotionConfig } from "motion/react";
@@ -11,6 +12,7 @@ import { useState, type ReactNode } from "react";
 
 import { ClientEffects } from "@/components/effects/ClientEffects";
 import { Toaster } from "@/components/ui/sonner";
+import { PushSync } from "@/features/notifications/components/PushSync";
 import { PreferencesProvider } from "@/features/preferences/PreferencesProvider";
 import { createQueryClient } from "@/lib/query/query-client";
 import type { Preferences } from "@/lib/schemas/preferences";
@@ -39,6 +41,7 @@ export function Providers({ preferences, children }: ProvidersProps): ReactNode 
         <PreferencesProvider initialPreferences={preferences}>
           <MotionConfig reducedMotion="user">
             <ClientEffects />
+            <PushSync />
             {children}
             <Toaster />
           </MotionConfig>

@@ -54,13 +54,17 @@ async function fakePushService(
       const probe = window as unknown as PushProbe & { __fakeSubscription: unknown };
       probe.__pushPermissionRequests = 0;
       // Headless Chromium answers « denied » whatever the context permissions: the permission is
-      // faked too, « default » until the customer accepts the prompt.
-      let permission: NotificationPermission = initial;
+      // faked too, « default » until the customer accepts the prompt, then kept across pages like
+      // a real browser does.
+      const grantedKey = "__e2e_push_granted";
+      let permission: NotificationPermission =
+        window.localStorage.getItem(grantedKey) === null ? initial : "granted";
       Object.defineProperty(Notification, "permission", { get: () => permission });
       Notification.requestPermission = () => {
         probe.__pushPermissionRequests += 1;
         if (permission === "default") {
           permission = "granted";
+          window.localStorage.setItem(grantedKey, permission);
         }
         return Promise.resolve(permission);
       };
@@ -216,4 +220,40 @@ test("blocked notifications are explained in the profile, without an active swit
   expect(await page.evaluate(() => (window as unknown as PushProbe).__pushPermissionRequests)).toBe(
     0,
   );
+});
+
+test("signing out drops the subscription, and signing in again sends nothing", async ({
+  page,
+  context,
+}) => {
+  test.setTimeout(150_000);
+  await fakePushService(page);
+  const posted: unknown[] = [];
+  await page.route("**/api/notifications/push/subscriptions", async (route) => {
+    posted.push(route.request().postDataJSON());
+    await route.fulfill({ status: 201, json: { uuid: SUBSCRIPTION_UUID } });
+  });
+  const email = await registerUser(context);
+  await signIn(page, email, "/account/profile");
+  const toggle = page
+    .getByRole("region", { name: "Notifications", exact: true })
+    .getByRole("switch", { name: "Notifications du navigateur" });
+  await toggle.click();
+  await expect(toggle).toBeChecked();
+  expect(posted).toHaveLength(1);
+
+  // The Server Action request is a multipart form post carrying the hidden field.
+  const signOutRequest = page.waitForRequest(
+    (request) => request.method() === "POST" && request.headers()["next-action"] !== undefined,
+  );
+  await page.getByRole("button", { name: /^Compte de / }).click();
+  await page.getByRole("button", { name: "Se déconnecter" }).click();
+  expect((await signOutRequest).postData() ?? "").toContain(SUBSCRIPTION_UUID);
+  await page.waitForURL((url) => url.port === "3000" && url.pathname === "/");
+  expect(await page.evaluate(() => window.localStorage.getItem("ct_push_v1"))).toBeNull();
+
+  await signIn(page, email, "/account/profile");
+  await expect(toggle).not.toBeChecked();
+  await page.waitForLoadState("networkidle");
+  expect(posted).toHaveLength(1);
 });

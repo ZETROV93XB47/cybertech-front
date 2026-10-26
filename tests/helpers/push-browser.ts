@@ -135,6 +135,7 @@ export function installPushBrowser(options: PushBrowserOptions = {}): FakePushBr
     configurable: true,
     value: {
       register,
+      getRegistration: vi.fn(() => Promise.resolve(registration)),
       ready: Promise.resolve(registration),
       addEventListener: (_type: string, listener: (event: MessageEvent) => void) => {
         messageListeners.push(listener);

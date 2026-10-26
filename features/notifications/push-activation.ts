@@ -9,7 +9,6 @@
  * @see specs/005-web-push-notifications/data-model.md §1 (transitions)
  */
 import { BffError } from "@/lib/api/bff-client";
-import { clientLogger } from "@/lib/client-logger";
 import { FrontErrorCode } from "@/lib/enums/error-code";
 import { PushState } from "@/lib/enums/push";
 
@@ -17,6 +16,7 @@ import { PUSH_MESSAGES } from "./messages";
 import {
   ensureSubscription,
   fetchPublicKey,
+  logPushFailure,
   registerServiceWorker,
   removeSubscription,
   sendSubscription,
@@ -123,7 +123,7 @@ export async function disablePush(): Promise<void> {
       await removeSubscription(record.subscriptionUuid);
     }
   } catch (error) {
-    logFailure("Push deactivation failed", error);
+    logPushFailure("Push deactivation failed", error);
     setPushStatus({ state: PushState.ENABLED, message: PUSH_MESSAGES.disableError });
     return;
   }
@@ -143,20 +143,7 @@ async function runActivation(isFresh: boolean): Promise<void> {
     await subscribeAndSave(isFresh);
     setPushStatus({ state: PushState.ENABLED });
   } catch (error) {
-    logFailure("Push activation failed", error);
+    logPushFailure("Push activation failed", error);
     setPushStatus(failureStatus(error));
   }
-}
-
-/**
- * Logs a failed action with only the error name and message: never the subscription (its
- * endpoint identifies the device).
- *
- * @param message - Log message.
- * @param error - Thrown value.
- */
-function logFailure(message: string, error: unknown): void {
-  clientLogger.warn(message, {
-    reason: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
-  });
 }

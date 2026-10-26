@@ -24,6 +24,8 @@ import {
 } from "@/components/dropdown/DropdownRow";
 import { DropPanel, PanelOrigin } from "@/components/effects/DropPanel";
 import { ACCOUNT_MENU_ITEMS, isCurrentSection } from "@/features/account/account-sections";
+import { PushSignOutField } from "@/features/notifications/components/PushSignOutField";
+import { clearLocalPushSubscription } from "@/features/notifications/push-client";
 import { useEffectiveEffects } from "@/features/preferences/PreferencesProvider";
 import { EffectsLevel } from "@/lib/enums/theme";
 import { cn } from "@/lib/utils";
@@ -129,7 +131,9 @@ function PanelLinks({
 
 /**
  * « Se déconnecter », keeping the sign-out flow of the header (client state cleared first, then
- * the Server Action closing the Keycloak session).
+ * the Server Action closing the Keycloak session). The form carries the push subscription UUID,
+ * deleted on the backend by the action; the browser forgets its notifications on submit
+ * (feature 005, research R8).
  *
  * @param props - Busy state and handler.
  * @returns The sign-out form.
@@ -142,7 +146,16 @@ function SignOutForm({
   readonly onSignOut: () => void;
 }): ReactNode {
   return (
-    <form action={signOutEverywhere} onSubmit={onSignOut} className="border-t border-border pt-2">
+    <form
+      action={signOutEverywhere}
+      onSubmit={() => {
+        // The UUID is already in the hidden field: the browser side can be forgotten at once.
+        clearLocalPushSubscription();
+        onSignOut();
+      }}
+      className="border-t border-border pt-2"
+    >
+      <PushSignOutField />
       <button
         type="submit"
         disabled={signingOut}

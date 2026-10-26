@@ -1,6 +1,6 @@
 // @vitest-environment node
 /**
- * Service-worker listeners (feature 005, T011): the served `public/sw.js` (importing
+ * Service-worker listeners (feature 005, T011, T036): the served `public/sw.js` (importing
  * `sw-core.js`) run in `node:vm` with fake registration and clients.
  *
  * @see specs/005-web-push-notifications/contracts/bff-routes.md §6
@@ -118,4 +118,47 @@ describe("notificationclick", () => {
       expect(site.navigate).not.toHaveBeenCalled();
     },
   );
+});
+
+describe("pushsubscriptionchange", () => {
+  const KEY = new Uint8Array([4, 1, 2, 3, 4]).buffer;
+
+  it("subscribes again with the same key and tells every window", async () => {
+    const worker = loadServiceWorker();
+    const first = fakeWindow(`${ORIGIN}/`);
+    const second = fakeWindow(`${ORIGIN}/account/profile`);
+    worker.windows = [first, second];
+    await worker.dispatch("pushsubscriptionchange", {
+      oldSubscription: { options: { applicationServerKey: KEY } },
+    });
+    expect(worker.subscribe).toHaveBeenCalledWith({
+      userVisibleOnly: true,
+      applicationServerKey: KEY,
+    });
+    for (const client of [first, second]) {
+      expect(client.postMessage).toHaveBeenCalledWith({ type: "push-subscription-changed" });
+    }
+  });
+
+  it("does nothing without the old key", async () => {
+    const worker = loadServiceWorker();
+    const page = fakeWindow(`${ORIGIN}/`);
+    worker.windows = [page];
+    await worker.dispatch("pushsubscriptionchange", { oldSubscription: null });
+    expect(worker.subscribe).not.toHaveBeenCalled();
+    expect(page.postMessage).not.toHaveBeenCalled();
+  });
+
+  it("tells nobody, without throwing, when subscribing fails", async () => {
+    const worker = loadServiceWorker();
+    worker.subscribe.mockRejectedValue(new Error("AbortError"));
+    const page = fakeWindow(`${ORIGIN}/`);
+    worker.windows = [page];
+    await expect(
+      worker.dispatch("pushsubscriptionchange", {
+        oldSubscription: { options: { applicationServerKey: KEY } },
+      }),
+    ).resolves.toBeUndefined();
+    expect(page.postMessage).not.toHaveBeenCalled();
+  });
 });

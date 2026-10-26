@@ -1,10 +1,11 @@
 /**
  * Header account menu (feature 003, T098): avatar with initials, panel opened on hover, click
- * and keyboard, account sections, sign-out clearing the client state, and no axe violation.
+ * and keyboard, account sections, sign-out clearing the client state (push subscription included,
+ * feature 005 T038), and no axe violation.
  *
  * @see specs/003-account-orders/spec.md FR-040
  */
-import { act, fireEvent, screen } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "jest-axe";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -16,6 +17,7 @@ import { ACCOUNT_MENU_CLOSE_DELAY_MS } from "@/lib/constants/auth";
 import { ACCOUNT_PATHS } from "@/lib/constants/routes";
 
 import { renderWithProviders } from "../../helpers/providers";
+import { installPushBrowser, PUBLIC_KEY } from "../../helpers/push-browser";
 
 interface FakeSession {
   data: { user: { name: string | null; email: string | null } } | null;
@@ -36,6 +38,7 @@ vi.mock("@/features/cart/guest-storage", () => ({ clearGuestCart: clientState.cl
 
 const NAME = "Camille Testeur";
 const EMAIL = "camille@example.com";
+const PUSH_UUID = "0193a2b4-5c6d-7e8f-9a0b-1c2d3e4f5a6b";
 
 /** Accessible name of the avatar button. */
 const AVATAR_NAME = `Compte de ${NAME}`;
@@ -202,6 +205,37 @@ describe("AccountMenu signed in", () => {
     }
     expect(clientState.reset).toHaveBeenCalledTimes(1);
     expect(clientState.clearGuestCart).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends the push subscription uuid with the sign-out and forgets it in the browser", async () => {
+    const browser = installPushBrowser({ permission: "granted", existingKey: PUBLIC_KEY });
+    const subscription = await browser.getSubscription();
+    window.localStorage.setItem("ct_push_v1", JSON.stringify({ subscriptionUuid: PUSH_UUID }));
+    window.sessionStorage.setItem("ct_push_sync_v1", "1");
+    const user = userEvent.setup();
+    renderWithProviders(<AccountMenu />);
+    await user.click(avatar());
+    const form = screen.getByRole("button", { name: "Se déconnecter" }).closest("form");
+    if (form === null) {
+      throw new Error("Sign-out form missing");
+    }
+    expect(new FormData(form).get("pushSubscriptionUuid")).toBe(PUSH_UUID);
+    fireEvent.submit(form);
+    expect(window.localStorage.getItem("ct_push_v1")).toBeNull();
+    expect(window.sessionStorage.getItem("ct_push_sync_v1")).toBeNull();
+    await waitFor(() => {
+      expect(subscription?.unsubscribe).toHaveBeenCalledOnce();
+    });
+    vi.unstubAllGlobals();
+  });
+
+  it("sends an empty push field without notifications", async () => {
+    window.localStorage.clear();
+    const user = userEvent.setup();
+    renderWithProviders(<AccountMenu />);
+    await user.click(avatar());
+    const form = screen.getByRole("button", { name: "Se déconnecter" }).closest("form");
+    expect(form === null ? null : new FormData(form).get("pushSubscriptionUuid")).toBe("");
   });
 });
 
