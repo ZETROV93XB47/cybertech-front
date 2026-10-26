@@ -9,7 +9,7 @@
 import type { z } from "zod";
 
 import { JSON_CONTENT_TYPE } from "@/lib/constants/api";
-import { HTTP_HEADERS } from "@/lib/constants/http";
+import { HTTP_HEADERS, HTTP_STATUS } from "@/lib/constants/http";
 import { FrontErrorCode } from "@/lib/enums/error-code";
 import type { HttpMethod } from "@/lib/enums/http-method";
 import type { StockShortage } from "@/lib/schemas/error";
@@ -82,7 +82,8 @@ async function toBffError(response: Response): Promise<BffError> {
 }
 
 /**
- * Validates the JSON body of a successful BFF response.
+ * Validates the JSON body of a successful BFF response. A `204` has no body: it is validated as
+ * `undefined` (use `z.undefined()`).
  *
  * @param response - Successful response.
  * @param schema - Expected body schema.
@@ -93,7 +94,9 @@ async function readBffBody<TSchema extends z.ZodType>(
   response: Response,
   schema: TSchema,
 ): Promise<z.infer<TSchema>> {
-  const body = schema.safeParse(await response.json());
+  const json: unknown =
+    response.status === HTTP_STATUS.NO_CONTENT ? undefined : await response.json();
+  const body = schema.safeParse(json);
   if (!body.success) {
     throw new BffError(
       FrontErrorCode.UNKNOWN,

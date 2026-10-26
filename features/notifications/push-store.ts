@@ -15,7 +15,10 @@ import { detectPushSupport } from "./push-support";
 /** State shown to the customer, with the text of an error when there is one. */
 export interface PushStatus {
   readonly state: PushState;
-  /** Text of an `ERROR` state, when it differs from the default one (expired session). */
+  /**
+   * Text of an error, when it differs from the default one: expired session (`ERROR`), failed
+   * deactivation (`ENABLED`, notifications still on).
+   */
   readonly message?: string | undefined;
 }
 

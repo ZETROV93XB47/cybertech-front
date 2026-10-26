@@ -7,11 +7,13 @@
  * through `/api/notifications/push/*`.
  *
  * @see specs/005-web-push-notifications/research.md R2, R4
- * @see specs/005-web-push-notifications/contracts/bff-routes.md §1–2
+ * @see specs/005-web-push-notifications/contracts/bff-routes.md §1–3
  */
+import { z } from "zod";
+
 import { bffGet, bffSend } from "@/lib/api/bff-client";
 import { SERVICE_WORKER_PATH, SERVICE_WORKER_SCOPE } from "@/lib/constants/push";
-import { BFF_ROUTES } from "@/lib/constants/routes";
+import { BFF_ROUTES, pushSubscriptionRoute } from "@/lib/constants/routes";
 import { HttpMethod } from "@/lib/enums/http-method";
 import { PushPublicKeySchema, PushSubscriptionSavedSchema } from "@/lib/schemas/push";
 
@@ -95,6 +97,32 @@ export async function sendSubscription(subscription: PushSubscription): Promise<
     subscription.toJSON(),
   );
   return saved.uuid;
+}
+
+/**
+ * Deletes a subscription of the account through the BFF. A subscription already gone counts as
+ * deleted (`204`).
+ *
+ * @param uuid - UUID of the subscription, from the local record.
+ * @throws {BffError} `unauthenticated`, `forbidden` or `unavailable`.
+ * @see specs/005-web-push-notifications/contracts/bff-routes.md §3
+ */
+export async function removeSubscription(uuid: string): Promise<void> {
+  await bffSend(pushSubscriptionRoute(uuid), HttpMethod.DELETE, z.undefined());
+}
+
+/**
+ * Drops the browser subscription of this site, if any, ignoring every failure (no service
+ * worker, push service unreachable): the backend already forgot it, and an orphan subscription
+ * only expires on the push service side.
+ */
+export async function unsubscribeBrowser(): Promise<void> {
+  try {
+    const registration = await registerServiceWorker();
+    await unsubscribeQuietly(await registration.pushManager.getSubscription());
+  } catch {
+    // Nothing else to do: see above.
+  }
 }
 
 /**

@@ -1,13 +1,15 @@
 // @vitest-environment node
 /**
- * BFF routes of the browser notifications (feature 005, T012): public key and subscription save.
+ * BFF routes of the browser notifications (feature 005, T012, T027): public key, subscription save
+ * and delete.
  *
- * @see specs/005-web-push-notifications/contracts/bff-routes.md §1–2
+ * @see specs/005-web-push-notifications/contracts/bff-routes.md §1–3
  */
 import { http, HttpResponse } from "msw";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { GET as publicKeyRoute } from "@/app/api/notifications/push/public-key/route";
+import { DELETE as deleteRoute } from "@/app/api/notifications/push/subscriptions/[uuid]/route";
 import { POST as saveRoute } from "@/app/api/notifications/push/subscriptions/route";
 import { ApiError } from "@/lib/api/errors";
 import { FrontErrorCode } from "@/lib/enums/error-code";
@@ -173,5 +175,79 @@ describe("POST /api/notifications/push/subscriptions", () => {
     expect(text).not.toContain(SECRET_PATH);
     expect(text).not.toContain(SUBSCRIPTION.keys.p256dh);
     expect(text).not.toContain(SUBSCRIPTION.keys.auth);
+  });
+});
+
+/**
+ * Calls the `DELETE` route for a subscription UUID.
+ *
+ * @param uuid - Value of the dynamic segment.
+ * @returns The BFF response.
+ */
+function deleteSubscription(uuid: string): Promise<Response> {
+  const request = new Request(
+    `http://localhost:3000/api/notifications/push/subscriptions/${uuid}`,
+    {
+      method: "DELETE",
+    },
+  );
+  return deleteRoute(request, { params: Promise.resolve({ uuid }) });
+}
+
+describe("DELETE /api/notifications/push/subscriptions/{uuid}", () => {
+  it("deletes the subscription with the user's token and answers 204 without a body", async () => {
+    let authorization: string | null = null;
+    server.use(
+      http.delete(`${PUSH_API}/subscriptions/${UUID}`, ({ request }) => {
+        authorization = request.headers.get("Authorization");
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    const response = await deleteSubscription(UUID);
+    expect(response.status).toBe(204);
+    expect(await response.text()).toBe("");
+    expect(authorization).toBe(`Bearer ${TOKEN}`);
+  });
+
+  it("answers 204 when the subscription is already gone", async () => {
+    server.use(
+      http.delete(`${PUSH_API}/subscriptions/${UUID}`, () =>
+        backendError("PUSH_SUBSCRIPTION_NOT_FOUND", 404),
+      ),
+    );
+    const response = await deleteSubscription(UUID);
+    expect(response.status).toBe(204);
+  });
+
+  it("answers 400 invalid for a non-UUID segment, without calling the backend", async () => {
+    const backend = vi.fn(() => new HttpResponse(null, { status: 204 }));
+    server.use(http.delete(`${PUSH_API}/subscriptions/*`, backend));
+    const response = await deleteSubscription("not-a-uuid");
+    expect(response.status).toBe(400);
+    expect(await codeOf(response)).toBe(FrontErrorCode.INVALID);
+    expect(backend).not.toHaveBeenCalled();
+  });
+
+  it("answers 401 unauthenticated without a session", async () => {
+    guards.getAccessTokenOrThrow.mockRejectedValue(
+      new ApiError({
+        status: 401,
+        frontCode: FrontErrorCode.UNAUTHENTICATED,
+        message: "no session",
+      }),
+    );
+    const response = await deleteSubscription(UUID);
+    expect(response.status).toBe(401);
+    expect(await codeOf(response)).toBe(FrontErrorCode.UNAUTHENTICATED);
+  });
+
+  it.each([
+    ["PUSH_SUBSCRIPTION_NOT_OWNED", 403, FrontErrorCode.FORBIDDEN],
+    ["SERVICE_UNAVAILABLE", 503, FrontErrorCode.UNAVAILABLE],
+  ])("maps %s to %s", async (code, status, frontCode) => {
+    server.use(http.delete(`${PUSH_API}/subscriptions/${UUID}`, () => backendError(code, status)));
+    const response = await deleteSubscription(UUID);
+    expect(response.status).toBe(status);
+    expect(await codeOf(response)).toBe(frontCode);
   });
 });

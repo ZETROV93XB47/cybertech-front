@@ -1,6 +1,7 @@
 /**
- * Turning notifications on (feature 005, research R4 and R5): the permission request, the
- * subscription and the BFF call, with the resulting state written to the shared store.
+ * Turning notifications on and off (feature 005, research R4 and R5, FR-008): the permission
+ * request, the subscription and the BFF calls, with the resulting state written to the shared
+ * store.
  *
  * The permission is requested FIRST, while the click is still the current user gesture: Safari
  * and Firefox ignore a request made after network calls (FR-001).
@@ -17,10 +18,18 @@ import {
   ensureSubscription,
   fetchPublicKey,
   registerServiceWorker,
+  removeSubscription,
   sendSubscription,
+  unsubscribeBrowser,
   unsubscribeQuietly,
 } from "./push-client";
-import { markSyncedThisTab, writePushRecord } from "./push-record";
+import {
+  clearPushRecord,
+  clearSyncedThisTab,
+  markSyncedThisTab,
+  readPushRecord,
+  writePushRecord,
+} from "./push-record";
 import { setPushStatus, type PushStatus } from "./push-store";
 
 /** `Notification.permission` once granted. */
@@ -101,6 +110,30 @@ export async function reclaimPush(): Promise<void> {
 }
 
 /**
+ * Turns notifications off for this browser, from the profile switch (FR-008): deletes the
+ * subscription on the backend with the stored UUID, then drops the browser subscription and the
+ * local record. A failed deletion changes nothing: notifications stay on and the switch says so.
+ * Without a record (site data cleared), only the browser subscription is dropped.
+ */
+export async function disablePush(): Promise<void> {
+  setPushStatus({ state: PushState.PENDING });
+  const record = readPushRecord();
+  try {
+    if (record !== null) {
+      await removeSubscription(record.subscriptionUuid);
+    }
+  } catch (error) {
+    logFailure("Push deactivation failed", error);
+    setPushStatus({ state: PushState.ENABLED, message: PUSH_MESSAGES.disableError });
+    return;
+  }
+  await unsubscribeBrowser();
+  clearPushRecord();
+  clearSyncedThisTab();
+  setPushStatus({ state: PushState.IDLE });
+}
+
+/**
  * Runs the subscription and writes the resulting state.
  *
  * @param isFresh - Forces a new browser subscription.
@@ -110,10 +143,20 @@ async function runActivation(isFresh: boolean): Promise<void> {
     await subscribeAndSave(isFresh);
     setPushStatus({ state: PushState.ENABLED });
   } catch (error) {
-    // Only the error name and message: never the subscription (its endpoint identifies the device).
-    clientLogger.warn("Push activation failed", {
-      reason: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
-    });
+    logFailure("Push activation failed", error);
     setPushStatus(failureStatus(error));
   }
+}
+
+/**
+ * Logs a failed action with only the error name and message: never the subscription (its
+ * endpoint identifies the device).
+ *
+ * @param message - Log message.
+ * @param error - Thrown value.
+ */
+function logFailure(message: string, error: unknown): void {
+  clientLogger.warn(message, {
+    reason: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+  });
 }

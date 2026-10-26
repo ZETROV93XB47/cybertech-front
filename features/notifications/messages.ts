@@ -19,6 +19,8 @@ export const PUSH_MESSAGES = {
   toggleLabel: "Notifications du navigateur",
   toggleDescription:
     "Paiement confirmé, commande expédiée : reçois une notification sur ce navigateur.",
+  toggleEnabled:
+    "Activées sur ce navigateur : tu es prévenu à chaque étape de ta commande, même onglet fermé.",
   deniedTitle: "Notifications bloquées",
   denied:
     "Tu as bloqué les notifications pour ce site. Pour les réautoriser, clique sur le cadenas à gauche de l'adresse, puis autorise les notifications.",

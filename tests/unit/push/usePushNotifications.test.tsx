@@ -1,8 +1,10 @@
 /**
- * Notifications hook (feature 005, T014): initial state, activation sequence (permission first,
- * then service worker, key, subscription, BFF), refusals, failures and reclaim after a conflict.
+ * Notifications hook (feature 005, T014, T028): initial state, activation sequence (permission
+ * first, then service worker, key, subscription, BFF), refusals, failures, reclaim after a
+ * conflict and deactivation.
  *
  * @see specs/005-web-push-notifications/research.md R4, R5
+ * @see specs/005-web-push-notifications/spec.md FR-008
  */
 import { act, renderHook } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
@@ -192,5 +194,89 @@ describe("reclaim", () => {
     expect(browser.created).toHaveLength(2);
     expect(browser.created[1]?.endpoint).not.toBe(browser.created[0]?.endpoint);
     expect(result.current.status.state).toBe(PushState.ENABLED);
+  });
+});
+
+/**
+ * Mocks `DELETE /subscriptions/{uuid}` and records the deleted UUIDs.
+ *
+ * @param deleted - Receives the UUID of every call.
+ * @param answer - Answer of the route.
+ */
+function mockDelete(
+  deleted: string[],
+  answer: () => Response = () => new HttpResponse(null, { status: 204 }),
+): void {
+  server.use(
+    http.delete("*/api/notifications/push/subscriptions/:uuid", ({ params }) => {
+      deleted.push(String(params.uuid));
+      return answer();
+    }),
+  );
+}
+
+describe("disable", () => {
+  /**
+   * Installs a browser with notifications on: permission granted, a subscription and a record.
+   *
+   * @returns The fake browser and its current subscription.
+   */
+  async function enabledBrowser(): Promise<{
+    readonly browser: ReturnType<typeof installPushBrowser>;
+    readonly subscription: Awaited<
+      ReturnType<ReturnType<typeof installPushBrowser>["getSubscription"]>
+    >;
+  }> {
+    const browser = installPushBrowser({ permission: "granted", existingKey: PUBLIC_KEY });
+    window.localStorage.setItem("ct_push_v1", JSON.stringify({ subscriptionUuid: UUID }));
+    window.sessionStorage.setItem("ct_push_sync_v1", "1");
+    return { browser, subscription: await browser.getSubscription() };
+  }
+
+  it("deletes the stored subscription, then unsubscribes and forgets it", async () => {
+    const { subscription } = await enabledBrowser();
+    const deleted: string[] = [];
+    mockDelete(deleted);
+    const { result } = renderPush();
+    expect(result.current.status.state).toBe(PushState.ENABLED);
+    await act(() => result.current.disable());
+    expect(deleted).toEqual([UUID]);
+    expect(subscription?.unsubscribe).toHaveBeenCalledOnce();
+    expect(window.localStorage.getItem("ct_push_v1")).toBeNull();
+    expect(window.sessionStorage.getItem("ct_push_sync_v1")).toBeNull();
+    expect(result.current.status).toEqual({ state: PushState.IDLE });
+  });
+
+  it("is idle when the backend had already dropped the subscription", async () => {
+    await enabledBrowser();
+    mockDelete([], () => new HttpResponse(null, { status: 204 }));
+    const { result } = renderPush();
+    await act(() => result.current.disable());
+    expect(result.current.status.state).toBe(PushState.IDLE);
+  });
+
+  it("stays enabled, with the subscription kept, when the deletion fails", async () => {
+    const { subscription } = await enabledBrowser();
+    mockDelete([], bffError("unavailable", 503));
+    const { result } = renderPush();
+    await act(() => result.current.disable());
+    expect(result.current.status).toEqual({
+      state: PushState.ENABLED,
+      message: PUSH_MESSAGES.disableError,
+    });
+    expect(subscription?.unsubscribe).not.toHaveBeenCalled();
+    expect(window.localStorage.getItem("ct_push_v1")).not.toBeNull();
+  });
+
+  it("only unsubscribes the browser when the record is gone", async () => {
+    const { subscription } = await enabledBrowser();
+    window.localStorage.clear();
+    const deleted: string[] = [];
+    mockDelete(deleted);
+    const { result } = renderPush();
+    await act(() => result.current.disable());
+    expect(deleted).toEqual([]);
+    expect(subscription?.unsubscribe).toHaveBeenCalledOnce();
+    expect(result.current.status.state).toBe(PushState.IDLE);
   });
 });

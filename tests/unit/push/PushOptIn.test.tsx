@@ -16,7 +16,11 @@ import { PushState } from "@/lib/enums/push";
 
 import { installPushBrowser } from "../../helpers/push-browser";
 
-const activation = vi.hoisted(() => ({ enablePush: vi.fn(), reclaimPush: vi.fn() }));
+const activation = vi.hoisted(() => ({
+  enablePush: vi.fn(),
+  reclaimPush: vi.fn(),
+  disablePush: vi.fn(),
+}));
 vi.mock("@/features/notifications/push-activation", () => activation);
 
 /**

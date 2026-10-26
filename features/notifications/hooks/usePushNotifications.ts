@@ -8,7 +8,7 @@
  */
 import { useSyncExternalStore } from "react";
 
-import { enablePush, reclaimPush } from "../push-activation";
+import { disablePush, enablePush, reclaimPush } from "../push-activation";
 import {
   getPushStatus,
   getServerPushStatus,
@@ -24,6 +24,8 @@ export interface UsePushNotificationsResult {
   readonly enable: () => Promise<void>;
   /** Subscribes again with a new endpoint, after a conflict with another account. */
   readonly reclaim: () => Promise<void>;
+  /** Deletes the subscription and unsubscribes this browser (profile switch). */
+  readonly disable: () => Promise<void>;
 }
 
 /**
@@ -33,5 +35,5 @@ export interface UsePushNotificationsResult {
  */
 export function usePushNotifications(): UsePushNotificationsResult {
   const status = useSyncExternalStore(subscribePushStatus, getPushStatus, getServerPushStatus);
-  return { status, enable: enablePush, reclaim: reclaimPush };
+  return { status, enable: enablePush, reclaim: reclaimPush, disable: disablePush };
 }

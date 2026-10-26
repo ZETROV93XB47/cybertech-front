@@ -32,6 +32,67 @@ export interface PushView {
   readonly isBusy: boolean;
 }
 
+/** Content of the profile switch for one state. */
+export interface PushToggleView {
+  /** Text under the switch, announced when it changes. */
+  readonly description: string;
+  readonly isChecked: boolean;
+  /** The switch cannot be used (running action, blocked, unavailable, install needed). */
+  readonly isDisabled: boolean;
+  /** « Activer pour mon compte » is offered, after a conflict. */
+  readonly offersReclaim: boolean;
+}
+
+/**
+ * Builds a view of the profile switch.
+ *
+ * @param description - Text under the switch.
+ * @param isChecked - Whether notifications are on.
+ * @param isDisabled - Whether the switch is disabled.
+ * @param offersReclaim - Whether « Activer pour mon compte » is offered.
+ * @returns The view.
+ */
+function toggle(
+  description: string,
+  isChecked: boolean,
+  isDisabled: boolean,
+  offersReclaim = false,
+): PushToggleView {
+  return { description, isChecked, isDisabled, offersReclaim };
+}
+
+/**
+ * Content of the profile switch for a state.
+ *
+ * @param status - Current state.
+ * @returns The view; `UNSUPPORTED` gives `null` (the section is not shown).
+ */
+export function pushToggleView(status: PushStatus): PushToggleView | null {
+  switch (status.state) {
+    case PushState.UNSUPPORTED:
+      return null;
+    case PushState.IDLE:
+      return toggle(PUSH_MESSAGES.toggleDescription, false, false);
+    case PushState.PENDING:
+      return toggle(PUSH_MESSAGES.toggleDescription, false, true);
+    case PushState.ENABLED:
+      return toggle(status.message ?? PUSH_MESSAGES.toggleEnabled, true, false);
+    case PushState.DENIED:
+      return toggle(PUSH_MESSAGES.denied, false, true);
+    case PushState.UNAVAILABLE:
+      return toggle(PUSH_MESSAGES.unavailable, false, true);
+    case PushState.CONFLICT:
+      // Toggling would send the same endpoint again: only the reclaim helps.
+      return toggle(PUSH_MESSAGES.conflict, false, true, true);
+    case PushState.INSTALL_REQUIRED:
+      return toggle(PUSH_MESSAGES.installRequired, false, true);
+    case PushState.ERROR:
+      return toggle(status.message ?? PUSH_MESSAGES.error, false, false);
+    default:
+      return assertNever(status.state);
+  }
+}
+
 /**
  * Builds the view of the default card (offer to turn notifications on).
  *

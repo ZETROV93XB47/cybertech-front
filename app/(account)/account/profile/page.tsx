@@ -1,10 +1,11 @@
 /**
  * « Mon profil » (feature 003 US4): the identity as stored (read-only email and user name, link
- * to the account console for the password) and the form editing name, phone and address, which
- * prefill the checkout. Read on the server with the user's token, never cached; shown in the
- * account shell.
+ * to the account console for the password), the browser notifications switch (feature 005 US2)
+ * and the form editing name, phone and address, which prefill the checkout. Read on the server
+ * with the user's token, never cached; shown in the account shell.
  *
  * @see specs/003-account-orders/spec.md US4, FR-028 to FR-030
+ * @see specs/005-web-push-notifications/spec.md US2
  * @see specs/003-account-orders/research.md R16, R17
  */
 import { UserRoundX } from "lucide-react";
@@ -20,6 +21,7 @@ import { ProfileIdentity } from "@/features/account/components/ProfileIdentity";
 import { PROFILE_MESSAGES } from "@/features/account/messages";
 import { readProfileView } from "@/features/account/server/profile-data";
 import { COMMON_MESSAGES } from "@/features/common/messages";
+import { PushToggle } from "@/features/notifications/components/PushToggle";
 import { accountConsoleUrl } from "@/lib/auth/account-console";
 import { getAccessTokenOrRedirect } from "@/lib/auth/guards";
 import { ACCOUNT_PATHS, HOME_PATH } from "@/lib/constants/routes";
@@ -62,8 +64,9 @@ export default async function ProfilePage(): Promise<ReactNode> {
         />
       ) : (
         <div className="grid items-start gap-6 xl:grid-cols-12">
-          <div className="xl:col-span-5">
+          <div className="flex flex-col gap-6 xl:col-span-5">
             <ProfileIdentity view={view} consoleUrl={accountConsoleUrl()} />
+            <PushToggle />
           </div>
           <section
             aria-labelledby="profile-form-title"

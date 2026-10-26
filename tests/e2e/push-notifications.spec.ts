@@ -1,5 +1,5 @@
 /**
- * Feature 005 — browser notifications (quickstart §2).
+ * Feature 005 — browser notifications (quickstart §2 and §4).
  *
  * Runs against the real local backend and Keycloak, on port 3000, in the `chromium` project only
  * (fresh users with a test card). A real push subscription needs the browser's push service
@@ -43,19 +43,25 @@ test.beforeEach(() => {
  * Installs the fake subscription and the permission spy before any page script runs.
  *
  * @param page - Page to prepare.
+ * @param initialPermission - Permission before any prompt (`denied`: blocked in the settings).
  */
-async function fakePushService(page: Page): Promise<void> {
+async function fakePushService(
+  page: Page,
+  initialPermission: NotificationPermission = "default",
+): Promise<void> {
   await page.addInitScript(
-    ({ endpoint, keys }) => {
+    ({ endpoint, keys, initial }) => {
       const probe = window as unknown as PushProbe & { __fakeSubscription: unknown };
       probe.__pushPermissionRequests = 0;
       // Headless Chromium answers « denied » whatever the context permissions: the permission is
       // faked too, « default » until the customer accepts the prompt.
-      let permission: NotificationPermission = "default";
+      let permission: NotificationPermission = initial;
       Object.defineProperty(Notification, "permission", { get: () => permission });
       Notification.requestPermission = () => {
         probe.__pushPermissionRequests += 1;
-        permission = "granted";
+        if (permission === "default") {
+          permission = "granted";
+        }
         return Promise.resolve(permission);
       };
       probe.__fakeSubscription = null;
@@ -77,7 +83,7 @@ async function fakePushService(page: Page): Promise<void> {
         return Promise.resolve(subscription as unknown as PushSubscription);
       };
     },
-    { endpoint: FAKE_ENDPOINT, keys: FAKE_KEYS },
+    { endpoint: FAKE_ENDPOINT, keys: FAKE_KEYS, initial: initialPermission },
   );
 }
 
@@ -152,4 +158,62 @@ test("the public key of the backend is readable through the BFF", async ({ reque
   const response = await request.get("/api/notifications/push/public-key");
   expect(response.status()).toBe(200);
   expect(((await response.json()) as { publicKey: string }).publicKey).toMatch(/^[A-Za-z0-9_-]+$/);
+});
+
+test("the profile switch turns notifications on, then off", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  await fakePushService(page);
+  const posted: unknown[] = [];
+  const deleted: string[] = [];
+  await page.route("**/api/notifications/push/subscriptions", async (route) => {
+    posted.push(route.request().postDataJSON());
+    await route.fulfill({ status: 201, json: { uuid: SUBSCRIPTION_UUID } });
+  });
+  await page.route("**/api/notifications/push/subscriptions/*", async (route) => {
+    deleted.push(new URL(route.request().url()).pathname.split("/").pop() ?? "");
+    await route.fulfill({ status: 204 });
+  });
+  const email = await registerUser(context);
+  await signIn(page, email, "/account/profile");
+
+  const section = page.getByRole("region", { name: "Notifications", exact: true });
+  const toggle = section.getByRole("switch", { name: "Notifications du navigateur" });
+  await expect(toggle).not.toBeChecked();
+  await expectNoBlockingViolations(page);
+
+  await toggle.click();
+  await expect(toggle).toBeChecked();
+  expect(posted).toHaveLength(1);
+  expect(await page.evaluate(() => window.localStorage.getItem("ct_push_v1"))).toBe(
+    JSON.stringify({ subscriptionUuid: SUBSCRIPTION_UUID }),
+  );
+
+  await toggle.click();
+  await expect(toggle).not.toBeChecked();
+  await expect(toggle).toBeEnabled();
+  expect(deleted).toEqual([SUBSCRIPTION_UUID]);
+  expect(await page.evaluate(() => window.localStorage.getItem("ct_push_v1"))).toBeNull();
+  expect(
+    await page.evaluate(async () => {
+      const registration = await navigator.serviceWorker.getRegistration("/");
+      return (await registration?.pushManager.getSubscription()) ?? null;
+    }),
+  ).toBeNull();
+});
+
+test("blocked notifications are explained in the profile, without an active switch", async ({
+  page,
+  context,
+}) => {
+  test.setTimeout(120_000);
+  await fakePushService(page, "denied");
+  const email = await registerUser(context);
+  await signIn(page, email, "/account/profile");
+
+  const section = page.getByRole("region", { name: "Notifications", exact: true });
+  await expect(section.getByText(/cadenas à gauche de l'adresse/)).toBeVisible();
+  await expect(section.getByRole("switch", { name: "Notifications du navigateur" })).toBeDisabled();
+  expect(await page.evaluate(() => (window as unknown as PushProbe).__pushPermissionRequests)).toBe(
+    0,
+  );
 });
