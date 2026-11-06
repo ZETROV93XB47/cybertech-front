@@ -14,8 +14,16 @@ import { extendTailwindMerge } from "tailwind-merge";
  */
 const THEME_CONTAINERS = ["site", "catalog"];
 
-/** `tailwind-merge` aware of the theme containers. */
-const twMerge = extendTailwindMerge({ extend: { theme: { container: THEME_CONTAINERS } } });
+/**
+ * Corner radii added by the theme (`--radius-card`, `--radius-button`, `--radius-field`):
+ * declared so that `rounded-button` overrides a component's `rounded-md` (feature 003 T073).
+ */
+const THEME_RADII = ["card", "button", "field"];
+
+/** `tailwind-merge` aware of the theme containers and radii. */
+const twMerge = extendTailwindMerge({
+  extend: { theme: { container: THEME_CONTAINERS, radius: THEME_RADII } },
+});
 
 /**
  * Merges class names, letting later Tailwind utilities win over earlier conflicting ones.

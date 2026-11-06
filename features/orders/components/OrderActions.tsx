@@ -74,9 +74,6 @@ export function OrderActions({ orderUuid, canEdit, canCancel }: OrderActionsProp
   const flow = useCancelFlow(orderUuid);
   return (
     <div className="flex flex-col gap-3">
-      <p role="status" aria-live="polite" className="min-h-5 text-sm">
-        {flow.message}
-      </p>
       {!canEdit && !canCancel && (
         <p className="text-sm text-text-muted">{ORDER_DETAIL_MESSAGES.noAction}</p>
       )}
@@ -102,6 +99,9 @@ export function OrderActions({ orderUuid, canEdit, canCancel }: OrderActionsProp
           />
         )}
       </div>
+      <p role="status" aria-live="polite" className="text-sm">
+        {flow.message}
+      </p>
     </div>
   );
 }

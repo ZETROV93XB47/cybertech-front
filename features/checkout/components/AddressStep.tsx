@@ -11,6 +11,7 @@ import type { ReactNode, SyntheticEvent } from "react";
 import { Input } from "@/components/ui/input";
 import type { ParsedAddress } from "@/lib/address";
 import { AddressField } from "@/lib/enums/checkout-step-state";
+import { EnterAnimation } from "@/lib/enums/enter-animation";
 
 import type { AddressErrors } from "../address-form";
 import { CHECKOUT_MESSAGES } from "../messages";
@@ -69,7 +70,7 @@ function AddressInput({
         }}
       />
       {error && (
-        <p id={errorId} className="text-sm text-rose">
+        <p id={errorId} className={`text-sm text-rose ${EnterAnimation.FADE}`}>
           {error}
         </p>
       )}

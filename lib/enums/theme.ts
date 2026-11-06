@@ -37,6 +37,8 @@ export enum SoundSetting {
 export enum UiSound {
   ADD_TO_CART = "add-to-cart",
   MERGE_SUCCESS = "merge-success",
+  /** Payment accepted while the confirmation or the order was open (feature 003 T076). */
+  PAYMENT_SUCCESS = "payment-success",
   ERROR = "error",
 }
 

@@ -16,12 +16,13 @@ import type { ReactNode } from "react";
 import { DELIVERY_MESSAGES } from "@/features/catalog/messages";
 import { assertNever } from "@/lib/assert-never";
 import type { QuoteShipping } from "@/lib/constants/checkout";
-import { EXPRESS_CUTOFF_HOUR } from "@/lib/constants/shipping";
 import { DelaySource, ShippingChoiceKind } from "@/lib/enums/checkout";
-import { ExpressPromise, ShippingType } from "@/lib/enums/shipping";
+import { ShippingType } from "@/lib/enums/shipping";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { EnterAnimation } from "@/lib/enums/enter-animation";
 
+import { delayText } from "../delivery-promise";
 import { CHECKOUT_MESSAGES } from "../messages";
 import type { CarrierChoice, ShippingChoice } from "../shipping-choices";
 
@@ -39,22 +40,6 @@ export interface ShippingStepProps {
   readonly error: string | null;
   readonly onChange: (value: QuoteShipping) => void;
   readonly onSubmit: () => void;
-}
-
-/**
- * Delay line of a carrier choice: the express promise, the backend delay, or the estimate.
- *
- * @param choice - Carrier choice.
- * @returns The sentence.
- */
-function delayText(choice: CarrierChoice): string {
-  if (choice.expressPromise === ExpressPromise.TOMORROW) {
-    return DELIVERY_MESSAGES.expressTomorrow(EXPRESS_CUTOFF_HOUR);
-  }
-  if (choice.expressPromise === ExpressPromise.NEXT_BUSINESS_DAY) {
-    return DELIVERY_MESSAGES.expressNextBusinessDay;
-  }
-  return CHECKOUT_MESSAGES.shippingDelay(choice.delay.minDays, choice.delay.maxDays);
 }
 
 /**
@@ -179,7 +164,7 @@ export function ShippingChoicesFieldset({
         {choices.map((choice) => renderChoice(choice, value, onChange))}
       </fieldset>
       {error && (
-        <p id="shipping-error" className="text-sm text-rose">
+        <p id="shipping-error" className={`text-sm text-rose ${EnterAnimation.FADE}`}>
           {error}
         </p>
       )}

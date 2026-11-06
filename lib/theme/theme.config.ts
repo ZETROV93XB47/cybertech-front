@@ -241,6 +241,7 @@ export const THEME = {
     tones: {
       [UiSound.ADD_TO_CART]: { frequencyHz: 880, durationMs: 120, waveform: "sine" },
       [UiSound.MERGE_SUCCESS]: { frequencyHz: 740, durationMs: 180, waveform: "sine" },
+      [UiSound.PAYMENT_SUCCESS]: { frequencyHz: 988, durationMs: 220, waveform: "sine" },
       [UiSound.ERROR]: { frequencyHz: 220, durationMs: 200, waveform: "triangle" },
     },
   },

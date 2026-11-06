@@ -12,6 +12,7 @@ import { useId, useState, type ReactNode, type SyntheticEvent } from "react";
 import { Input } from "@/components/ui/input";
 import type { ActiveDiscount } from "@/lib/schemas/discount";
 import { cn } from "@/lib/utils";
+import { EnterAnimation } from "@/lib/enums/enter-animation";
 
 import { describeDiscountOffer } from "../discount-offer";
 import { DISCOUNT_MESSAGES } from "../messages";
@@ -124,7 +125,7 @@ function DiscountKeyForm({ isChecking, keyError, onPropose }: DiscountChooserPro
         </button>
       </div>
       {keyError && (
-        <p id={errorId} role="alert" className="text-sm text-rose">
+        <p id={errorId} role="alert" className={`text-sm text-rose ${EnterAnimation.FADE}`}>
           {keyError}
         </p>
       )}

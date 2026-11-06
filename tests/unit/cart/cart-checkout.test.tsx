@@ -1,7 +1,7 @@
 /**
  * « Passer commande » of the cart summary and checkout issue banner (feature 003, T032).
  */
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { axe } from "jest-axe";
 import { describe, expect, it, vi } from "vitest";
 
@@ -10,6 +10,7 @@ import { CartSummary } from "@/features/cart/components/CartSummary";
 import { CartIssue, CartLineStatus, CartSource } from "@/lib/enums/cart";
 import type { CartLine, CartView } from "@/lib/schemas/cart";
 
+import { renderWithProviders } from "../../helpers/providers";
 import { fakeUuids } from "../../helpers/products";
 
 const [UUID = ""] = fakeUuids(1);
@@ -49,7 +50,7 @@ function cartOf(source: CartSource, status: CartLineStatus = CartLineStatus.OK):
 
 describe("CartSummary — Passer commande", () => {
   it("leads a signed-in user to the checkout", async () => {
-    const { container } = render(
+    const { container } = renderWithProviders(
       <CartSummary
         cart={cartOf(CartSource.ACCOUNT)}
         campaigns={[]}
@@ -65,7 +66,7 @@ describe("CartSummary — Passer commande", () => {
   });
 
   it("leads a visitor to the sign-in page coming back to the checkout", () => {
-    render(
+    renderWithProviders(
       <CartSummary
         cart={cartOf(CartSource.GUEST)}
         campaigns={[]}
@@ -80,7 +81,7 @@ describe("CartSummary — Passer commande", () => {
   });
 
   it("is disabled with a hint while a line is out of stock", () => {
-    render(
+    renderWithProviders(
       <CartSummary
         cart={cartOf(CartSource.ACCOUNT, CartLineStatus.INSUFFICIENT_STOCK)}
         campaigns={[]}
@@ -98,7 +99,7 @@ describe("CartIssueBanner", () => {
     [CartIssue.STOCK, /plus assez de stock/],
     [CartIssue.EMPTY, /vidé entre-temps/],
   ])("explains %s as an alert", (issue, text) => {
-    render(<CartIssueBanner issue={issue} />);
+    renderWithProviders(<CartIssueBanner issue={issue} />);
     expect(screen.getByRole("alert")).toHaveTextContent(text);
   });
 });

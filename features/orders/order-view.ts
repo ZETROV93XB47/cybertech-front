@@ -73,6 +73,10 @@ export interface OrderSummaryRow {
   readonly statusTone: StatusTone;
   /** Sum of the quantities of the lines. */
   readonly itemCount: number;
+  /** Name of the first product of the order (the lines are never empty). */
+  readonly firstProductName: string;
+  /** Number of other products (distinct lines) after the first one. */
+  readonly otherProductCount: number;
   readonly total: number;
   readonly currency: string;
 }
@@ -90,6 +94,8 @@ export function toOrderSummaryRow(order: OrderResponse): OrderSummaryRow {
     status: order.status,
     statusTone: ORDER_STATUS_RULES[order.status].tone,
     itemCount: order.orderItems.reduce((count, item) => count + item.quantity, 0),
+    firstProductName: order.orderItems[0]?.productName ?? "",
+    otherProductCount: Math.max(order.orderItems.length - 1, 0),
     total: order.totalAmount,
     currency: order.currency,
   };

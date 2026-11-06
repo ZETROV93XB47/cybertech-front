@@ -10,6 +10,7 @@ import type { FocusEvent, ReactNode } from "react";
 import { Input } from "@/components/ui/input";
 import type { ProfileField } from "@/lib/enums/profile";
 import { cn } from "@/lib/utils";
+import { EnterAnimation } from "@/lib/enums/enter-animation";
 
 /** Prefix of the field ids, so they never collide with other forms of the page. */
 const ID_PREFIX = "profile-";
@@ -80,7 +81,7 @@ export function ProfileTextField(props: ProfileTextFieldProps): ReactNode {
         </p>
       )}
       {error && (
-        <p id={`${id}${ERROR_ID_SUFFIX}`} className="text-sm text-rose">
+        <p id={`${id}${ERROR_ID_SUFFIX}`} className={`text-sm text-rose ${EnterAnimation.FADE}`}>
           {error}
         </p>
       )}

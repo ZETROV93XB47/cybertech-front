@@ -6,6 +6,7 @@
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
+import { EnterAnimation } from "@/lib/enums/enter-animation";
 
 /** Suffix of the id of a field's error message. */
 const ERROR_ID_SUFFIX = "-error";
@@ -68,7 +69,7 @@ export function CardFieldShell(props: CardFieldShellProps): ReactNode {
         </p>
       )}
       {error !== undefined && (
-        <p id={`${id}${ERROR_ID_SUFFIX}`} className="text-sm text-rose">
+        <p id={`${id}${ERROR_ID_SUFFIX}`} className={`text-sm text-rose ${EnterAnimation.FADE}`}>
           {error}
         </p>
       )}

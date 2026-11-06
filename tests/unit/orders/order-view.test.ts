@@ -31,6 +31,8 @@ describe("toOrderSummaryRow", () => {
       status: OrderStatus.PAID,
       statusTone: StatusTone.SUCCESS,
       itemCount: 3,
+      firstProductName: RECENT_ORDER.orderItems[0]?.productName,
+      otherProductCount: RECENT_ORDER.orderItems.length - 1,
       total: 425,
       currency: "EUR",
     });

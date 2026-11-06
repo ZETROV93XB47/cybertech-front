@@ -46,6 +46,7 @@ import { usePlaceOrder, type PlaceOutcome } from "../hooks/usePlaceOrder";
 import { cartSignature } from "../hooks/useQuote";
 import { CHECKOUT_ERROR_MESSAGES, CHECKOUT_MESSAGES, CHECKOUT_SUMMARY_MESSAGES } from "../messages";
 import type { SavedCard } from "../saved-card";
+import { chosenDelayText } from "../delivery-promise";
 import type { ShippingChoice } from "../shipping-choices";
 
 import { CheckoutStepPanel } from "./CheckoutStepPanel";
@@ -250,6 +251,7 @@ export function CheckoutFlow({
           cart={cart}
           quote={quote.quote}
           showShipping={state.shipping !== null}
+          deliveryPromise={chosenDelayText(choices, state.shipping)}
           isStale={quote.isStale}
           quoteError={quoteErrorMessage(quote.error)}
           onRetry={quote.refetch}

@@ -5,6 +5,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { SuccessMark } from "@/components/effects/SuccessMark";
 import { loginPath } from "@/lib/auth/callback-url";
 import { ACCOUNT_PATHS } from "@/lib/constants/routes";
 
@@ -27,7 +28,12 @@ export interface CardFeedbackProps {
 export function CardFeedback({ success, error, needsSignIn }: CardFeedbackProps): ReactNode {
   return (
     <>
-      <p role="status" aria-live="polite" className="min-h-5 text-sm text-success">
+      <p
+        role="status"
+        aria-live="polite"
+        className="flex min-h-5 items-center gap-2 text-sm text-success"
+      >
+        {success !== null && <SuccessMark />}
         {success ?? ""}
       </p>
       {error !== undefined && (

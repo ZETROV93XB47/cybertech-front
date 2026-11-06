@@ -5,7 +5,7 @@
  *
  * @see specs/003-account-orders/spec.md US3
  */
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "jest-axe";
 import { http, HttpResponse } from "msw";
@@ -32,7 +32,6 @@ import { ShippingProvider, ShippingType } from "@/lib/enums/shipping";
 import type { OrderChangeResult } from "@/lib/schemas/order";
 
 import { renderWithProviders } from "../../helpers/providers";
-import { renderWithQuery } from "../../helpers/render";
 import { server } from "../../msw/server";
 
 import {
@@ -94,7 +93,9 @@ beforeEach(() => {
 
 describe("OrderList and OrderStatusFilter", () => {
   it("lists date, status, item count and total, linked to the detail", async () => {
-    const { container } = render(<OrderList rows={[toOrderSummaryRow(RECENT_ORDER)]} />);
+    const { container } = renderWithProviders(
+      <OrderList rows={[toOrderSummaryRow(RECENT_ORDER)]} />,
+    );
     const row = screen.getByRole("link", { name: /Commande n° 00000000/ });
     expect(row).toHaveAttribute("href", orderPath(ORDER_UUID));
     expect(row).toHaveTextContent("Passée le 14 octobre 2026");
@@ -105,7 +106,7 @@ describe("OrderList and OrderStatusFilter", () => {
   });
 
   it("filters through a GET form that works without JavaScript", async () => {
-    const { container } = render(<OrderStatusFilter selected={[OrderStatus.PAID]} />);
+    const { container } = renderWithProviders(<OrderStatusFilter selected={[OrderStatus.PAID]} />);
     const form = container.querySelector("form");
     expect(form).toHaveAttribute("method", "get");
     expect(form).toHaveAttribute("action", ACCOUNT_PATHS.orders);
@@ -119,7 +120,9 @@ describe("OrderList and OrderStatusFilter", () => {
 describe("OrderBreakdown", () => {
   it("shows subtotal, discount with its key and shipping", () => {
     const view = toOrderView(RECENT_ORDER, null);
-    render(<OrderBreakdown breakdown={view.breakdown} total={view.total} refunded={0} />);
+    renderWithProviders(
+      <OrderBreakdown breakdown={view.breakdown} total={view.total} refunded={0} />,
+    );
     expect(screen.getByText("Remise BLACK_FRIDAY")).toBeInTheDocument();
     expect(screen.getByText("Sous-total")).toBeInTheDocument();
     expect(screen.getByTestId("order-total")).toHaveTextContent(/425,00/);
@@ -127,7 +130,7 @@ describe("OrderBreakdown", () => {
   });
 
   it("shows only the total of an old order, without empty values nor zeros", () => {
-    render(<OrderBreakdown breakdown={null} total={250} refunded={100} />);
+    renderWithProviders(<OrderBreakdown breakdown={null} total={250} refunded={100} />);
     expect(screen.queryByText("Sous-total")).not.toBeInTheDocument();
     expect(screen.queryByText("Livraison")).not.toBeInTheDocument();
     expect(screen.getByText(/seul le total payé est connu/)).toBeInTheDocument();
@@ -159,7 +162,9 @@ describe("OrderTimeline", () => {
 
 describe("OrderActions and CancelOrderDialog", () => {
   it("offers only the allowed actions", () => {
-    const { rerender } = render(<OrderActions orderUuid={ORDER_UUID} canEdit canCancel={false} />);
+    const { rerender } = renderWithProviders(
+      <OrderActions orderUuid={ORDER_UUID} canEdit canCancel={false} />,
+    );
     expect(screen.getByRole("link", { name: "Modifier la commande" })).toHaveAttribute(
       "href",
       orderEditPath(ORDER_UUID),
@@ -171,7 +176,7 @@ describe("OrderActions and CancelOrderDialog", () => {
 
   it("cancels after confirmation", async () => {
     actions.cancel.mockResolvedValue({ kind: OrderActionOutcomeKind.DONE, result: EDITED });
-    render(<OrderActions orderUuid={ORDER_UUID} canEdit={false} canCancel />);
+    renderWithProviders(<OrderActions orderUuid={ORDER_UUID} canEdit={false} canCancel />);
     await userEvent.click(screen.getByRole("button", { name: "Annuler la commande" }));
     const dialog = await screen.findByRole("dialog");
     expect(await axe(dialog)).toHaveNoViolations();
@@ -181,7 +186,7 @@ describe("OrderActions and CancelOrderDialog", () => {
   });
 
   it("keeps the order and returns the focus when the dialog is dismissed", async () => {
-    render(<OrderActions orderUuid={ORDER_UUID} canEdit={false} canCancel />);
+    renderWithProviders(<OrderActions orderUuid={ORDER_UUID} canEdit={false} canCancel />);
     const trigger = screen.getByRole("button", { name: "Annuler la commande" });
     await userEvent.click(trigger);
     await userEvent.click(await screen.findByRole("button", { name: "Garder ma commande" }));
@@ -197,7 +202,7 @@ describe("OrderActions and CancelOrderDialog", () => {
       kind: OrderActionOutcomeKind.FAILED,
       error: new BffError(FrontErrorCode.REFUND_FAILED, 409, "refund"),
     });
-    render(<OrderActions orderUuid={ORDER_UUID} canEdit={false} canCancel />);
+    renderWithProviders(<OrderActions orderUuid={ORDER_UUID} canEdit={false} canCancel />);
     await userEvent.click(screen.getByRole("button", { name: "Annuler la commande" }));
     await userEvent.click(await screen.findByRole("button", { name: "Oui, annuler" }));
     expect(await screen.findByText(/remboursement n'a pas abouti/)).toBeInTheDocument();
@@ -211,8 +216,8 @@ describe("OrderActions and CancelOrderDialog", () => {
  * @param order - Order to edit.
  * @returns The render result.
  */
-function renderEditForm(order = RECENT_ORDER): ReturnType<typeof renderWithQuery> {
-  return renderWithQuery(
+function renderEditForm(order = RECENT_ORDER): ReturnType<typeof renderWithProviders> {
+  return renderWithProviders(
     <OrderEditForm
       order={order}
       address={parseFlatAddress(FLAT_ADDRESS)}
@@ -326,7 +331,7 @@ describe("ProductPicker", () => {
 describe("account navigation and payment follow-up", () => {
   it("marks the current account section", async () => {
     navigation.pathname = "/account/orders/abc";
-    const { container } = render(<AccountNav />);
+    const { container } = renderWithProviders(<AccountNav />);
     expect(screen.getByRole("link", { name: "Mes commandes" })).toHaveAttribute(
       "aria-current",
       "page",
@@ -336,7 +341,7 @@ describe("account navigation and payment follow-up", () => {
   });
 
   it("links the confirmation to the order detail", () => {
-    renderWithQuery(<PaymentTracker orderUuid={ORDER_UUID} />);
+    renderWithProviders(<PaymentTracker orderUuid={ORDER_UUID} />);
     expect(screen.getByRole("link", { name: "Voir ma commande" })).toHaveAttribute(
       "href",
       orderPath(ORDER_UUID),
@@ -344,7 +349,7 @@ describe("account navigation and payment follow-up", () => {
   });
 
   it("hides the links inside the order detail", () => {
-    renderWithQuery(<PaymentTracker orderUuid={ORDER_UUID} withLinks={false} />);
+    renderWithProviders(<PaymentTracker orderUuid={ORDER_UUID} withLinks={false} />);
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 

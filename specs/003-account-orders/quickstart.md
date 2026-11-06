@@ -412,4 +412,110 @@ Vérifié le 2026-10-14 (T089–T097) : backend `20f5666` sur 8081, front de l'u
 
 ### Phase « Interface vivante et cohérente »
 
-À remplir (scénarios 52 à 57, axe, Lighthouse, longues tâches).
+#### Audit visuel (T071, 2026-11-06)
+
+Captures prises sur le front de l'utilisateur (port 3000, connexion Keycloak), backend local
+sur 8081 : `CAPTURE_DIR=specs/003-account-orders/screenshots/audit npx playwright test
+account-screenshots --project=chromium --workers=1` (24 captures dans `screenshots/audit/` :
+panier invité vide et rempli, panier connecté, bandeaux `?issue=stock` et `?issue=empty`,
+réduction ouverte et appliquée, chaque étape du tunnel, confirmation en attente, payée et
+refusée, « Mes commandes » vide, remplie et filtrée, détail payé, annulé et refusé, modification,
+profil, carte avec et sans).
+
+Ce qui « fait vide » :
+
+- Les lignes de commande n'ont aucune image : récapitulatif du tunnel, confirmation, détail
+  de commande. Le panier, lui, montre les photos : rupture visuelle entre panier et tunnel.
+- La confirmation se réduit au statut du paiement et au récapitulatif : pas de fil d'Ariane,
+  rien sur la suite (préparation, suivi, délai de modification), liens « Voir ma commande » et
+  « Continuer mes achats » discrets.
+- Carte « Statut » du détail : grand blanc entre le badge et les boutons ; le statut n'est
+  pas expliqué (que puis-je encore faire ?).
+- « Mes commandes » : chaque ligne dit « 1 article » sans dire lequel.
+- Le récapitulatif du tunnel ne rappelle pas le délai de la livraison choisie.
+
+Ce qui est incohérent :
+
+- Bouton principal : « Passer commande » et les états vides (« Découvrir le catalogue ») ont un
+  rayon de 6 px (taille `lg` de shadcn) ; « Valider la commande », « Continuer », « Relancer
+  le paiement » ont le rayon du thème (16 px). Seul le bouton du panier est magnétique.
+- Montants : panier en chasse fixe dorée (`.price`, « 1 199,95 € ») ; tunnel, confirmation et
+  détail en Inter, où l'espace fine des milliers est presque invisible (« 1199,95 € »).
+- Texte « Total mis à jour : … » visible sous le total du tunnel (région `aria-live` affichée).
+- La frise se révèle d'un bloc (une seule apparition), sans remplissage étape par étape.
+
+Sans écart notable : en-têtes de page (fil d'Ariane, `LiveTitle`, sous-titre), cartes en
+verre, largeur de contenu, menu du compte, états vides illustrés, formulaires du profil et de la
+carte. Non reproductibles contre le vrai backend : délai de paiement dépassé et commande trop
+ancienne pour être modifiée (couverts par les tests unitaires).
+
+#### Corrections (T072–T076)
+
+- **Remplir sans inventer (T072)** : photo réelle du produit sur chaque ligne du tunnel, de la
+  confirmation et du détail (`LineThumbnail` ; photos du détail et de la confirmation lues dans
+  le catalogue en cache, icône de catégorie si le produit n'a pas de photo ou n'existe plus) ;
+  délai de la livraison choisie repris sous les montants du tunnel ; confirmation avec fil
+  d'Ariane et carte « Et maintenant ? » (règles réelles de préparation, de modification et
+  d'annulation) ; aide sous le badge de statut du détail, alignée sur `ORDER_STATUS_RULES` ;
+  premier produit et nombre d'autres produits sur chaque ligne de « Mes commandes ».
+- **Cohérence (T073)** : `PRIMARY_CTA_CLASS` prend la hauteur et le rayon du thème (`h-12`,
+  `rounded-button`, `cn` connaît désormais les rayons du thème) ; « Passer commande »,
+  « Valider la commande », « Voir ma commande » (confirmation) et « Enregistrer les
+  modifications » en CTA dégradé magnétique ; montants en `.price` partout ; région
+  `aria-live` du tunnel masquée visuellement ; squelettes `skeleton-shimmer` pour le devis et
+  pour « Mes commandes » (`loading.tsx`).
+- **Une animation par page (T074)** : étapes du tunnel qui se déplient (`Unfold`), total en
+  fondu enchaîné (`CrossFade`), frise qui se remplit étape par étape et lignes de « Mes
+  commandes » en cascade (CSS `.enter-rise`, visibles sans JavaScript), entrée de la carte
+  bancaire.
+- **Effets signature (T075)** : `TiltCard` sur les photos des lignes ; halos et grille de
+  points déjà présents sur les pages du compte (fond global), rien d'ajouté au tunnel.
+- **Micro-interactions (T076)** : erreurs de champ en fondu, coche de succès animée (profil
+  enregistré, carte mise à jour, commande modifiée, `SuccessMark`), `aria-busy` sur les
+  boutons d'envoi, son facultatif `PAYMENT_SUCCESS` quand le paiement passe de « en cours »
+  à « accepté » pendant que la page est ouverte.
+
+Chaque nouvel effet a sa version statique : avec des effets réduits ou coupés, ou
+`prefers-reduced-motion`, les dépliages et fondus ne gardent que l'opacité, les cascades
+deviennent des fondus, les photos ne s'inclinent pas.
+
+#### Vérification (T077, T078)
+
+Vérifié le 2026-11-06 sur le front de l'utilisateur (port 3000) et un build de production
+(`.next-prod`, port 3124), backend `783adb3` sur 8081.
+
+- Contrôles : `typecheck` OK, `lint` 0 warning, `test` 1 321 tests verts (130 fichiers), dont
+  `tests/unit/effects/account-orders-effects-levels.test.tsx` (20 tests : dépliage, fondu
+  enchaîné, coche de succès, inclinaison des photos, cascades, à chaque niveau d'effets et avec
+  `prefers-reduced-motion`) et `tests/unit/checkout/delivery-promise.test.ts`.
+- E2E (chromium, `--workers=1`, une minute entre deux specs) : `a11y` 5/5 (nouveau parcours
+  connecté : chaque étape du tunnel, confirmation, « Mes commandes » vide et remplie, détail,
+  modification, profil, carte), `checkout` 4/4, `orders` 2/2, `discount` 1/1, `bank-card`
+  2/2, `bank-card-add` 1/1, `profile` 2/2, `push-notifications` 6/6, `reviews` 2/2, `cart`
+  7/7. Le backend a coupé deux fois pendant la série (ECONNREFUSED, puis un 503 au paiement) :
+  les specs touchées ont été relancées et passent.
+- axe a relevé un défaut antérieur : un `<p>` directement dans le `<dl>` du récapitulatif du
+  tunnel (« Livraison et total calculés… ») ; corrigé.
+- `long-tasks.spec.ts` sur le build de production : 6/6, dont les deux nouveaux parcours
+  (étapes du tunnel dépliées avec le total en fondu, puis curseur sur les photos ; détail de
+  commande avec la frise et les photos inclinables). Connexion faite sur le port 3000 : le cookie
+  de session vaut pour `localhost`, donc aussi pour le port 3124 (même `AUTH_SECRET`).
+- Lighthouse desktop (build de production, port 3124, session passée en en-tête `Cookie`) :
+
+| Page | Score | LCP | CLS | TBT |
+|---|---|---|---|---|
+| `/cart` | 98 | 1 066 ms | 0,048 | 0 ms |
+| `/checkout` | 97 | 967 ms | 0,086 | 0 ms |
+| `/account/orders` | 98 | 1 130 ms | 0,001 | 2 ms |
+| `/account/orders/{uuid}` | 98 | 1 050 ms | 0,001 | 22 ms |
+| `/checkout/confirmation/{uuid}` | 99 | 987 ms | 0,032 | 0 ms |
+
+  Budgets tenus (LCP ≤ 2,5 s, CLS ≤ 0,1, TBT ≤ 200 ms) ; le CLS du tunnel est le plus proche de
+  la limite (squelettes du panier et du devis remplacés par les lignes et les montants).
+- Captures après : `screenshots/after/` (mêmes 24 vues que l'audit), relues : photos sur
+  toutes les lignes, montants alignés, confirmation avec « Et maintenant ? », statut expliqué.
+  Le chevauchement de l'en-tête sur certaines captures pleine page vient de l'en-tête
+  collant pendant la capture, pas de la page.
+- À vérifier à la main : scénario 56 (effets désactivés, puis `prefers-reduced-motion` dans
+  Chrome : étapes, montants et frise sans mouvement) et le son de paiement accepté avec les sons
+  activés dans les préférences.

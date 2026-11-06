@@ -134,6 +134,8 @@ export const CHECKOUT_SUMMARY_MESSAGES = {
   placing: "Validation…",
   placeHint: "Termine les étapes pour valider ta commande.",
   nextStep: "Livraison et total calculés à l'étape suivante.",
+  // Delivery promise of the chosen shipping, under the amounts (T072).
+  deliveryPromise: (delay: string): string => `Livraison : ${delay}`,
   totalChanged: (total: string): string =>
     `Ton panier a changé : le nouveau total est de ${total}. Vérifie-le puis valide à nouveau.`,
 } as const;
@@ -177,4 +179,15 @@ export const CONFIRMATION_MESSAGES = {
   totalPaid: "Total",
   continueShopping: "Continuer mes achats",
   viewOrder: "Voir ma commande",
+  breadcrumbOrders: "Mes commandes",
+  nextStepsTitle: "Et maintenant ?",
+  /**
+   * What happens after the order (T072), true for every order: the steps of the timeline and
+   * the edit and cancel rules of `ORDER_STATUS_RULES`.
+   */
+  nextSteps: [
+    "Dès que le paiement est accepté, on prépare ton colis.",
+    "Tu suis chaque étape dans « Mes commandes », jusqu'à la livraison.",
+    "Tant qu'elle n'est pas expédiée, tu peux modifier ta commande ; tant qu'elle n'est pas en préparation, tu peux l'annuler.",
+  ],
 } as const;

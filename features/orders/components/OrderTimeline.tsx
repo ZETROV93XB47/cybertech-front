@@ -3,15 +3,18 @@
  * with `aria-current="step"`, and the outcome (cancelled, refunded, returned, payment refused)
  * shown apart as an outcome, never as a step (FR-024).
  *
- * The steps, then the outcome, appear through the shared staggered entrance (motion tokens,
- * static when effects are reduced or the system asks for reduced motion).
+ * The timeline fills step by step (feature 003 T074): each step, then the outcome, enters after
+ * the previous one through the CSS cascade of the theme (`.enter-rise`, `--stagger`), visible
+ * without JavaScript; with reduced or disabled effects, or system reduced motion, the steps only
+ * fade in.
  *
  * @see specs/003-account-orders/data-model.md §5
  */
 import { Check, Circle, CircleDot, Flag } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { RevealGroup, RevealItem } from "@/components/effects/Reveal";
+import { enterStyle } from "@/components/effects/Enter";
+import { EnterAnimation } from "@/lib/enums/enter-animation";
 import { assertNever } from "@/lib/assert-never";
 import { TimelineStepState } from "@/lib/enums/order";
 import { cn } from "@/lib/utils";
@@ -62,17 +65,18 @@ function stepLook(state: TimelineStepState): {
 /**
  * One step of the timeline.
  *
- * @param props - Step.
+ * @param props - Step and its position, which sets its delay in the cascade.
  * @returns The list item.
  */
-function Step({ step }: { readonly step: TimelineStep }): ReactNode {
+function Step({ step, index }: { readonly step: TimelineStep; readonly index: number }): ReactNode {
   const look = stepLook(step.state);
   const isCurrent = step.state === TimelineStepState.CURRENT;
   return (
     <li
       aria-current={isCurrent ? "step" : undefined}
       data-state={step.state}
-      className="flex items-center gap-3"
+      className={cn("flex items-center gap-3", EnterAnimation.RISE)}
+      style={enterStyle(index)}
     >
       <span
         className={cn(
@@ -105,29 +109,27 @@ export function OrderTimeline({ timeline }: OrderTimelineProps): ReactNode {
       <h2 id="order-timeline" className="text-lg">
         {ORDER_DETAIL_MESSAGES.timelineTitle}
       </h2>
-      <RevealGroup className="flex flex-col gap-5">
-        <RevealItem>
-          <ol aria-label={ORDER_DETAIL_MESSAGES.timelineLabel} className="flex flex-col gap-3">
-            {timeline.steps.map((step) => (
-              <Step key={step.status} step={step} />
-            ))}
-          </ol>
-        </RevealItem>
-        {timeline.outcome !== null && (
-          <RevealItem>
-            <p
-              data-testid="order-outcome"
-              className="flex items-center gap-3 rounded-card border border-rose p-3 text-sm"
-            >
-              <Flag aria-hidden className="size-4 text-rose" />
-              <span>
-                <span className="sr-only">{`${ORDER_DETAIL_MESSAGES.outcomeLabel} : `}</span>
-                {ORDER_DETAIL_MESSAGES.outcomes[timeline.outcome]}
-              </span>
-            </p>
-          </RevealItem>
-        )}
-      </RevealGroup>
+      <ol aria-label={ORDER_DETAIL_MESSAGES.timelineLabel} className="flex flex-col gap-3">
+        {timeline.steps.map((step, index) => (
+          <Step key={step.status} step={step} index={index} />
+        ))}
+      </ol>
+      {timeline.outcome !== null && (
+        <p
+          data-testid="order-outcome"
+          className={cn(
+            "flex items-center gap-3 rounded-card border border-rose p-3 text-sm",
+            EnterAnimation.RISE,
+          )}
+          style={enterStyle(timeline.steps.length)}
+        >
+          <Flag aria-hidden className="size-4 text-rose" />
+          <span>
+            <span className="sr-only">{`${ORDER_DETAIL_MESSAGES.outcomeLabel} : `}</span>
+            {ORDER_DETAIL_MESSAGES.outcomes[timeline.outcome]}
+          </span>
+        </p>
+      )}
     </section>
   );
 }

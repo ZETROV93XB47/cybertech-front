@@ -3,13 +3,15 @@
 /**
  * One step of the single-page checkout: open (its form), done (folded into a summary with
  * « Modifier ») or upcoming (title only). The heading carries the position and the state for
- * screen readers.
+ * screen readers. The open form unfolds in place (`Unfold`, a plain fade with reduced effects).
  *
  * @see specs/003-account-orders/spec.md FR-006
+ * @see specs/003-account-orders/tasks.md T074
  */
 import { Check } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { Unfold } from "@/components/effects/Unfold";
 import { assertNever } from "@/lib/assert-never";
 import type { CheckoutStep } from "@/lib/enums/checkout";
 import { CheckoutStepState } from "@/lib/enums/checkout-step-state";
@@ -99,7 +101,9 @@ export function CheckoutStepPanel(props: CheckoutStepPanelProps): ReactNode {
         )}
       </div>
       {state === CheckoutStepState.DONE && <div className="text-sm text-text-muted">{summary}</div>}
-      {state === CheckoutStepState.CURRENT && children}
+      {state === CheckoutStepState.CURRENT && (
+        <Unfold className="flex flex-col gap-5">{children}</Unfold>
+      )}
     </section>
   );
 }

@@ -1,10 +1,12 @@
 /**
- * Body of the order detail: status and actions, payment retry after a refusal, timeline, lines
- * (linked to the product only while it is still in the catalog), delivery address and shipping,
- * and the amounts, with « Donner mon avis » on the products still reviewable (feature 004,
- * FR-019). Server Component; the actions and the payment follow-up are client islands.
+ * Body of the order detail: status with what it means for the customer, actions, payment retry
+ * after a refusal, timeline, lines with their photo (linked to the product only while it is
+ * still in the catalog), delivery address and shipping, and the amounts, with « Donner mon
+ * avis » on the products still reviewable (feature 004, FR-019). Server Component; the actions
+ * and the payment follow-up are client islands.
  *
  * @see specs/003-account-orders/spec.md US3, FR-023 to FR-027
+ * @see specs/003-account-orders/tasks.md T072, T075
  * @see specs/003-account-orders/data-model.md §4.5
  */
 import { MapPin, MessageSquareText, Truck } from "lucide-react";
@@ -20,7 +22,9 @@ import { formatPrice } from "@/lib/format";
 
 import { ORDER_DETAIL_MESSAGES } from "../messages";
 import type { OrderLineView, OrderView } from "../order-view";
+import type { LinePhotos } from "../server/order-data";
 
+import { LineThumbnail, LineThumbnailSize } from "./LineThumbnail";
 import { OrderActions } from "./OrderActions";
 import { OrderBreakdown } from "./OrderBreakdown";
 import { OrderStatusBadge } from "./OrderStatusBadge";
@@ -31,7 +35,12 @@ export interface OrderDetailProps {
   readonly order: OrderView;
   /** Products of this order the customer can still review. */
   readonly reviewableProductUuids: ReadonlySet<string>;
+  /** Photo of each product still in the catalog (lines without one show the category icon). */
+  readonly photos?: LinePhotos;
 }
+
+/** No photo known: every line shows its category icon. */
+const NO_PHOTOS: LinePhotos = new Map();
 
 /**
  * « Donner mon avis » on a bought product, opening its form in « Mes avis ».
@@ -63,21 +72,24 @@ function ReviewLink({
 /**
  * One line of the order.
  *
- * @param props - Line, order and whether the product can be reviewed.
+ * @param props - Line, its photo, order and whether the product can be reviewed.
  * @returns The list item.
  */
 function OrderLine({
   line,
+  photo,
   orderUuid,
   isReviewable,
 }: {
   readonly line: OrderLineView;
+  readonly photo: string | null;
   readonly orderUuid: string;
   readonly isReviewable: boolean;
 }): ReactNode {
   return (
-    <li className="flex items-baseline justify-between gap-4 border-b border-border py-3 last:border-b-0">
-      <span className="flex min-w-0 flex-col gap-0.5">
+    <li className="flex items-start gap-4 border-b border-border py-3 last:border-b-0">
+      <LineThumbnail src={photo} category={line.category} size={LineThumbnailSize.MEDIUM} />
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         {line.isInCatalog ? (
           <Link href={productPath(line.productUuid)} className="hover:text-brand-text">
             {line.productName}
@@ -102,7 +114,7 @@ function OrderLine({
           {`${ORDER_DETAIL_MESSAGES.quantity(line.quantity)} · ${ORDER_DETAIL_MESSAGES.unitPrice(formatPrice(line.unitPrice))}`}
         </span>
       </span>
-      <span className="shrink-0">{formatPrice(line.lineTotal)}</span>
+      <span className="price shrink-0">{formatPrice(line.lineTotal)}</span>
     </li>
   );
 }
@@ -110,15 +122,17 @@ function OrderLine({
 /**
  * Lines block.
  *
- * @param props - Order lines, order and the reviewable products.
+ * @param props - Order lines, their photos, order and the reviewable products.
  * @returns The section.
  */
 function OrderLines({
   lines,
+  photos,
   orderUuid,
   reviewable,
 }: {
   readonly lines: readonly OrderLineView[];
+  readonly photos: LinePhotos;
   readonly orderUuid: string;
   readonly reviewable: ReadonlySet<string>;
 }): ReactNode {
@@ -132,6 +146,7 @@ function OrderLines({
           <OrderLine
             key={line.productUuid}
             line={line}
+            photo={photos.get(line.productUuid) ?? null}
             orderUuid={orderUuid}
             isReviewable={reviewable.has(line.productUuid)}
           />
@@ -188,6 +203,9 @@ function OrderStatusPanel({ order }: { readonly order: OrderView }): ReactNode {
         </h2>
         <OrderStatusBadge status={order.status} tone={order.statusTone} />
       </div>
+      <p className="text-sm text-text-muted" data-testid="order-status-help">
+        {ORDER_DETAIL_MESSAGES.statusHelp[order.status]}
+      </p>
       {order.canRetryPayment && <PaymentTracker orderUuid={order.uuid} withLinks={false} />}
       <OrderActions orderUuid={order.uuid} canEdit={order.canEdit} canCancel={order.canCancel} />
     </section>
@@ -197,16 +215,21 @@ function OrderStatusPanel({ order }: { readonly order: OrderView }): ReactNode {
 /**
  * Order detail.
  *
- * @param props - Order view and the products still reviewable.
+ * @param props - Order view, the products still reviewable and the line photos.
  * @returns The two columns of the detail.
  */
-export function OrderDetail({ order, reviewableProductUuids }: OrderDetailProps): ReactNode {
+export function OrderDetail({
+  order,
+  reviewableProductUuids,
+  photos = NO_PHOTOS,
+}: OrderDetailProps): ReactNode {
   return (
     <div className="grid items-start gap-6 xl:grid-cols-12">
       <div className="flex flex-col gap-6 xl:col-span-7">
         <OrderStatusPanel order={order} />
         <OrderLines
           lines={order.lines}
+          photos={photos}
           orderUuid={order.uuid}
           reviewable={reviewableProductUuids}
         />

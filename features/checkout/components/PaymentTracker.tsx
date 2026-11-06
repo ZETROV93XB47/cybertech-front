@@ -3,7 +3,8 @@
 /**
  * Payment follow-up of the confirmation page: polls the order status until the payment is
  * accepted or refused (bounded in time), offers a retry after a refusal, and announces every
- * change politely.
+ * change politely. A payment accepted while the page is open plays the optional success sound
+ * (feature 003 T076), never when an already paid order is opened.
  *
  * The way out leads to the order detail (« Mes commandes », US3) and to the catalog; the order
  * detail reuses the tracker without them.
@@ -13,11 +14,13 @@
  */
 import { CheckCircle2, Clock, Loader2, XCircle } from "lucide-react";
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
+import { useUiSound } from "@/features/preferences/hooks/useUiSound";
 import { assertNever } from "@/lib/assert-never";
 import { CATALOG_PATH, orderPath } from "@/lib/constants/routes";
 import { PaymentTrackerState, RetryPaymentOutcomeKind } from "@/lib/enums/checkout";
+import { UiSound } from "@/lib/enums/theme";
 
 import { useOrderStatus, useRetryPayment } from "../hooks/useOrderStatus";
 import { CONFIRMATION_MESSAGES } from "../messages";
@@ -118,6 +121,22 @@ function retryMessage(outcome: RetryPaymentOutcomeKind): string | null {
 }
 
 /**
+ * Plays the success sound when the payment goes from pending to accepted while the page is open.
+ *
+ * @param state - Current state of the tracker.
+ */
+function usePaymentSuccessSound(state: PaymentTrackerState): void {
+  const play = useUiSound();
+  const previous = useRef(state);
+  useEffect(() => {
+    if (previous.current === PaymentTrackerState.PENDING && state === PaymentTrackerState.PAID) {
+      play(UiSound.PAYMENT_SUCCESS);
+    }
+    previous.current = state;
+  }, [state, play]);
+}
+
+/**
  * Payment follow-up.
  *
  * @param props - Order to follow and whether to show the links.
@@ -128,6 +147,7 @@ export function PaymentTracker({ orderUuid, withLinks = true }: PaymentTrackerPr
   const { retry, isPending } = useRetryPayment(orderUuid, restart);
   const [notice, setNotice] = useState<string | null>(null);
   const state = paymentTrackerState(status, isTimedOut, error);
+  usePaymentSuccessSound(state);
   const { icon, text } = stateContent(state);
   return (
     <section className="glass flex flex-col gap-4 rounded-card p-6" aria-live="polite">

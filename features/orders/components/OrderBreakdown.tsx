@@ -39,7 +39,7 @@ function AmountRow({
   return (
     <div className={cn("flex items-baseline justify-between gap-4 text-sm", className)}>
       <dt className="text-text-muted">{label}</dt>
-      <dd>{amount}</dd>
+      <dd className="font-mono tabular-nums">{amount}</dd>
     </div>
   );
 }

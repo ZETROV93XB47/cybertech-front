@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { PRIMARY_CTA_CLASS } from "@/components/layout/cta";
+import { MagneticButton } from "@/components/effects/MagneticButton";
 import { CartDiscountBlock } from "@/features/checkout/components/CartDiscountBlock";
 import { loginPath } from "@/lib/auth/callback-url";
 import { CHECKOUT_PATH } from "@/lib/constants/routes";
@@ -104,7 +105,8 @@ function ClearCartDialog({
 /**
  * « Passer commande »: the checkout for a signed-in user, the sign-in page coming back to the
  * checkout for a visitor (the guest cart is merged on the way, as today). Disabled while a line
- * is out of stock or gone, since the backend would refuse the order.
+ * is out of stock or gone, since the backend would refuse the order. Primary call to action of
+ * the page: gradient and magnetic, as on every page (feature 003 T073).
  *
  * @param props - Cart and busy state.
  * @returns The call to action and its hint.
@@ -131,9 +133,11 @@ function CheckoutButton({
   }
   return (
     <div className="flex flex-col gap-2">
-      <Link href={href} className={PRIMARY_CTA_CLASS}>
-        {CART_MESSAGES.checkout}
-      </Link>
+      <MagneticButton>
+        <Link href={href} className={cn(PRIMARY_CTA_CLASS, "w-full")}>
+          {CART_MESSAGES.checkout}
+        </Link>
+      </MagneticButton>
       {cart.source === CartSource.GUEST && (
         <p className="text-xs text-text-muted">{CART_MESSAGES.checkoutGuestHint}</p>
       )}

@@ -11,7 +11,7 @@ import { notFound } from "next/navigation";
 
 import { ApiError } from "@/lib/api/errors";
 import { getOrder } from "@/lib/api/endpoints/orders";
-import { getAvailability } from "@/lib/api/endpoints/products";
+import { getAvailability, getProductsByUuids } from "@/lib/api/endpoints/products";
 import { getReviewableProducts } from "@/lib/api/endpoints/reviews";
 import { FrontErrorCode } from "@/lib/enums/error-code";
 import { createModuleLogger, maskUuid } from "@/lib/logger";
@@ -36,6 +36,31 @@ export async function readOrder(uuid: string, accessToken: string): Promise<Orde
       notFound();
     }
     throw error;
+  }
+}
+
+/** Photo of each product of an order, by product UUID; `null` when the product has none. */
+export type LinePhotos = ReadonlyMap<string, string | null>;
+
+/**
+ * Photos of the products of an order (feature 003 T072): the order lines carry no photo, so they
+ * are read from the catalog (cached product pages). A product that left the catalog, or a
+ * failure, only falls back to the category icon, so the failure is logged and swallowed.
+ *
+ * @param order - Order.
+ * @returns The photo of each product still in the catalog; empty when the catalog is unreadable.
+ * @see lib/api/endpoints/products.ts getProductsByUuids
+ */
+export async function readLinePhotos(order: OrderResponse): Promise<LinePhotos> {
+  try {
+    const products = await getProductsByUuids(order.orderItems.map((item) => item.productUuid));
+    return new Map(products.map((product) => [product.uuid, product.imageUrl]));
+  } catch (error) {
+    log.warn(
+      { orderUuid: maskUuid(order.uuid), code: error instanceof ApiError ? error.frontCode : null },
+      "Catalog unreadable, order lines shown without photo",
+    );
+    return new Map();
   }
 }
 

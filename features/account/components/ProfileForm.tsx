@@ -13,6 +13,7 @@
 import Link from "next/link";
 import { useActionState, useState, type ReactNode, type SyntheticEvent } from "react";
 
+import { SuccessMark } from "@/components/effects/SuccessMark";
 import { loginPath } from "@/lib/auth/callback-url";
 import { ACCOUNT_PATHS } from "@/lib/constants/routes";
 import { ProfileField, ProfileStatus } from "@/lib/enums/profile";
@@ -83,8 +84,8 @@ function initialValues(view: ProfileView): Partial<Record<ProfileField, string>>
 }
 
 /**
- * Form feedback: the error (with a sign-in link after a session expiry) or the confirmation,
- * in live regions so both are announced.
+ * Form feedback: the error (with a sign-in link after a session expiry) or the confirmation
+ * with its animated check (T076), in live regions so both are announced.
  *
  * @param props - Current state.
  * @returns The messages.
@@ -92,7 +93,12 @@ function initialValues(view: ProfileView): Partial<Record<ProfileField, string>>
 function ProfileFeedback({ state }: { readonly state: ProfileActionState }): ReactNode {
   return (
     <>
-      <p role="status" aria-live="polite" className="min-h-5 text-sm text-success">
+      <p
+        role="status"
+        aria-live="polite"
+        className="flex min-h-5 items-center gap-2 text-sm text-success"
+      >
+        {state.status === ProfileStatus.SUCCESS && <SuccessMark />}
         {state.status === ProfileStatus.SUCCESS ? PROFILE_MESSAGES.success : ""}
       </p>
       {state.formError && (

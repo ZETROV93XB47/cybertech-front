@@ -1,13 +1,15 @@
 /**
  * Body of « Ma carte »: the masked card with its edit form, replacement and deletion, or the
  * illustrated « aucune carte » state with « Ajouter une carte ». No control of this page shows a
- * full card number; only « Ajouter une carte » accepts one, on its way to the backend.
+ * full card number; only « Ajouter une carte » accepts one, on its way to the backend. The card
+ * enters with the page (CSS cascade of the theme, a plain fade with reduced effects, T074).
  *
  * @see specs/003-account-orders/spec.md US5, FR-031, FR-032
  */
 import { CreditCard } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { Enter } from "@/components/effects/Enter";
 import { StateIllustration } from "@/components/effects/StateIllustration";
 
 import type { CardView } from "../card-view";
@@ -69,7 +71,9 @@ export function BankCardPanel({ card, returnTo, months, years }: BankCardPanelPr
         <h2 id="card-title" className="text-lg">
           {CARD_MESSAGES.cardTitle}
         </h2>
-        <CardVisual card={card} />
+        <Enter index={0}>
+          <CardVisual card={card} />
+        </Enter>
         <DeleteCardDialog />
       </section>
       <div className="flex flex-col gap-6 xl:col-span-7">

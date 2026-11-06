@@ -4,10 +4,10 @@
  *
  * @see specs/003-account-orders/spec.md US3 scenario 5
  */
-import { CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { SuccessMark } from "@/components/effects/SuccessMark";
 import { assertNever } from "@/lib/assert-never";
 import { orderPath } from "@/lib/constants/routes";
 import { OrderChangeKind } from "@/lib/enums/order";
@@ -54,7 +54,7 @@ export function EditSavedPanel({ orderUuid, saved }: EditSavedPanelProps): React
       className="flex flex-col gap-3 rounded-card border border-success p-5"
     >
       <h2 id="edit-saved" className="flex items-center gap-2 text-lg">
-        <CheckCircle2 aria-hidden className="size-5 text-success" />
+        <SuccessMark />
         {ORDER_EDIT_MESSAGES.savedTitle}
       </h2>
       <dl className="grid grid-cols-2 gap-2 text-sm">

@@ -42,6 +42,11 @@ export const ORDERS_MESSAGES = {
   placedOn: (day: string): string => `Passée le ${day}`,
   itemCount: (count: number): string => `${count} article${count > 1 ? "s" : ""}`,
   total: "Total",
+  // What the order contains, under its number (T072).
+  productsPreview: (first: string, others: number): string =>
+    others === 0
+      ? first
+      : `${first} et ${others} autre${others > 1 ? "s" : ""} produit${others > 1 ? "s" : ""}`,
   viewOrder: "Voir le détail",
   filterLegend: "Filtrer par statut",
   filterApply: "Filtrer",
@@ -88,6 +93,27 @@ export const ORDER_DETAIL_MESSAGES = {
     [OrderOutcome.RETURNED]: "Commande retournée",
     [OrderOutcome.PAYMENT_FAILED]: "Paiement refusé",
   } satisfies Record<OrderOutcome, string>,
+  /**
+   * What the status means and what the customer can still do, under the status badge (T072).
+   * Kept in line with `ORDER_STATUS_RULES` (editable until « En préparation », cancellable
+   * until « Payée »).
+   */
+  statusHelp: {
+    [OrderStatus.CREATED]: "Ta commande est enregistrée, le paiement va démarrer.",
+    [OrderStatus.AWAITING_PAYMENT]:
+      "On attend la réponse de la banque. Tu peux encore modifier ou annuler ta commande.",
+    [OrderStatus.PAYMENT_FAILED]:
+      "Le paiement n'est pas passé. Relance-le, change de carte dans « Ma carte », ou annule la commande.",
+    [OrderStatus.PAID]:
+      "Paiement reçu. Tant qu'elle n'est pas en préparation, tu peux encore la modifier ou l'annuler.",
+    [OrderStatus.AWAITING_SHIPPING]:
+      "On prépare ton colis. Tu peux encore la modifier, mais plus l'annuler.",
+    [OrderStatus.SHIPPED]: "Ton colis est chez le transporteur, il arrive bientôt.",
+    [OrderStatus.DELIVERED]: "Ta commande est livrée. Tu peux donner ton avis sur tes articles.",
+    [OrderStatus.RETURNED]: "Ta commande nous a été retournée.",
+    [OrderStatus.CANCELED]: "Cette commande a été annulée : elle ne sera pas expédiée.",
+    [OrderStatus.REFUNDED]: "Ta commande est remboursée sur ton moyen de paiement.",
+  } satisfies Record<OrderStatus, string>,
   actionsTitle: "Actions",
   edit: "Modifier la commande",
   cancel: "Annuler la commande",

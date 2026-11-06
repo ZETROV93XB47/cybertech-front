@@ -10,6 +10,7 @@ import { CreditCard } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { PaymentType } from "@/lib/enums/order";
+import { EnterAnimation } from "@/lib/enums/enter-animation";
 
 import { CHECKOUT_MESSAGES } from "../messages";
 import type { SavedCard } from "../saved-card";
@@ -104,7 +105,7 @@ export function PaymentStep({
         {CHECKOUT_MESSAGES.paymentTest}
       </p>
       {error && (
-        <p id="payment-error" className="text-sm text-rose">
+        <p id="payment-error" className={`text-sm text-rose ${EnterAnimation.FADE}`}>
           {error}
         </p>
       )}

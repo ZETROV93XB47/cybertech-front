@@ -19,6 +19,7 @@ import { OrderDetail } from "@/features/orders/components/OrderDetail";
 import { ORDER_DETAIL_MESSAGES, ORDERS_MESSAGES } from "@/features/orders/messages";
 import {
   readCatalogUuids,
+  readLinePhotos,
   readOrder,
   readReviewableProductUuids,
 } from "@/features/orders/server/order-data";
@@ -57,7 +58,11 @@ export default async function OrderPage({ params }: OrderPageProps): Promise<Rea
     readOrder(parsed.data, accessToken),
     readReviewableProductUuids(parsed.data, accessToken),
   ]);
-  const view = toOrderView(order, await readCatalogUuids(order));
+  const [catalogUuids, photos] = await Promise.all([
+    readCatalogUuids(order),
+    readLinePhotos(order),
+  ]);
+  const view = toOrderView(order, catalogUuids);
   const number = ORDERS_MESSAGES.orderNumber(shortOrderNumber(order.uuid));
   const day = formatFullDay(order.createdAt);
   return (
@@ -75,7 +80,7 @@ export default async function OrderPage({ params }: OrderPageProps): Promise<Rea
         title={<LiveTitle text={number} className={PAGE_TITLE_CLASS} />}
         subtitle={day === null ? undefined : ORDERS_MESSAGES.placedOn(day)}
       />
-      <OrderDetail order={view} reviewableProductUuids={reviewable} />
+      <OrderDetail order={view} reviewableProductUuids={reviewable} photos={photos} />
     </>
   );
 }

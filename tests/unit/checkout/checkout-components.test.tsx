@@ -3,7 +3,7 @@
  * summary priced by the quote, payment follow-up. Hooks are mocked: their own behaviour is
  * covered by `checkout-hooks.test.tsx`.
  */
-import { render, screen, within } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "jest-axe";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -24,6 +24,7 @@ import { OrderStatus } from "@/lib/enums/order";
 import { ShippingProvider, ShippingType } from "@/lib/enums/shipping";
 import type { CartView } from "@/lib/schemas/cart";
 
+import { renderWithProviders, withProviders } from "../../helpers/providers";
 import { fakeUuids } from "../../helpers/products";
 
 const [PRODUCT = "", ORDER = ""] = fakeUuids(2);
@@ -110,7 +111,7 @@ beforeEach(() => {
 describe("CheckoutFlow", () => {
   it("unfolds the steps one at a time and keeps the choices when a step is reopened", async () => {
     const user = userEvent.setup();
-    const { container } = render(
+    const { container } = renderWithProviders(
       <CheckoutFlow
         initialAddress={ADDRESS}
         choices={CHOICES}
@@ -133,7 +134,7 @@ describe("CheckoutFlow", () => {
 
   it("links the error of an empty address field to it", async () => {
     const user = userEvent.setup();
-    render(
+    renderWithProviders(
       <CheckoutFlow
         initialAddress={{ ...ADDRESS, city: "" }}
         choices={CHOICES}
@@ -149,7 +150,7 @@ describe("CheckoutFlow", () => {
 
   it("shows real prices, the estimate label and store pickup disabled", async () => {
     const user = userEvent.setup();
-    render(
+    renderWithProviders(
       <CheckoutFlow
         initialAddress={ADDRESS}
         choices={CHOICES}
@@ -168,7 +169,7 @@ describe("CheckoutFlow", () => {
 
   it("offers the four payment methods and never a card number field", async () => {
     const user = userEvent.setup();
-    render(
+    renderWithProviders(
       <CheckoutFlow
         initialAddress={ADDRESS}
         choices={CHOICES}
@@ -200,7 +201,7 @@ describe("CheckoutFlow", () => {
         hadCustomAddress: true,
       }),
     );
-    render(
+    renderWithProviders(
       <CheckoutFlow
         initialAddress={ADDRESS}
         choices={CHOICES}
@@ -230,7 +231,7 @@ describe("CheckoutFlow — saved card (T083)", () => {
   it("blocks placing without a saved card and offers « Ajouter une carte »", async () => {
     const user = userEvent.setup();
     quoteState.quote = QUOTE;
-    render(
+    renderWithProviders(
       <CheckoutFlow
         initialAddress={ADDRESS}
         choices={CHOICES}
@@ -252,7 +253,7 @@ describe("CheckoutFlow — saved card (T083)", () => {
       kind: PlaceOutcomeKind.FAILED,
       error: new BffError(FrontErrorCode.NO_SAVED_CARD, 404, "test"),
     });
-    render(
+    renderWithProviders(
       <CheckoutFlow
         initialAddress={ADDRESS}
         choices={CHOICES}
@@ -278,7 +279,7 @@ describe("CheckoutFlow — saved card (T083)", () => {
       isDiscountApplied: true,
     };
     placeMock.mockResolvedValue({ kind: PlaceOutcomeKind.DISCOUNT_INVALID });
-    render(
+    renderWithProviders(
       <CheckoutFlow
         initialAddress={ADDRESS}
         choices={CHOICES}
@@ -302,7 +303,7 @@ describe("CheckoutFlow — saved card (T083)", () => {
       isDiscountApplied: true,
     };
     placeMock.mockResolvedValue({ kind: PlaceOutcomeKind.IGNORED });
-    render(
+    renderWithProviders(
       <CheckoutFlow
         initialAddress={ADDRESS}
         choices={CHOICES}
@@ -321,6 +322,7 @@ describe("CheckoutSummary", () => {
   const props = {
     cart: CART,
     showShipping: true,
+    deliveryPromise: "Livré en 3 à 5 jours",
     discountBlock: null,
     needsCard: false,
     quoteError: null,
@@ -331,18 +333,21 @@ describe("CheckoutSummary", () => {
   };
 
   it("shows the quote amounts and enables placing", async () => {
-    const { container } = render(
+    const { container } = renderWithProviders(
       <CheckoutSummary {...props} quote={QUOTE} isStale={false} canPlace />,
     );
     const total = screen.getByTestId("checkout-total");
     expect(total).toHaveTextContent("525,00");
     expect(total).toHaveAttribute("aria-busy", "false");
     expect(screen.getByRole("button", { name: "Valider la commande" })).toBeEnabled();
+    expect(screen.getByTestId("checkout-delivery-promise")).toHaveTextContent(
+      "Livraison : Livré en 3 à 5 jours",
+    );
     expect(await axe(container)).toHaveNoViolations();
   });
 
   it("shows only the subtotal and the discount before a shipping is chosen", () => {
-    render(
+    renderWithProviders(
       <CheckoutSummary
         {...props}
         showShipping={false}
@@ -357,7 +362,9 @@ describe("CheckoutSummary", () => {
   });
 
   it("disables placing and offers « Ajouter une carte » without a saved card", () => {
-    render(<CheckoutSummary {...props} quote={QUOTE} isStale={false} canPlace needsCard />);
+    renderWithProviders(
+      <CheckoutSummary {...props} quote={QUOTE} isStale={false} canPlace needsCard />,
+    );
     expect(screen.getByRole("button", { name: "Valider la commande" })).toBeDisabled();
     expect(screen.getByRole("link", { name: "Ajouter une carte" })).toHaveAttribute(
       "href",
@@ -366,25 +373,27 @@ describe("CheckoutSummary", () => {
   });
 
   it("marks stale amounts as updating and waits before placing", () => {
-    render(<CheckoutSummary {...props} quote={QUOTE} isStale canPlace={false} />);
+    renderWithProviders(<CheckoutSummary {...props} quote={QUOTE} isStale canPlace={false} />);
     expect(screen.getByTestId("checkout-total")).toHaveAttribute("aria-busy", "true");
     expect(screen.getByText("Mise à jour des montants…")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Valider la commande" })).toBeDisabled();
   });
 
   it("shows no amount without a quote, and the error with a retry", () => {
-    const { rerender } = render(
+    const { rerender } = renderWithProviders(
       <CheckoutSummary {...props} quote={undefined} isStale={false} canPlace={false} />,
     );
     expect(screen.queryByTestId("checkout-total")).toBeNull();
     rerender(
-      <CheckoutSummary
-        {...props}
-        quote={undefined}
-        isStale={false}
-        canPlace={false}
-        quoteError="Le service ne répond pas."
-      />,
+      withProviders(
+        <CheckoutSummary
+          {...props}
+          quote={undefined}
+          isStale={false}
+          canPlace={false}
+          quoteError="Le service ne répond pas."
+        />,
+      ).element,
     );
     const alert = screen.getByRole("alert");
     expect(within(alert).getByRole("button", { name: "Réessayer" })).toBeInTheDocument();
@@ -399,14 +408,14 @@ describe("PaymentTracker", () => {
   ])("status %s (timed out: %s) → %s", (status, isTimedOut, text) => {
     statusState.status = status;
     statusState.isTimedOut = isTimedOut;
-    render(<PaymentTracker orderUuid={ORDER} />);
+    renderWithProviders(<PaymentTracker orderUuid={ORDER} />);
     expect(screen.getByRole("status")).toHaveTextContent(text);
     expect(screen.queryByRole("button", { name: "Relancer le paiement" })).toBeNull();
   });
 
   it("offers a retry after a refused payment", async () => {
     statusState.status = OrderStatus.PAYMENT_FAILED;
-    const { container } = render(<PaymentTracker orderUuid={ORDER} />);
+    const { container } = renderWithProviders(<PaymentTracker orderUuid={ORDER} />);
     expect(screen.getByRole("status")).toHaveTextContent("refusé");
     expect(screen.getByRole("button", { name: "Relancer le paiement" })).toBeEnabled();
     expect(await axe(container)).toHaveNoViolations();

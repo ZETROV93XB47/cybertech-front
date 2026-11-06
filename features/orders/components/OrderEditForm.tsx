@@ -12,6 +12,8 @@
 import { BadgePercent } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { MagneticButton } from "@/components/effects/MagneticButton";
+import { PRIMARY_CTA_CLASS } from "@/components/layout/cta";
 import { AddressFields } from "@/features/checkout/components/AddressStep";
 import { PaymentMethodsFieldset } from "@/features/checkout/components/PaymentStep";
 import { ShippingChoicesFieldset } from "@/features/checkout/components/ShippingStep";
@@ -19,6 +21,7 @@ import type { ShippingChoice } from "@/features/checkout/shipping-choices";
 import type { ParsedAddress } from "@/lib/address";
 import { OrderEditActionType } from "@/lib/enums/order";
 import type { OrderResponse } from "@/lib/schemas/order";
+import { cn } from "@/lib/utils";
 
 import { useOrderEditForm, type UseOrderEditFormResult } from "../hooks/useOrderEditForm";
 import { ORDER_EDIT_MESSAGES } from "../messages";
@@ -161,13 +164,16 @@ export function OrderEditForm({
         {form.message}
       </p>
       {form.saved && <EditSavedPanel orderUuid={order.uuid} saved={form.saved} />}
-      <button
-        type="submit"
-        disabled={form.isSaving}
-        className="cta-gradient h-12 self-start rounded-button px-8 font-medium disabled:opacity-40"
-      >
-        {form.isSaving ? ORDER_EDIT_MESSAGES.saving : ORDER_EDIT_MESSAGES.save}
-      </button>
+      <MagneticButton className="self-start">
+        <button
+          type="submit"
+          disabled={form.isSaving}
+          aria-busy={form.isSaving}
+          className={cn(PRIMARY_CTA_CLASS, "disabled:opacity-40")}
+        >
+          {form.isSaving ? ORDER_EDIT_MESSAGES.saving : ORDER_EDIT_MESSAGES.save}
+        </button>
+      </MagneticButton>
     </form>
   );
 }
