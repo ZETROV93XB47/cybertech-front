@@ -509,7 +509,8 @@ User stories :
    - un rappel discret du solde ailleurs : menu du compte (« 1 250 pts ») et page de détail
      d'une commande livrée (« Cette commande t'a rapporté 249 points », depuis l'historique ou
      le calcul déjà fait par le backend, sans recalcul) — à ne garder que si la donnée est
-     disponible sans appel supplémentaire par ligne.
+     disponible sans appel supplémentaire par ligne (loyaltyPointsEarned, demandé au backend :
+     docs/backend/backend-prompts-lot2.md §19.1 ; vérifier avec npm run gen:api).
 
 2. (P1) Utiliser une récompense au checkout (tunnel /checkout existant, features/checkout :
    DiscountBlock, DiscountChooser, discount-selection.ts, useDiscountedQuote, usePlaceOrder,
@@ -545,8 +546,9 @@ User stories :
      petite mention de la récompense ;
    - modification d'une commande payée avec une récompense : la récompense est conservée par
      le backend ; prévenir avant d'enregistrer que passer sous le minimum du palier fait perdre
-     la remise sans rendre les points (remarque backend du 2026-11-16) ; le devis de la
-     modification, s'il existe, fait foi ;
+     la remise sans rendre les points (remarque backend du 2026-11-16) ; si le backend a
+     tranché (§19.2 : refus en 409 ou points rendus), suivre son comportement et retirer
+     l'avertissement ;
    - annulation : la boîte de confirmation précise que les points utilisés seront rendus,
      valables 12 mois.
 
