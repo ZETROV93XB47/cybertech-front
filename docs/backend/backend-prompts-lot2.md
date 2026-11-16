@@ -810,3 +810,64 @@ Mets à jour progress.md, la documentation des événements si elle existe, l'Op
 acceptés par consume-event, 400 et 404, endpoint par lot s'il est fait) et la collection
 Postman.
 ````
+
+---
+
+## 19. Fidélité et alertes de stock : ce qui manque au front
+
+> Rédigé le 2026-11-16 d'après le backend `a73ff77` (relu en lecture seule), en préparant les
+> prompts front §8.1 et §8.3 de `docs/speckit-prompts-lot2.md`. Coller d'abord le §0. Les points
+> 1 et 2 sont prioritaires (feature front 006-loyalty) ; 3 à 5 sont petits ; 6 est optionnel.
+
+````text
+Contexte : le front attaque la page « Mes points », la récompense de fidélité au checkout et
+les alertes de retour en stock. En relisant le contrat livré le 2026-11-07 et le 2026-11-16, il
+lui manque quelques données, et une règle de la modification de commande laisse le client
+perdre des points sans contrepartie.
+
+1. Points gagnés par une commande (OrderResponseDto) :
+   - ajouter loyaltyPointsEarned (Integer, nullable) et loyaltyPointsStatus (enum string
+     PENDING | CREDITED, nullable) : PENDING avec LoyaltyPointsUtils#pointsFor pour une
+     commande PAID / AWAITING_SHIPPING / SHIPPED (même calcul que GET /loyalty/me) ; CREDITED
+     avec les points de la ligne EARN de la commande une fois DELIVERED ; null sinon (non
+     payée, annulée, remboursée, ou 0 point) ;
+   - GET /order/mine ne doit pas faire une requête par commande : charger les lignes EARN de
+     la page en une requête (orderId IN ...) ;
+   - pourquoi : afficher « Cette commande t'a rapporté 249 points » (ou « te rapportera ») sur
+     le détail et la liste, sans que le front recalcule la règle ni relise tout l'historique.
+
+2. Modification d'une commande payée avec une récompense (remarque (1) de progress.md §3,
+   « Récompenses de fidélité ») : aujourd'hui updateOrder ne revérifie pas le minimum du
+   palier ; passer sous 100 € avec GOLD supprime la remise mais garde les 2 500 points
+   dépensés. DÉCISION À ME DEMANDER avant de coder, avec ta recommandation :
+   - option A (proposée) : refuser la modification par 409 LOYALTY_REWARD_MIN_ORDER_NOT_REACHED
+     (même code et même message qu'au devis et à la commande), commande inchangée, aucun
+     paiement ni remboursement ;
+   - option B : accepter, retirer la récompense et rendre les points (REDEEM_CANCELED).
+   Dans les deux cas : test unitaire et cas dans LoyaltyFlowIT, OpenAPI de /order/update.
+
+3. StockAlertResponseDto : ajouter expiresAt (requestedAt + cybertech.stock-alert
+   .expire-after-days), pour que le front n'ait pas à recopier la durée de 90 jours.
+
+4. Documentation de LoyaltyTransactionResponseDto : expiresAt et remainingPoints sont décrits
+   « EARN only », alors qu'un REDEEM_CANCELED est aussi un lot (progress.md, « Lots ») ;
+   corriger les @Schema et l'OpenAPI (aucun changement de comportement).
+
+5. Notification « commande livrée » (piste ouverte de progress.md, « Fidélité, pistes ») :
+   au passage SHIPPED → DELIVERED (DeliverOrderTransactionalDelegate, après commit), un email
+   et un Web Push par navigateur abonné, comme l'expédition :
+   { title: "Commande livrée", body: "Ta commande est livrée : 249 points sont disponibles.",
+     url: "/account/orders/{orderUuid}", orderUuid }. Même forme que les push commande
+   existants : le Service Worker du front n'a rien à changer (même tag order-{uuid}, qui
+   remplace le push « expédiée »). Sans point crédité, le texte ne parle pas de points.
+   NotificationType / Subject / template, tests du handler et du processeur push.
+
+6. (Optionnel) Utilisations restantes d'une campagne : le front n'apprend la limite
+   maxUsesPerUser que par le 409 DISCOUNT_USAGE_LIMIT_REACHED du devis. Si c'est simple, un
+   GET /discounts/active appelé avec un JWT pourrait ajouter remainingUsesForMe (null =
+   illimité) ; sans JWT, la réponse publique reste identique (attention au cache : réponse
+   privée dans ce cas). Sinon, l'écrire dans progress.md §3 et ne rien faire.
+
+Tests (unitaires + IT existants : LoyaltyFlowIT, OrderFlowIT, StockAlertFlowIT), mvnw test
+vert, OpenAPI, Postman, progress.md et PLAN.md, un commit par point (ou un pour 3 et 4).
+````
