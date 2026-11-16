@@ -391,3 +391,313 @@ statique.
   facettes, devis de commande, options de livraison, détail du total des commandes.
 - `quickstart.md` du lot 1 liste les scénarios encore à faire à la main (stock réel à 0,
   20 min de navigation, passage complet au clavier).
+
+---
+
+## 8. Après la feature 005 (backend au 2026-11-16, commit `a73ff77`)
+
+> Mis à jour le 2026-11-16 à partir de `progress.md` et `PLAN.md` du backend. Le découpage du
+> §1 a changé en route : la feature 005 a été le **Web Push** (specs/005-web-push-notifications,
+> terminée hors vérifications manuelles), l'administration n'est pas commencée. Prochaine
+> feature : **006-loyalty** (§8.1). La reprise du Web Push (§8.2) est un correctif court de la
+> feature 005, pas une nouvelle feature. Les features « admin » (§5) et « experience » (§6)
+> prendront les numéros libres suivants (Spec Kit numérote d'après `specs/`).
+> Ordre conseillé : §8.0, §8.2 (court), §8.1, §8.3, §8.4, puis admin et experience.
+
+### 8.0 Rafraîchissement du backend (préalable commun à §8.1 à §8.4)
+
+````text
+Avant de spécifier quoi que ce soit, rafraîchis la connaissance du backend
+(C:\Users\guill\Downloads\cybertech-dev-develop_cybertech, LECTURE SEULE) : il a beaucoup bougé
+depuis la dernière version vérifiée dans docs/backend/api-map.md. Lis la section 1 (SITTREP) et
+la section 2 de son progress.md (entrées du 2026-10-20 au 2026-11-16), son PLAN.md, puis
+docs/stock-alert.md et docs/web-push.md.
+
+1. Backend lancé sur http://localhost:8081 : `npm run gen:api`. Attendu dans lib/api/schema.d.ts :
+   chemins /loyalty/me, /loyalty/me/history, /loyalty/tiers, /stock-alerts/**,
+   /recommendations/unsubscribe/{token} ; champs deliveredAt, loyaltyTierKey,
+   loyaltyPointsSpent (OrderResponseDto), loyaltyTierKey (OrderPlacingRequestDto,
+   OrderQuoteRequestDto), loyaltyTierKey + loyaltyPointsCost (OrderQuoteResponseDto),
+   maxUsesPerUser (DiscountContext), recommendationEmailEnabled (UserResponseDto).
+2. lib/enums/error-code.ts : 9 errorCode du backend manquent, le test de type T020 casse tant
+   qu'ils n'y sont pas. Les ajouter TOUS, avec un mapping dans lib/api/errors.ts :
+   DISCOUNT_USAGE_LIMIT_REACHED (409), LOYALTY_REWARD_NOT_COMBINABLE (400),
+   LOYALTY_TIER_NOT_FOUND (404), INSUFFICIENT_LOYALTY_POINTS (409),
+   LOYALTY_REWARD_MIN_ORDER_NOT_REACHED (409), REVIEW_ALREADY_EXISTS (409),
+   STOCK_ALERT_ALREADY_EXISTS (409), PRODUCT_ALREADY_IN_STOCK (409),
+   RECOMMENDATION_UNSUBSCRIBE_TOKEN_NOT_FOUND (404). Ceux qui ne servent pas encore à une page
+   reçoivent un code front générique, sans texte inventé.
+3. Mets docs/backend/api-map.md à jour (nouveau commit vérifié, §Fidélité, §Alertes de stock,
+   champs ajoutés, §E incohérences, §F manques), puis résume-moi les écarts avant de lancer
+   /speckit-specify.
+````
+
+### 8.1 Prompt `/speckit-specify` — 006-loyalty
+
+````text
+/speckit-specify Feature 006 « Points de fidélité » du front cybertech, même socle que les
+features 001 à 005 (constitution, CLAUDE.md : BFF obligatoire, Zod, zéro magic string, enums
+string, TSDoc, textes au tutoiement dans features/*/messages.ts, thème unique, menus déroulants
+au design « Catalogue », accessibilité AA ; réutiliser PageShell / PageHeader / SectionHeading /
+EmptyState / StateIllustration / RevealGroup et la navigation du compte
+features/account/account-sections.ts). Le backend fait foi (livré le 2026-11-16, commits
+a6a7a8d et a73ff77 ; LoyaltyController, LoyaltyServiceImp, DTO
+dto/response/loyalty/*, OrderQuoteResponseDto, OrderPlacingRequestDto) ; ne jamais inventer
+un endpoint ni recalculer un montant ou un solde côté front.
+
+Règles métier du backend (à reprendre dans la spec, sans les réimplémenter) :
+- 1 point par euro payé sur les produits (après remise, hors frais de port, arrondi inférieur).
+- Points « en attente » tant que la commande payée n'est pas livrée (PAID, AWAITING_SHIPPING,
+  SHIPPED), « disponibles » à DELIVERED. Une commande passe SHIPPED → DELIVERED environ 1 h après
+  l'expédition (job toutes les 10 min) : compter 1 h 40 à 1 h 50 après le paiement. Une
+  commande annulée avant livraison fait simplement disparaître ses points en attente.
+- Les points d'un achat expirent 12 mois après le crédit (lots, les plus anciens dépensés
+  d'abord).
+- 5 paliers actifs, triés par points (seedés, modifiables en base, donc lus, jamais codés en
+  dur) : BRONZE 500 → -5 % ; SILVER 1 000 → -7 % ; GOLD 2 500 → bon de 25 € dès 100 € de
+  produits ; PLATINUM 5 000 → -8 % + livraison offerte ; DIAMOND 10 000 → -10 % + livraison
+  offerte. Utiliser un palier dépense exactement requiredPoints.
+- Une récompense par commande, jamais cumulée avec une campagne de remise.
+
+Endpoints (préfixe /api/v1/services) :
+- GET /loyalty/me (connecté) → { availablePoints, pendingPoints,
+  pendingOrders[{ orderUuid, orderStatus, points }], nextExpiringPoints, nextExpirationAt
+  (LocalDateTime sans fuseau, null sans points disponibles), unlockedTierKeys[], tiers[] }.
+  Un compte qui n'a jamais rien gagné reçoit 200 avec des zéros, pas un 404.
+- GET /loyalty/me/history (connecté) → PagedModel de { uuid, type (EARN | REDEEM |
+  REDEEM_CANCELED | EXPIRE), points (signé), occurredAt, expiresAt et remainingPoints (lots :
+  EARN et REDEEM_CANCELED), orderUuid (null pour EXPIRE), tierKey (REDEEM / REDEEM_CANCELED) },
+  20 par page, tri occurredAt desc.
+- GET /loyalty/tiers (public) → [{ tierKey, label, requiredPoints, percentage, fixedAmount,
+  minOrderAmount, maxDiscountAmount, freeShipping }]. `label` est un texte français du backend :
+  les libellés affichés viennent de features/loyalty/messages.ts (par tierKey), `label` ne sert
+  que de repli pour un palier inconnu du front.
+- POST /management/order/quote et /management/order/place : nouveau champ facultatif
+  loyaltyTierKey. Avec une récompense, discountKey DOIT valoir NO_DISCOUNT. Le devis renvoie
+  alors discountKey = LOYALTY_<tierKey>, loyaltyTierKey, loyaltyPointsCost, discountAmount, et
+  shippingCost = 0 pour un palier « livraison offerte ». Erreurs, identiques au devis et à la
+  commande : 400 LOYALTY_REWARD_NOT_COMBINABLE, 404 LOYALTY_TIER_NOT_FOUND (palier désactivé
+  entre-temps), 409 INSUFFICIENT_LOYALTY_POINTS (points dépensés ou expirés entre-temps), 409
+  LOYALTY_REWARD_MIN_ORDER_NOT_REACHED (GOLD sous 100 € de produits). Les points sont retirés
+  à la création de la commande, et rendus si elle est annulée (par toi ou par le batch d'une
+  commande impayée), remboursée ou supprimée : ils reviennent comme un nouveau lot de 12 mois.
+- OrderResponseDto : deliveredAt, loyaltyTierKey, loyaltyPointsSpent ; discountKey vaut
+  LOYALTY_<tierKey> pour une commande payée avec une récompense (préfixe
+  LOYALTY_REWARD_DISCOUNT_KEY_PREFIX du backend : le reprendre en constante front, et ne
+  jamais afficher cette clé brute ni la chercher parmi les campagnes de GET /discounts/active).
+
+User stories :
+
+1. (P1) Page « Mes points » (/account/points, nouvelle entrée de la navigation du compte, icône
+   lucide) :
+   - en tête : points disponibles (grand chiffre doré en JetBrains Mono, compteur qui monte à
+     l'affichage, version statique sans animation), points en attente, prochaine expiration
+     (« 300 points expirent le 12 novembre 2027 », masqué sans points disponibles) ;
+   - progression vers le palier suivant : barre qui se remplit, « Encore 1 250 points pour
+     Or », paliers débloqués marqués (unlockedTierKeys) ; tous les paliers en cartes avec leur
+     avantage décrit en clair depuis les champs (pourcentage, bon et son minimum, plafond,
+     livraison offerte), jamais depuis une liste codée en dur ;
+   - points en attente par commande : lien vers la commande (orderPath), statut
+     (OrderStatusBadge existant), points, et l'explication « disponibles à la livraison » ;
+   - historique paginé (pagination existante des commandes) : type en libellé humain (gagnés,
+     utilisés, rendus, expirés), points signés colorés (gain / perte, jamais en rouge agressif),
+     date, lien vers la commande quand orderUuid existe, palier utilisé, reste et expiration
+     d'un lot ;
+   - états : chargement (skeleton-shimmer), aucun point et aucun historique (StateIllustration
+     + « Passe ta première commande pour gagner des points », lien catalogue), erreur backend
+     avec réessai ; dates affichées en Europe/Paris ;
+   - un rappel discret du solde ailleurs : menu du compte (« 1 250 pts ») et page de détail
+     d'une commande livrée (« Cette commande t'a rapporté 249 points », depuis l'historique ou
+     le calcul déjà fait par le backend, sans recalcul) — à ne garder que si la donnée est
+     disponible sans appel supplémentaire par ligne.
+
+2. (P1) Utiliser une récompense au checkout (tunnel /checkout existant, features/checkout :
+   DiscountBlock, DiscountChooser, discount-selection.ts, useDiscountedQuote, usePlaceOrder,
+   CheckoutSummary) :
+   - un bloc « Utiliser mes points » à côté du bloc réduction, alimenté par GET /loyalty/me :
+     les paliers débloqués se choisissent (liste au design « Catalogue », barre dorée sur le
+     choix, option « Ne pas utiliser de points »), les autres sont visibles mais désactivés avec
+     les points qui manquent ; solde affiché ;
+   - exclusivité, côté interface ET requête : choisir une récompense désactive le champ et la
+     liste de réduction (texte « Une récompense ne se cumule pas avec une réduction »), et
+     inversement ; une réduction déjà appliquée est retirée en le disant ; la requête n'envoie
+     jamais discountKey ≠ NO_DISCOUNT avec loyaltyTierKey (le 400 ne doit jamais arriver) ;
+   - nouveau devis à chaque choix (requête annulée si une autre part, comme aujourd'hui) ; le
+     récapitulatif affiche les montants du devis : remise « Récompense Or », frais de port
+     barrés « offerts » quand shippingCost = 0 grâce au palier, et « −2 500 points » à côté du
+     total ; le reste du solde après commande ;
+   - erreurs du devis et de la commande traduites dans features/checkout/messages.ts :
+     minimum non atteint (« Ajoute 12,40 € de produits pour utiliser ce bon », montant tiré de
+     minOrderAmount et du sous-total du devis), points insuffisants (solde relu, choix retiré),
+     palier indisponible (liste relue) ; aucune n'efface le panier ni l'adresse saisie ;
+   - au passage, mapper DISCOUNT_USAGE_LIMIT_REACHED (409 au devis et à la commande : « Tu as
+     déjà utilisé cette réduction ») dans le même bloc d'erreurs, et afficher maxUsesPerUser sur
+     les cartes de /promotions quand il est renseigné (« 1 utilisation par client ») ;
+   - le choix survit à un rechargement du tunnel comme le reste du brouillon
+     (checkout-draft.ts), revalidé par Zod et contre le solde relu ;
+   - visiteur : rien ne change, le bloc n'apparaît qu'une fois connecté (la fusion du panier
+     invité est déjà en place).
+
+3. (P2) La récompense sur mes commandes (features/orders) :
+   - détail d'une commande : ligne de remise « Récompense Or (2 500 points) » au lieu de la clé
+     LOYALTY_GOLD, livraison offerte, date de livraison réelle (deliveredAt) dans la frise
+     OrderTimeline à la place de la date estimée une fois livrée ; liste des commandes :
+     petite mention de la récompense ;
+   - modification d'une commande payée avec une récompense : la récompense est conservée par
+     le backend ; prévenir avant d'enregistrer que passer sous le minimum du palier fait perdre
+     la remise sans rendre les points (remarque backend du 2026-11-16) ; le devis de la
+     modification, s'il existe, fait foi ;
+   - annulation : la boîte de confirmation précise que les points utilisés seront rendus,
+     valables 12 mois.
+
+Hors périmètre (à lister dans la spec) : administration des paliers (pas d'endpoint admin),
+notification « commande livrée » (le backend n'en envoie pas), retrait de points après un
+retour (pas de flux de retour), cumul récompense + campagne.
+
+Vérification réelle (à décrire dans quickstart.md) : une commande payée apparaît en attente
+dans « Mes points », puis disponible après le passage à DELIVERED (attendre le job, ou baisser
+cybertech.shipping.delivery-delay dans le backend local, que je lance moi-même) ; un compte de
+test avec assez de points pour GOLD (à créditer via des commandes livrées, ou en SQL sur la base
+locale si je le valide) passe une commande avec la récompense : devis = total débité, points
+retirés, historique REDEEM ; annulation → REDEEM_CANCELED et solde rendu.
+Terminer par la phase « Interface vivante et cohérente » (§6) sur /account/points, le bloc
+récompense du checkout et le détail de commande.
+````
+
+### 8.2 Prompt — Web Push : reprise de la feature 005
+
+````text
+Reprise courte de la feature 005 Web Push (specs/005-web-push-notifications), sans nouvelle
+spec : ajoute à son spec.md une exigence, à contracts/bff-routes.md §6 le nouveau message, et à
+tasks.md une phase « Suivi du 2026-11-16 », puis implémente-la. Même socle (constitution,
+CLAUDE.md). Backend en lecture seule : docs/stock-alert.md, docs/web-push.md,
+WebPushDeliveryServiceImp, PushNotificationProcessor.
+
+Ce qui a changé côté backend depuis la feature 005 :
+- Nouveau push « De nouveau disponible » envoyé par le job STOCK_ALERT_JOB à chaque navigateur
+  abonné d'un utilisateur qui a demandé une alerte de retour en stock :
+  { title: "De nouveau disponible", body: "<produit> est de nouveau en stock.",
+    url: "/products/{productUuid}", productUuid } — SANS orderUuid.
+  Aujourd'hui public/sw-core.js (parsePushMessage) exige un orderUuid : ce message est jeté en
+  silence. Les push commande (« Paiement confirmé », « Commande expédiée ») sont inchangés.
+- Les clés VAPID du backend local sont maintenant dans son fichier .env.local (gitignoré,
+  WEB_PUSH_PUBLIC_KEY / WEB_PUSH_PRIVATE_KEY, modèle .env.local.example), plus en variables
+  IntelliJ ni dans Vault (supprimé du projet).
+
+Travail demandé :
+1. public/sw-core.js : un message est valide avec SOIT un orderUuid, SOIT un productUuid (UUID
+   tous les deux), title et url non vides, body chaîne. Tag : `order-{uuid}` pour une commande
+   (inchangé), `product-{uuid}` pour un produit (nouvelle constante, reprise dans
+   lib/constants/push.ts et vérifiée par tests/unit/push/sw-core.test.ts comme les autres) :
+   deux alertes de produits différents ne se remplacent pas, deux alertes du même produit si.
+   Un message avec les deux identifiants ou aucun est refusé. Le contrôle de l'URL de clic
+   (safeNotificationPath) ne change pas ; vérifier que /products/{uuid} correspond bien à la
+   route app/(shop)/products/[uuid].
+2. Types JSDoc et TSDoc à jour (PushMessage devient une union commande | produit), sans `any`.
+3. Tests Vitest : message produit valide, tag produit, les deux identifiants → refusé, aucun →
+   refusé, productUuid non-UUID → refusé, message commande inchangé (non-régression).
+4. README / quickstart de la feature 005 : clés VAPID dans le .env.local du backend ;
+   nouvelle étape de vérification manuelle du push produit.
+5. Hors périmètre de cette reprise (à noter, pas à faire) : le bouton « M'alerter du retour en
+   stock » sur une fiche en rupture et la page « Mes alertes » (POST / DELETE
+   /stock-alerts/{productUuid}, GET /stock-alerts/mine ; 409 PRODUCT_ALREADY_IN_STOCK et
+   STOCK_ALERT_ALREADY_EXISTS). Sans ce bouton, aucun utilisateur ne peut encore recevoir le
+   push produit : il sera vérifié de bout en bout avec cette future feature.
+
+Vérifications manuelles restées ouvertes (quickstart 005 §3, §4.2, §4.4, §5.3), à me rappeler
+en fin de session sans les cocher à ma place : réception réelle dans mon Chrome et clic qui
+ouvre la commande ; interrupteur coupé → aucune notification après un paiement ; blocage dans
+les paramètres du site ; déconnexion en moins de 3 s avec le backend coupé.
+
+Fini quand typecheck, lint (0 warning) et test passent, que les exports sont documentés et que
+tasks.md est coché.
+````
+
+### 8.3 Prompt `/speckit-specify` — alertes de retour en stock
+
+> À lancer après §8.2 (le Service Worker doit déjà accepter le push produit).
+
+````text
+/speckit-specify Feature « Alertes de retour en stock » du front cybertech, même socle que les
+features précédentes (constitution, CLAUDE.md, BFF, Zod, messages FR au tutoiement, thème
+unique, menus au design « Catalogue », AA). Backend livré le 2026-11-07, lecture seule :
+docs/stock-alert.md, StockAlertController, StockAlertResponseDto.
+
+Contrat (préfixe /api/v1/services, connecté) :
+- POST /stock-alerts/{productUuid} → 201 { uuid, product (ProductResponseDto), status,
+  requestedAt } ; 404 PRODUCT_NOT_FOUND ; 409 PRODUCT_ALREADY_IN_STOCK (le produit est revenu
+  entre-temps) ; 409 STOCK_ALERT_ALREADY_EXISTS (à traiter comme un succès : l'alerte existe).
+- DELETE /stock-alerts/{productUuid} → 204, idempotent.
+- GET /stock-alerts/mine → PagedModel des alertes EN ATTENTE (20 par page, requestedAt desc).
+- « Disponible » = stock − réservé > 0 (même définition que GET /product/availability). Le job
+  passe toutes les 10 min : email + Web Push « De nouveau disponible » (url /products/{uuid})
+  puis l'alerte est close (une alerte = un envoi). Sans retour en stock, elle expire après
+  90 jours. Tous les abonnés sont prévenus, même s'il ne revient qu'une unité.
+
+User stories :
+1. (P1) Bouton « M'alerter du retour en stock » sur la fiche d'un produit en rupture (à la
+   place de l'ajout au panier désactivé, AvailabilityBadge / AddToCartButton existants) et sur
+   la carte produit en rupture : visiteur → connexion puis rejeu de l'action (même mécanisme
+   que le panier et la wishlist) ; état « Alerte activée · Annuler » ; 409
+   PRODUCT_ALREADY_IN_STOCK → rafraîchir la disponibilité et proposer l'ajout au panier.
+   L'état initial se lit depuis GET /stock-alerts/mine (une seule requête par page, mise en
+   cache TanStack, pas un appel par carte).
+2. (P1) Page « Mes alertes » (/account/alerts, entrée de la navigation du compte) : produits
+   attendus (cartes produit existantes, date de la demande, « expire le … » = requestedAt +
+   90 jours, constante documentée), retrait d'une alerte avec mise à jour optimiste,
+   pagination, état vide illustré.
+3. (P2) Lien avec les notifications : après l'activation d'une alerte, si le navigateur n'est
+   pas abonné au Web Push et qu'il le supporte, proposer « Sois aussi prévenu sur ce
+   navigateur » (activation existante de features/notifications, jamais de demande de
+   permission sans clic). L'email part de toute façon.
+
+Vérification réelle (quickstart) : produit mis à 0 par l'admin (backend local), alerte depuis
+la fiche, stock remis, attendre le job : email dans Mailpit, push produit reçu, clic qui ouvre
+la fiche, alerte disparue de « Mes alertes ». Terminer par la phase « Interface vivante et
+cohérente » (§6).
+````
+
+### 8.4 Prompt `/speckit-specify` — recommandations et email de suggestions
+
+````text
+/speckit-specify Feature « Recommandations » du front cybertech (reprend la story 3 et la story
+4 du §4 de docs/speckit-prompts-lot2.md, jamais livrées, mises à jour d'après le backend du
+2026-10-22 et du 2026-11-07 : docs/recommendation-events.md, RecommendationController,
+UserEventController, UserEventDto). Même socle que les features précédentes.
+
+Ce qui a changé côté backend : il produit LUI-MÊME les signaux PURCHASE, ADD_TO_CART,
+REMOVE_FROM_CART, WISHLIST_ADD, RATING_* et REVIEW_* ; le front ne doit plus les envoyer (400
+avec fieldErrors[eventType]). Seuls les signaux du navigateur restent acceptés : VIEW, CLICK,
+COMPARE, SEARCH_RESULT_CLICK, SCROLL_DEPTH_HIGH, HOVER, SEARCH_QUERY, IGNORE_RECOMMENDATION,
+BOUNCE.
+
+User stories :
+1. (P1) Bloc « Pour toi » sur l'accueil d'un utilisateur connecté
+   (GET /recommendations/my-recommendations?n=, liste de ProductResponseDto), cartes produit
+   existantes ; repli silencieux sur le contenu actuel si la liste est vide ou en erreur. Ne
+   pas promettre de recommandations « en direct » : Gorse apprend par lots.
+2. (P1) Signaux du navigateur, via UNE route BFF qui groupe : VIEW à l'ouverture d'une fiche
+   (RecordProductView existe déjà pour les produits consultés), COMPARE à l'ajout au
+   comparateur, SEARCH_RESULT_CLICK au clic sur un résultat de recherche (⌘K et catalogue).
+   Envoi par lots vers POST /events/consume-events (1 à 50 événements, 201 { accepted,
+   ignored }), sendBeacon / visibilitychange pour ne rien perdre en quittant, jamais bloquant ;
+   rôle USER seulement (rien pour un visiteur) ; productId obligatoire ; sessionId aléatoire
+   par onglet, sans donnée personnelle ; 429 (120/min/utilisateur) → on abandonne le lot, sans
+   réessayer en boucle. Écrire dans la spec ce qui est collecté (transparence).
+3. (P1) Email quotidien de suggestions :
+   - page publique /unsubscribe/recommendations?token=… (lien de chaque email, chemin fixé
+     par cybertech.recommendation.digest.unsubscribe-path) : le POST ne part qu'après un clic
+     sur « Me désinscrire » (un lien d'email ne doit pas désinscrire au simple chargement, les
+     antivirus de messagerie ouvrent les liens) ; 204 → confirmation ; 404
+     RECOMMENDATION_UNSUBSCRIBE_TOKEN_NOT_FOUND → « lien invalide ou déjà utilisé » ; 400 →
+     même message ; lien vers le profil pour se réabonner ;
+   - profil : case « Recevoir mes suggestions par email » (recommendationEmailEnabled de
+     GET /user/me, PATCH /user/me), avec un texte qui dit ce que contient l'email (6 produits,
+     au plus un par jour).
+
+Vérification réelle : backend local avec RECOMMENDATION_DIGEST_JOB_ACTIVATED=true et un cron
+rapproché (je le règle moi-même) ; email lu dans Mailpit, lien produit qui ouvre la bonne
+fiche, lien de désinscription qui coche bien la case du profil ; événements visibles dans
+MongoDB (userEventsDB.user_events, sessionId du navigateur). Terminer par la phase
+« Interface vivante et cohérente » (§6).
+````
