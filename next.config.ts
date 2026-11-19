@@ -45,6 +45,10 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // The project guidance for coding agents lives in CLAUDE.md; no generated AGENTS.md.
   agentRules: false,
+  experimental: {
+    // Lets coding agents apply Next.js security upgrades (security advisories only).
+    agentUpgrade: "security",
+  },
   // pino relies on worker threads and dynamic requires; bundling it breaks its transports.
   serverExternalPackages: ["pino", "pino-pretty"],
   images: {
